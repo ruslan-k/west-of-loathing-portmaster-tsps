@@ -468,6 +468,33 @@
       "rss_kib": 700148,
       "frames_presented": 120,
       "submits": 9
+    },
+    {
+      "run": "device-44",
+      "stop": "CPU_FAULT",
+      "stop_pc": "0x556bc99abc",
+      "rss_kib": 687060,
+      "frames_presented": 120,
+      "submits": 9,
+      "diagnostic_crash": 1
+    },
+    {
+      "run": "device-45",
+      "stop": "T2_MEMORY_FLOOR",
+      "stop_pc": "0x0",
+      "rss_kib": 682160,
+      "frames_presented": 33,
+      "submits": 8,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-46",
+      "stop": "T2_MEMORY_FLOOR",
+      "stop_pc": "0x0",
+      "rss_kib": 680460,
+      "frames_presented": 33,
+      "submits": 8,
+      "diagnostic_crash": 0
     }
   ]
 }

@@ -247,3 +247,28 @@ attribute and varying space addressed as slot `0xNN>>4`, component `(0xNN>>2)&3`
 decoded yet), (2) the 33 SASS lines envydis does not decode (they carry the position stores and part of
 the varying writes), (3) the TEX operand roles, (4) the fragment tail. Everything unresolved is a TODO in
 the file; nothing is invented to fill a gap.
+
+### Runs 44-46: the diagnostic crash is gone; the stop is honest again
+
+The crash that replaced the real stop in runs 41/43 was **two bugs in the fault path, both in the early
+return of the signal handler** (`loader.c`):
+
+1. `signal_dispatch()` publishes the *live* signal frame as the thread-local `current_guest_context`, and
+   the `sig != SIGTRAP` early return never restored the previous value - so every later `stop()` traced a
+   **stale frame**. That is exactly the hybrid context seen in the logs (guest registers such as
+   `main.text.seg+0xaf2d14` with host `pc`/`lr`) and the SIGSEGV at `trace_frames.isra.0+0x74` when that
+   memory was no longer usable.
+2. The same early return never decremented `signal_handler_depth`, so the process believed a handler was
+   still running and skipped later traces.
+
+Additionally the stall census walked *other* threads' stored kernel contexts, whose host stacks may already
+be released; it now only walks the calling thread's own context (the stall fields keep their value).
+
+| Run | Result |
+|----|--------|
+| 45, 46 | **Two consecutive runs with a clean, controlled stop**: `T2_MEMORY_FLOOR` (available 136/134 MiB against the restored conservative 140 MiB floor), exit 26, zero `CPU_FAULT`, zero tracer crashes. |
+
+This satisfies the review's acceptance criterion for the crash item ("several consecutive tests with a
+clean exit or an unambiguous controlled stop, with no crash of the diagnostic code"). The honest limit is
+now visible instead of hidden: the title's resident set no longer fits under the conservative floor, and
+that is the next problem to attack - not a broken reporter.
