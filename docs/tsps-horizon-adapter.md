@@ -308,3 +308,24 @@ This also corrected the attribute-space reading: in this SDK's SASS the **input 
 numbers without the base). The decoded `ld`/`st` samples also expose the encoding of that space (byte 0 = the
 slot, byte 1's high nibble = the component: `st a[0x70]` = varying 7.x, `st a[0x84]` = varying 8.y), which is
 what the remaining undecoded lines will be read with - mechanically, against those five known samples.
+
+### Runs 47-50: the translated pair compiles and links on the device driver
+
+The hand translation of the first pair lives inside the runtime (nvn_shaders.h, `wol_pair_*_glsl`) and a
+`WOL_PAIR_CHECK=1` startup check compiles and links it at the first placeholder bind, reporting the driver's
+own verdict. That check found a real, otherwise invisible defect and then confirmed the fix:
+
+```
+# first attempt
+WOL_PAIR_COMPILE stage=vertex ok=1 log=
+WOL_PAIR_COMPILE stage=fragment ok=1 log=
+WOL_PAIR_COMPILE stage=link ok=0 log=L0001 The fragment array variable c3 does not match the vertex variable c3.
+# after declaring the shared array `uniform highp float c3[96]` in the fragment
+WOL_PAIR_COMPILE stage=vertex ok=1 log=
+WOL_PAIR_COMPILE stage=fragment ok=1 log=
+WOL_PAIR_COMPILE stage=link ok=1 log=
+```
+
+Both stages compile and the program links on the Mali driver of the device. Nothing is drawn with it yet -
+the draw is still the logged placeholder, and that is the next step together with the uniform feed from the
+recorded constant bank and the window blit.
