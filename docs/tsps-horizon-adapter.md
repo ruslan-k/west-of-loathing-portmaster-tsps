@@ -399,3 +399,18 @@ bank feed, blit) is in place and each new pair is a mechanical repetition of the
   boot behaviour, not only a translation gap.
 - The per-frame pace is limited by the memory floor (42 frames at the 64 MiB floor) and by the diagnostic
   volume; the long run that follows uses a 32 MiB floor and a 900 s budget to see how far the boot gets.
+
+### Run 66: the pipeline runs 120 frames and the title's own black-frame guard stops it
+
+With the diagnostic memory floor at 32 MiB and a 900 s budget the run went to **120 presented frames** and then
+stopped on `NVN_PRESENT_BLACK` (the runtime refuses to keep presenting black frames - detail 0x78 = exactly the
+120th). Not memory, not a crash: the title's frames are still black, and that is now the single remaining
+question, with two named causes:
+
+1. the ~40 boot frames are black in the game itself (no sprite textures are uploaded yet - measured), and
+2. only one of the frame's three program pairs is translated; the other two still draw nothing.
+
+The two remaining pairs are prepared for translation: their code and control blobs are fetched and
+hash-verified in the private workspace (`v189`/`v266` share vertex code `d88c64a6`, fragments `f191` and
+`f268`), and the shared vertex pair's space map is decoded (three inputs of 12+4+8 bytes matching the
+measured stride 24, four varyings with varying 7 as the clip position).
