@@ -460,6 +460,14 @@
       "rss_kib": 706696,
       "frames_presented": 120,
       "submits": 9
+    },
+    {
+      "run": "device-43",
+      "stop": "CPU_FAULT",
+      "stop_pc": "0x557dea9abc",
+      "rss_kib": 700148,
+      "frames_presented": 120,
+      "submits": 9
     }
   ]
 }

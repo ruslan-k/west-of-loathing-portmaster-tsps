@@ -175,3 +175,19 @@ the device has ~1 GiB, and the title keeps its bundles resident.
 | 42 | tracer hardening (`accessible()` guard on lr and each frame) | The tracer now prints `unmapped` instead of dying on guest addresses, and the remaining host fault is localised: `trace_frames` is also called with a **host** fault context, where its module lookup walks host addresses (`pc` offset 0x19abc in the binary, resolved offline with the cross toolchain as `trace_frames.isra.0`). |
 
 Notable runtime fact for the memory work: `T2_MEMWATCH` documents its own guard - `floor-MiB=140 swap-floor-MiB=16 texture-budget-MiB=420 reason=gpu-memory-is-invisible-to-vmrss`.
+
+### Run 43: the guest compactor does nothing for this title, and the crash is a bridge
+
+- `T2_GUEST_ZRAM=1` with `T2_GZRAM_TARGET_MIB=400 T2_GZRAM_STATS_MS=1000 T2_GZRAM_POOLS=0`: the compactor
+  reports `compressions=0 faults=0 restores=0 scans=0 saved-MiB=0.0` for the whole run with
+  `scope=alias_physical` - Unity's memory is not in the areas it can compress, so this lever is **falsified
+  for this title** (measured, not assumed; the reviewer asked exactly this).
+- The frame tracer guards hold: every stop now prints guest traces (`GUEST_FRAMES ... <- unmapped`)
+  instead of dying in the tracer.
+- The host crash that replaces the report is localised: the faulting register dump is a **bridge context**
+  (guest x28 = `main.text.seg+0xaf2d14`, the `nvnQueuePresentTexture` call site) with host `pc`/`lr` at
+  offsets 0x19a8c/0x19abc of the binary. In other words the runtime dies inside a reimplemented SDK
+  bridge called from the present path, and the stop report only ever shows the crash, not its cause.
+  Next: name that function from the symbol table and fix it so the real stop surfaces.
+- Launcher: CPU online state is now captured per cpu and restored on exit (runs had left 0-3 permanently
+  online); guest zram settings are env-reversible (`WOL_GUEST_ZRAM=0`).
