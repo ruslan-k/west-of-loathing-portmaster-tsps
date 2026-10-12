@@ -236,3 +236,14 @@ constant bank c3 offsets, attribute slots 8/9, one sampler, one interpolated UV 
 
 Next: write that GLSL ES pair, key it by (code SHA + control SHA), and let the first draw use it instead of a
 placeholder - the first pixels that actually come from the game's own draw.
+
+### Translation draft: what is measured, what is still open
+
+`docs/shader-draft/f309b86a+f08bad2f.draft.glsl` transcribes every **decoded** SASS statement of the pair
+one-to-one (constant bank 3 as `uniform float c3[]` so `c3[0xNN>>2]` is the exact u32 at byte 0xNN;
+attribute and varying space addressed as slot `0xNN>>4`, component `(0xNN>>2)&3`). It is deliberately
+**not wired to a draw**: four measurements are still missing before a translation may claim correctness -
+(1) the attribute component order (the guest vertex-attrib state object is the source of truth and is not
+decoded yet), (2) the 33 SASS lines envydis does not decode (they carry the position stores and part of
+the varying writes), (3) the TEX operand roles, (4) the fragment tail. Everything unresolved is a TODO in
+the file; nothing is invented to fill a gap.
