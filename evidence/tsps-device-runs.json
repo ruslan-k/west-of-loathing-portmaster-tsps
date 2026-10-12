@@ -8,10 +8,10 @@
       "rss_kib": 157812,
       "programs": 0,
       "textures": 0,
-      "log_bytes": 37015,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-02",
@@ -20,10 +20,10 @@
       "rss_kib": 158748,
       "programs": 0,
       "textures": 0,
-      "log_bytes": 38114,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-03",
@@ -32,10 +32,10 @@
       "rss_kib": 158744,
       "programs": 0,
       "textures": 0,
-      "log_bytes": 45712,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-04",
@@ -44,10 +44,10 @@
       "rss_kib": 158840,
       "programs": 0,
       "textures": 0,
-      "log_bytes": 45743,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-05",
@@ -56,10 +56,10 @@
       "rss_kib": 159040,
       "programs": 0,
       "textures": 0,
-      "log_bytes": 47174,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-06",
@@ -68,10 +68,10 @@
       "rss_kib": 159036,
       "programs": 1,
       "textures": 0,
-      "log_bytes": 47334,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-07",
@@ -80,10 +80,10 @@
       "rss_kib": 159224,
       "programs": 12,
       "textures": 0,
-      "log_bytes": 58120,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-08",
@@ -92,10 +92,10 @@
       "rss_kib": 159096,
       "programs": 12,
       "textures": 0,
-      "log_bytes": 60689,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-09",
@@ -104,10 +104,10 @@
       "rss_kib": 159448,
       "programs": 12,
       "textures": 0,
-      "log_bytes": 64418,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-10",
@@ -116,10 +116,10 @@
       "rss_kib": 219396,
       "programs": 12,
       "textures": 4,
-      "log_bytes": 73446,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-11",
@@ -128,10 +128,10 @@
       "rss_kib": 221704,
       "programs": 16,
       "textures": 5,
-      "log_bytes": 107523,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-13",
@@ -140,10 +140,10 @@
       "rss_kib": 221964,
       "programs": 16,
       "textures": 14,
-      "log_bytes": 118779,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-14",
@@ -152,10 +152,10 @@
       "rss_kib": 233604,
       "programs": 18,
       "textures": 22,
-      "log_bytes": 161081,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-15",
@@ -164,10 +164,10 @@
       "rss_kib": 233532,
       "programs": 18,
       "textures": 22,
-      "log_bytes": 172674,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-16",
@@ -176,10 +176,10 @@
       "rss_kib": 233544,
       "programs": 18,
       "textures": 22,
-      "log_bytes": 167503,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-17",
@@ -188,10 +188,10 @@
       "rss_kib": 233380,
       "programs": 18,
       "textures": 22,
-      "log_bytes": 172201,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-18",
@@ -200,10 +200,10 @@
       "rss_kib": 233496,
       "programs": 18,
       "textures": 22,
-      "log_bytes": 163198,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-19",
@@ -212,10 +212,10 @@
       "rss_kib": 233760,
       "programs": 18,
       "textures": 22,
-      "log_bytes": 163025,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-20",
@@ -224,10 +224,10 @@
       "rss_kib": 234492,
       "programs": 18,
       "textures": 22,
-      "log_bytes": 161715,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-21",
@@ -236,10 +236,10 @@
       "rss_kib": 213644,
       "programs": 116,
       "textures": 23,
-      "log_bytes": 256233,
-      "has_submit": false,
-      "msaa_downgrades": 0,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-22",
@@ -248,10 +248,10 @@
       "rss_kib": 298324,
       "programs": 116,
       "textures": 32,
-      "log_bytes": 295259,
-      "has_submit": false,
-      "msaa_downgrades": 4,
-      "downsample_placeholders": 0
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
     },
     {
       "run": "device-23",
@@ -260,10 +260,106 @@
       "rss_kib": 302076,
       "programs": 116,
       "textures": 33,
-      "log_bytes": 311816,
-      "has_submit": true,
-      "msaa_downgrades": 4,
-      "downsample_placeholders": 3
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-24",
+      "stop": "ZERO_BC_MIP_STORAGE",
+      "stop_pc": "main.text.seg+0xaf6518",
+      "rss_kib": 232488,
+      "programs": 18,
+      "textures": 21,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-25",
+      "stop": "NVN_PROGRAM_INVALID",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 303980,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 0,
+      "bc_uploads": 8,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-26",
+      "stop": "ZERO_TEXTURE_COPY_FORMAT_REQUIRED",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 327436,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 0,
+      "bc_uploads": 8,
+      "draws_skipped_logged": 1,
+      "color_copies": 0
+    },
+    {
+      "run": "device-27",
+      "stop": "WOL_COLOR_COPY_CONTRACT",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 325568,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 0,
+      "bc_uploads": 8,
+      "draws_skipped_logged": 1,
+      "color_copies": 0
+    },
+    {
+      "run": "device-28",
+      "stop": "WOL_COLOR_COPY_CONTRACT",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 323580,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 0,
+      "bc_uploads": 8,
+      "draws_skipped_logged": 1,
+      "color_copies": 0
+    },
+    {
+      "run": "device-29",
+      "stop": "WOL_COLOR_COPY_REGION",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 316204,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 0,
+      "bc_uploads": 8,
+      "draws_skipped_logged": 1,
+      "color_copies": 0
+    },
+    {
+      "run": "device-30",
+      "stop": "WOL_COLOR_COPY_REGION",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 315972,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 0,
+      "bc_uploads": 8,
+      "draws_skipped_logged": 1,
+      "color_copies": 0
+    },
+    {
+      "run": "device-31",
+      "stop": "NVN_QUEUE_CONTEXT",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 327180,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 1,
+      "bc_uploads": 8,
+      "draws_skipped_logged": 6,
+      "color_copies": 1
     }
   ]
 }

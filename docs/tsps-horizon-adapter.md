@@ -106,3 +106,28 @@ and RSS of each run; the per-run logs live in `evidence/device-NN/`.
   programme, (3) then re-check the downsample as a real blit and, only after that, claim a frame.
 
 **Nothing in this document claims a rendered frame, playable launch, input or audio.**
+
+### Runs 24-31: the first frame reaches the panel
+
+| Run | Stop | What happened |
+|----|------|----------------|
+| 24-25 | `ZERO_BC_MIP_STORAGE` | The compressed upload path needed this title's 2D target set (targets 1/2/4 all occur here) and the measured target is now logged once per texture (`WOL_BC_PIXELS`) instead of assumed. |
+| 26 | `NVN_PROGRAM_INVALID` | Draws resolved programs that the placeholder binds never recorded. Placeholder draws are now counted and skipped (`WOL_DRAW_PLACEHOLDER`, mode 4 count 6 = Unity quads) so the recorded frame stays replayable. |
+| 27-30 | `ZERO_TEXTURE_COPY_FORMAT_REQUIRED` / `WOL_COLOR_COPY_*` | Colour texture-to-texture copies (RGBA8, one level) are storage byte copies with the host copy following on refresh; the log proved the real shape: a 1280x720 region copied 1:1 out of the 1920x1080 render target. A differing-extent case falls back to a logged box-average resample until a translated blit shader exists. |
+| **31** | `NVN_QUEUE_CONTEXT` (EGL_BAD_SURFACE) on the second submit | **The first frame was presented**: record (182 then 157 commands) -> submit -> replay -> window swap -> `NVN_PRESENT_PIXELS frame=1 status=BLACK-SAMPLE`. The picture is black because every draw is still a placeholder; the pixel probe reports exactly that instead of claiming content. |
+
+### Where the picture must come from now
+
+The pipeline is complete end to end with one honest hole: **no program is translated**, so every draw is
+skipped and the frame is black by construction. Translating the first vertex/fragment pair and replacing
+the placeholders program by program is the actual path to a picture; the downsample, the box-average
+resample and the MSAA downgrade are all downstream of that and revisit with the real blit.
+
+Next engineering steps, in order:
+
+1. Fix the second-submit `EGL_BAD_SURFACE` (the present path and the queue path disagree about which
+   surface owns the context after a swap).
+2. Translate the first shader pair: pick the pair actually used by the first drawn quad from the
+   inventory, write the GLSL ES translation into the catalogue, and re-run until the documented stop
+   moves past the draw.
+3. Only then revisit quality items (real downsample blit, real MSAA, filtered scaling).
