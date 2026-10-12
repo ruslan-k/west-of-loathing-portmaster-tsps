@@ -661,6 +661,24 @@
       "presents": 146,
       "nonblack_presents": 0,
       "arena_resizes": 0
+    },
+    {
+      "run": "device-69",
+      "stop": "NVN_COMMAND_ARENA_OVERLAP",
+      "presents": 146,
+      "arena_retired": 0
+    },
+    {
+      "run": "device-70",
+      "stop": "NVN_GUEST_POINTER",
+      "presents": 146,
+      "arena_retired": 0
+    },
+    {
+      "run": "device-71",
+      "stop": "NVN_GUEST_POINTER",
+      "presents": 146,
+      "arena_retired": 1
     }
   ]
 }
