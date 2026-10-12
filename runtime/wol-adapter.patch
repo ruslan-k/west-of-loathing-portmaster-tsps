@@ -10,6 +10,43 @@
      -DMESA_EGL_NO_X11_HEADERS -fno-strict-aliasing -pthread -I"$1" \
      -I"$COTM_NXAUDIO_DIR" -I"$COTM_NXINPUT_DIR/include" \
      -I"$COTM_NXINPUT_DIR/engine-glue" -I"$COTM_NXCOMPAT_DIR/include" -I"$shaders" \
+--- a/native/filesystem.h
++++ b/native/filesystem.h
+@@ -34,6 +34,12 @@
+         if(a<b)memcpy(dest+(a-lo),r->after+(a-r->offset),b-a);
+     }
+ }
++/* Upper bound for one RomFS read request. The zero-family titles never ask for more than a few MiB,
++ * while a Unity title may read its whole remaining RomFS in a single request (measured on WoL:
++ * size=0xbf15cfc = 191 MiB with a matching guest output buffer), so the bound is a build parameter. */
++#ifndef FILESYSTEM_ROMFS_READ_LIMIT
++#define FILESYSTEM_ROMFS_READ_LIMIT (64ULL<<20)
++#endif
+ static int laboratory_save_fd=-1;
+ static void save_open(uint64_t pc) {
+     if(laboratory_save_fd>=0)return;
+@@ -71,8 +77,19 @@
+     if(endpoint==EP_STORAGE_ROMFS && req->command==0) {
+         if(req->data_size<16)stop("INVALID_STORAGE_READ_ARGUMENTS",pc,req->data_size,24);
+         uint64_t offset,size;memcpy(&offset,req->data,8);memcpy(&size,req->data+8,8);
+-        if(offset>romfs_size || size>romfs_size-offset || size>(64ULL<<20) ||
+-           (size && (req->num_outputs!=1 || size>req->outputs[0].size)))stop("INVALID_ROMFS_READ_RANGE",pc,offset,24);
++        if(offset>romfs_size || size>romfs_size-offset || size>FILESYSTEM_ROMFS_READ_LIMIT ||
++           (size && (req->num_outputs!=1 || size>req->outputs[0].size))) {
++            /* Report every field of the refused request: the caller's pc alone does not say which clause
++             * failed or whether the descriptor decode is the problem (measured, not assumed). */
++            printf("ROMFS_READ_REFUSED offset=0x%llx size=0x%llx romfs-size=0x%llx romfs-offset=0x%llx data-size=%zu outputs=%u output-address=0x%llx output-size=0x%llx clause=%s\n",
++                (unsigned long long)offset,(unsigned long long)size,(unsigned long long)romfs_size,
++                (unsigned long long)ROMFS_OFFSET,(size_t)req->data_size,(unsigned)req->num_outputs,
++                req->num_outputs?(unsigned long long)req->outputs[0].address:0ULL,
++                req->num_outputs?(unsigned long long)req->outputs[0].size:0ULL,
++                offset>romfs_size?"offset-past-romfs":size>romfs_size-offset?"read-past-romfs":
++                size>FILESYSTEM_ROMFS_READ_LIMIT?"over-read-limit":req->num_outputs!=1?"outputs-not-one":"output-too-small");
++            stop("INVALID_ROMFS_READ_RANGE",pc,offset,24);
++        }
+         struct line b={0};text(&b,"ROMFS_READ offset=");hex(&b,offset);text(&b," size=");hex(&b,size);emit(&b);
+         uint64_t done=0;uint8_t *dest=size?(uint8_t *)(uintptr_t)req->outputs[0].address:NULL;
+         t2_gzram_touch((uintptr_t)dest,size); /* Frente J: pread would EFAULT on a compressed block */
 --- a/native/loader.c
 +++ b/native/loader.c
 @@ -30,7 +30,12 @@
