@@ -83,7 +83,17 @@ void main() {
     gl_FragColor = vec4(r1, r2, 0.0, 1.0);    // PLACEHOLDER for the undecoded tail
 }
 
-// Open questions that must be answered before this pair can draw (all of them are measurements, not
-// decisions): (1) attribute component order from the guest vertex-attrib state; (2) the 33 undecoded
-// SASS lines, in particular the position stores and the slot-7/slot-8 varying writes; (3) TEX operand
-// roles; (4) the fragment tail (third/fourth channel).
+// MEASURED SINCE THE FIRST DRAFT (runs 48/49, private disassembly; rule validated against all samples):
+//
+//  * the attribute/varying space of this SDK encodes: byte0 = register, byte2 = (component<<4)|0x7,
+//    byte3 = slot; control word 0xefd87f80 = `ld b32`, 0xeff07f80 = `st b32`; the INPUT attribute space
+//    starts at 0x80, the OUTPUT (varying) space at 0x00.
+//  * inputs of this pair: slot 0 = (r6,r4,r5) = position x/y/z (FLOAT32x3 at offset 0 of a stride-88
+//    stream), slot 1 = (r8,r9,..) = the second FLOAT32x3 at offset 40.
+//  * outputs: varying 7 = (r6,r7,r3,r0) - a full vec4; varying 8 = (r8,r5) - a vec2. The fragment reads
+//    exactly v7.w and v8.y, so the storage map now matches on both sides.
+//  * therefore v7 is the clip-position candidate (a vec4 stored by the vertex stage) and v8 the uv-like
+//    pair; that assignment is confirmed empirically when the pair is first wired, not assumed here.
+//  * still open: the predicated ALU ops (fe/3e/ff forms) that feed the stored values, the TEX operand
+//    roles and the fragment tail. The instruction listing is complete (private workspace), so these are
+//    decode work, not guesswork.
