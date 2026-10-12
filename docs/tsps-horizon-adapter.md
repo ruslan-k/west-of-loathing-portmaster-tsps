@@ -329,3 +329,27 @@ WOL_PAIR_COMPILE stage=link ok=1 log=
 Both stages compile and the program links on the Mali driver of the device. Nothing is drawn with it yet -
 the draw is still the logged placeholder, and that is the next step together with the uniform feed from the
 recorded constant bank and the window blit.
+
+### Run 51: the translated pair draws the game's own geometry
+
+With the pair keyed by its bound objects, the draw path no longer skips: the hand translation is compiled
+once, the recorded primitive is issued with the measured vertex layout, and the driver reports no error.
+
+```
+WOL_PAIR_REALIZE ok=1 program=2 c3=1
+WOL_PAIR_DRAW mode=4 count=6 stride=88 stream=67584 c3bank=0/0 avail=0
+WOL_PAIR_DRAW_ISSUED primitives=6 glerror=0x0
+```
+
+So the chain translate -> realize -> bind -> feed -> draw -> present now runs with **zero GL errors** for the
+title's own geometry (6 primitives per sprite quad, stream 67584 bytes, stride 88 as measured).
+
+Two honest gaps keep the frame black, and both are named by the log rather than guessed:
+
+1. `c3bank=0/0 avail=0` - **constant bank 3 is not bound** in the runtime's uniform state for this title, so
+   the transform receives zeros (the bind path never ran because the program was never realized). Next: find
+   and feed the bank the guest binds.
+2. the sampler is not bound yet (`texture-draws=0`), and the frame composition (`WOL_DOWNSAMPLE_PLACEHOLDER`)
+   still does not blit to the window.
+
+The present line stays honest: `NVN_PRESENT_PIXELS frame=1 nonblack=0 status=BLACK-SAMPLE`.
