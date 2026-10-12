@@ -272,3 +272,20 @@ This satisfies the review's acceptance criterion for the crash item ("several co
 clean exit or an unambiguous controlled stop, with no crash of the diagnostic code"). The honest limit is
 now visible instead of hidden: the title's resident set no longer fits under the conservative floor, and
 that is the next problem to attack - not a broken reporter.
+
+### Run 47/48: the vertex interface the title declares (measured, not guessed)
+
+`WOL_VERTEX_INTERFACE` prints the attribute state the title itself binds, taken from the state object the
+runtime already decodes for the draw path (slot, stream, packed attribute word, stream stride):
+
+```
+WOL_VERTEX_INTERFACE draw=0 attribs=3 streams=1 s0=on/0/0x22/off0 s1=on/0/0x25/off12 s2=on/0/0x16/off16 stride0=24
+WOL_VERTEX_INTERFACE draw=0 attribs=2 streams=1 s0=on/0/0x22/off0 s1=on/0/0x22/off40                             stride0=88
+```
+
+Two facts worth keeping: the sprite-shaped draws use **stride 88 (0x58)** with two attributes (offsets 0 and
+40), and the earlier assumption that the first pair's attribute reads land on slots 8/9 has to be revisited -
+these draws enable slots 0..2 only, so either the SASS attribute-space offsets do not map to slot*16 for this
+SDK, or the first draw is not yet the draw that binds programs 233/235. The next measurement correlates the
+**bound program ids** with the attribute state per draw, so the pair-to-interface mapping is exact before any
+GLSL is wired.

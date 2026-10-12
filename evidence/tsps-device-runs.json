@@ -495,6 +495,24 @@
       "frames_presented": 33,
       "submits": 8,
       "diagnostic_crash": 0
+    },
+    {
+      "run": "device-47",
+      "stop": "T2_MEMORY_FLOOR",
+      "stop_pc": "0x0",
+      "rss_kib": 689348,
+      "frames_presented": 33,
+      "submits": 8,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-48",
+      "stop": "T2_MEMORY_FLOOR",
+      "stop_pc": "0x0",
+      "rss_kib": 616332,
+      "frames_presented": 34,
+      "submits": 8,
+      "diagnostic_crash": 0
     }
   ]
 }
