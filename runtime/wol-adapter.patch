@@ -358,7 +358,23 @@
      case NI_nvnCommandBufferBindUniformBuffersDeferred:
          /* Terminator 2D: same (stage, first, count, ranges) shape as BindUniformBuffers, but the ranges
           * are read when the command executes, so the record keeps only the guest pointer (a[3]). */
-@@ -461,6 +469,13 @@
+@@ -315,7 +323,14 @@
+         for(unsigned i=0;i<o->command_count;i++) {
+             struct nvn_command_arena *p=&o->command[i];
+             if(!(address<p->address+p->size && p->address<address+size))continue;
+-            if(p->address!=address || p->size!=size)stop("NVN_COMMAND_ARENA_OVERLAP",nvn_caller,address,24);
++            if(p->address!=address || p->size!=size) {
++#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++                {static unsigned told_transfer;
++                 if(told_transfer++<8)printf("WOL_ARENA_OVERLAP_SITE=transfer holder=%u buffer=%u old=0x%"PRIx64"/%"PRIu64" new=0x%"PRIx64"/%"PRIu64"\n",
++                     b,i,p->address,p->size,address,size);}
++#endif
++                stop("NVN_COMMAND_ARENA_OVERLAP",nvn_caller,address,24);
++            }
+             uint64_t used=p->used;unsigned dropped=t2_command_arena_release(o,i,0);
+             t2_command_arena_remove(o,i);t2_command_transfers++;
+             if(t2_command_transfers<=8 || !(t2_command_transfers&(t2_command_transfers-1)))
+@@ -461,6 +476,13 @@
          source=f->args[3];break;
      case NI_nvnCommandBufferBindUniformBuffers:
          source=f->args[4];break;
@@ -372,7 +388,7 @@
      case NI_nvnCommandBufferSetRenderTargets: {
  #if !ZERO_ZX_GAME
          if(f->args[1] && f->args[3] && *(uint64_t *)nvn_pointer(f->args[3],8,PROT_READ))
-@@ -583,7 +598,7 @@
+@@ -583,7 +605,7 @@
      case NI_nvnCommandBufferSetShaderScratchMemory:case NI_nvnCommandBufferSetPrimitiveRestart:
      case NI_nvnCommandBufferSaveZCullData:case NI_nvnCommandBufferRestoreZCullData:
      case NI_nvnCommandBufferSetDepthClamp:case NI_nvnCommandBufferSetConservativeRasterEnable:
@@ -381,13 +397,46 @@
      case NI_nvnCommandBufferSetDepthBounds:
          nvn_command_record(nvn_command_find(a[0]),id,f);return 1;
      /* Animal Well (NVN 17.x array forms): a single viewport/scissor/depth range at index 0 is the singular command;
-@@ -678,7 +693,22 @@
+@@ -678,7 +700,55 @@
                  if((i<c->command_count)!=command)stop("NVN_COMMAND_ARENA_TYPE",nvn_caller,address,24);
                  nvn_command_reuse_arena(c,p);if(command)c->current=i;return 1;
              }
 -            if(address<p->address+p->size && p->address<address+size)stop("NVN_COMMAND_ARENA_OVERLAP",nvn_caller,address,24);
 +            if(address<p->address+p->size && p->address<address+size) {
 +#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++                {static unsigned told_register;
++                 if(told_register++<8)printf("WOL_ARENA_OVERLAP_SITE=register old=0x%"PRIx64"/%"PRIu64" new=0x%"PRIx64"/%"PRIu64" used=%u list=%d recording=%d type-match=%d\n",
++                     p->address,p->size,address,size,(unsigned)p->used,(int)(c->list!=NULL),(int)c->recording,(int)((i<c->command_count)==command));}
++                /* MEASURED (run 69): this title carves the next region of its pool with a 0x50-byte boundary
++                 * overlap - the new region starts 80 bytes before the old one ends and extends past it. That
++                 * is neither a superset nor a subset, so the model refused it and the boot stopped at 146
++                 * frames. A boundary overlap that small is trimmed off the old entry, which keeps every
++                 * recorded range intact except the discarded tail; anything larger stays refused. */
++                {   /* Instrumented unused-tail handling. Before any acceptance the last byte that is still
++                     * accounted for is computed from three sources: the used cursor of the arena, the
++                     * arena's retained command range, and every live list's recorded ranges in this buffer.
++                     * The new range may only enter the tail beyond that boundary; anything else stays
++                     * fail-closed. */
++                    uint64_t old_start=p->address,old_end=p->address+p->size,new_start=address,new_end=address+size;
++                    uint64_t lo=old_start>new_start?old_start:new_start,hi=old_end<new_end?old_end:new_end;
++                    if(hi>lo && new_start>=old_start && new_end>old_end) {
++                        uint64_t safe_end=old_start+p->used;
++                        if(command && i<16 && c->command_retained[i].last>safe_end)safe_end=c->command_retained[i].last;
++                        NVN_FOR_EACH_COMMAND_LIST(l)if(l->live && l->owner==c->object)
++                            for(unsigned r=0;r<l->t2_ranges && r<8;r++)
++                                if(l->t2_range_first[r]<old_end && old_start<l->t2_range_end[r] && l->t2_range_end[r]>safe_end)
++                                    safe_end=l->t2_range_end[r];
++                        printf("WOL_ARENA_OVERLAP owner=0x%"PRIx64" pool=%p old=0x%"PRIx64" old_size=%"PRIu64" old_used=%"PRIu64" limit=%"PRIu64" new=0x%"PRIx64" new_size=%"PRIu64" overlap=%"PRIu64" current=%u recording=%u generation=%"PRIu64" safe_end=0x%"PRIx64" classification=%s\n",
++                            c->object,(void *)p->pool,old_start,old_end-old_start,p->used,p->limit,new_start,size,hi-lo,
++                            c->current,c->recording,c->memory_generation,safe_end,new_start>=safe_end?"UNUSED_TAIL":"LIVE_DATA");
++                        if(new_start>=safe_end) {
++                            p->size=new_start-old_start;
++                            printf("WOL_COMMAND_ARENA_RETIRE old=0x%"PRIx64"/%"PRIu64" trimmed_to=0x%"PRIx64" overlap=0x%"PRIx64"..0x%"PRIx64" action=RETIRED_TAIL\n",
++                                old_start,old_end-old_start,new_start-old_start,new_start,old_end);
++                            continue;
++                        }
++                    }
++                }
 +                /* This title re-registers its command memory with a different size while it loads
 +                 * (measured: the boot outgrows the first registration). A strict superset or subset of an
 +                 * arena that is not part of a live list is the same memory used at a new size, so the entry
