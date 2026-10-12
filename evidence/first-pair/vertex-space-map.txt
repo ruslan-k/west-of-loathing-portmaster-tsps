@@ -1,0 +1,12 @@
+== every attribute/varying space access, decoded by the validated rule ==
+0x060 | ld b32 $r4 a[0x84] (input slot 0 comp 1)
+0x078 | ld b32 $r6 a[0x80] (input slot 0 comp 0)
+0x080 | ld b32 $r5 a[0x88] (input slot 0 comp 2)
+0x088 | ld b32 $r8 a[0x90] (input slot 1 comp 0)
+0x0a0 | ld b32 $r9 a[0x94] (input slot 1 comp 1)
+0x180 | st b32 a[0x80] $r8 (varying 8 comp 0)
+0x1f8 | st b32 a[0x84] $r5 (varying 8 comp 1)
+0x208 | st b32 a[0x70] $r6 (varying 7 comp 0)
+0x220 | st b32 a[0x74] $r7 (varying 7 comp 1)
+0x238 | st b32 a[0x78] $r3 (varying 7 comp 2)
+0x240 | st b32 a[0x7c] $r0 (varying 7 comp 3)
