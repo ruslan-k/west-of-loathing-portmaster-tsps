@@ -381,6 +381,30 @@
      case NI_nvnCommandBufferSetDepthBounds:
          nvn_command_record(nvn_command_find(a[0]),id,f);return 1;
      /* Animal Well (NVN 17.x array forms): a single viewport/scissor/depth range at index 0 is the singular command;
+@@ -678,7 +693,22 @@
+                 if((i<c->command_count)!=command)stop("NVN_COMMAND_ARENA_TYPE",nvn_caller,address,24);
+                 nvn_command_reuse_arena(c,p);if(command)c->current=i;return 1;
+             }
+-            if(address<p->address+p->size && p->address<address+size)stop("NVN_COMMAND_ARENA_OVERLAP",nvn_caller,address,24);
++            if(address<p->address+p->size && p->address<address+size) {
++#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++                /* This title re-registers its command memory with a different size while it loads
++                 * (measured: the boot outgrows the first registration). A strict superset or subset of an
++                 * arena that is not part of a live list is the same memory used at a new size, so the entry
++                 * is updated and the change printed; a partial overlap stays refused as a real anomaly. */
++                if(!p->used && !c->list && !c->recording &&
++                   ((address<=p->address && address+size>=p->address+p->size) ||
++                    (address>=p->address && address+size<=p->address+p->size))) {
++                    printf("WOL_COMMAND_ARENA_RESIZE old=0x%"PRIx64"/%"PRIu64" new=0x%"PRIx64"/%"PRIu64" action=accepted\n",
++                        p->address,p->size,address,size);
++                    p->address=address;p->size=size;if(i<c->command_count)c->current=i;return 1;
++                }
++#endif
++                stop("NVN_COMMAND_ARENA_OVERLAP",nvn_caller,address,24);
++            }
+         }
+         if(command && *count==16 && !t2_command_arena_legacy()) {
+             /* Full table: forget the oldest non-current chunk whose lists all ran (NVN keeps no older chunks). */
 --- a/native/nvn_memory.h
 +++ b/native/nvn_memory.h
 @@ -89,10 +89,13 @@
@@ -848,7 +872,7 @@
 +                 * texture holds, both read back from the GPU. A black resolve is only diagnosable when the
 +                 * source is measured in the same place. */
 +                static unsigned told;
-+                if(told<20 && (nvn_replay.last_frame<4 || nvn_replay.last_frame%8==0)) {
++                if(told<80 && (nvn_replay.last_frame<4 || nvn_replay.last_frame%16==0)) {
 +                    told++;
 +                    size_t bytes=(size_t)dst->b.width*dst->b.height*4;uint8_t *px=malloc(bytes);
 +                    if(px){glReadPixels(0,0,(GLsizei)dst->b.width,(GLsizei)dst->b.height,GL_RGBA,GL_UNSIGNED_BYTE,px);
