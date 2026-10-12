@@ -250,6 +250,55 @@
          if(!nvn_device.live || device!=nvn_device.address)stop("NVN_MEMORY_POOL_DEVICE",nvn_caller,device,24);
          uint64_t address=nvn_builder_get(NI_nvnMemoryPoolBuilderGetMemory,a[1],f),size=nvn_builder_get(NI_nvnMemoryPoolBuilderGetSize,a[1],f);
          uint32_t flags=nvn_builder_get(NI_nvnMemoryPoolBuilderGetFlags,a[1],f);
+--- a/native/nvn_platform_sdl.h
++++ b/native/nvn_platform_sdl.h
+@@ -126,6 +126,19 @@
+     return 1;
+ }
+ 
++/* SDL's KMSDRM backend recreates its EGL surface when it swaps. A cached EGLSurface then still
++ * answers eglQuerySurface but eglMakeCurrent returns EGL_BAD_SURFACE (measured on TSPS: first present
++ * fine, second present NVN_PRESENT_CONTEXT/0x300d). Ask SDL to restore its own binding for this
++ * context and reuse whatever surface it made current instead of the stale handle. */
++static EGLSurface nvn_platform_live_surface(EGLSurface cached) {
++    if(!nvn_platform_sdl_window || !nvn_platform_sdl_context)return cached;
++    SDL_ClearError();
++    /* SDL's own context, not eglGetCurrentContext(): the runtime detaches between operations, so the
++     * thread usually has no current context and SDL would be asked to bind nothing. */
++    if(SDL_GL_MakeCurrent(nvn_platform_sdl_window,nvn_platform_sdl_context))return cached;
++    EGLSurface live=eglGetCurrentSurface(EGL_DRAW);
++    return live!=EGL_NO_SURFACE?live:cached;
++}
+ static EGLBoolean nvn_platform_swap(EGLDisplay display,EGLSurface surface) {
+     if(!nvn_platform_sdl_window || surface!=nvn_platform_sdl_surface)
+         return eglSwapBuffers(display,surface);
+--- a/native/nvn_present.h
++++ b/native/nvn_present.h
+@@ -186,7 +186,12 @@
+     if(!nvn_async_frame_enabled())nvn_async_present_wait_locked(q,single);
+     if(!single)nvn_egl_present_reader_wait();
+     if(single) {
+-        if(!nvn_single_make_current(nvn_window.surface,nvn_window.surface,nvn_device.context))stop("NVN_PRESENT_CONTEXT",nvn_caller,eglGetError(),21);
++        {   EGLSurface present_surface=nvn_platform_live_surface(nvn_window.surface);
++            static unsigned told;
++            if(told++<6&&present_surface!=nvn_window.surface)printf("WOL_LIVE_SURFACE cached=0x%lx live=0x%lx note=SDL-recreated-surface\n",
++                (unsigned long)nvn_window.surface,(unsigned long)present_surface);
++            if(!nvn_single_make_current(present_surface,present_surface,nvn_device.context))stop("NVN_PRESENT_CONTEXT",nvn_caller,eglGetError(),21);
++        }
+         /* This is a logical context use even though its physical binding is
+          * retained. Do not reuse a completion proof from before the quad. */
+         if(!++nvn_gl_completion.use_serial)stop("NVN_GL_SERIAL_WRAP",nvn_caller,0,24);
+@@ -199,7 +204,9 @@
+     }
+     nvn_present_setup();
+     momo_stencil_selftest();
+-    if(!nvn_single_make_current(nvn_window.surface,nvn_window.surface,nvn_present.context))stop("NVN_PRESENT_CONTEXT",nvn_caller,eglGetError(),21);
++    {   EGLSurface present_surface=nvn_platform_live_surface(nvn_window.surface);
++        if(!nvn_single_make_current(present_surface,present_surface,nvn_present.context))stop("NVN_PRESENT_CONTEXT",nvn_caller,eglGetError(),21);
++    }
+     t2_present_gpu_wait_issue(); /* FRENTE-C: GPU-side order after the frame (T2_PRESENT_GPU_WAIT=1) */
+     nvn_single_present_quad(nvn_present.program,nvn_present.vertices);
+     struct nvn_texture *t=nvn_window.textures[index];unsigned width=nvn_window.fb.width,height=nvn_window.fb.height;
 --- a/native/nvn_queue.h
 +++ b/native/nvn_queue.h
 @@ -57,7 +57,11 @@
@@ -265,6 +314,29 @@
      if(!nvn_device.live || b->device!=nvn_device.address)stop("NVN_QUEUE_DEVICE",nvn_caller,b->device,24);
      /* NVN QueueFlags: 1 disables fragment interlock; 2 disables ZCull.
       * Neither optional Tegra path is enabled by this GLES2 backend. Ordinary
+@@ -103,6 +107,22 @@
+     nvn_single_transfer_acquire_locked();
+     nvn_single_require_owner();
+     if(!nvn_single_enabled())nvn_egl_present_reader_wait();
++#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++    {   /* Diagnose the second-submit EGL_BAD_SURFACE: report the handles and probe liveness before the
++         * bind. eglGetError() is consumed here on purpose - the probe must not mask the real result. */
++        static unsigned told;
++        if(told++<6) {
++            EGLint sw=0,sh=0,st=0;
++            EGLBoolean qw=eglQuerySurface(nvn_device.display,nvn_device.surface,EGL_WIDTH,&sw);
++            EGLBoolean qh=eglQuerySurface(nvn_device.display,nvn_device.surface,EGL_HEIGHT,&sh);
++            EGLBoolean qt=eglQuerySurface(nvn_device.display,nvn_device.surface,EGL_SURFACE_TYPE,&st);
++            printf("WOL_SURFACE_DIAG device=0x%lx alive=%d/%d/%d size=%dx%d type=0x%x drawn=0x%lx context=0x%lx pending-egl-error=0x%x\n",
++                (unsigned long)nvn_device.surface,
++                (int)qw,(int)qh,(int)qt,sw,sh,st,(unsigned long)eglGetCurrentSurface(EGL_DRAW),
++                (unsigned long)eglGetCurrentContext(),eglGetError());
++        }
++    }
++#endif
+     if(!nvn_single_make_current(nvn_device.surface,nvn_device.surface,nvn_device.context))stop("NVN_QUEUE_CONTEXT",nvn_caller,eglGetError(),21);
+     if(!++nvn_gl_completion.use_serial)stop("NVN_GL_SERIAL_WRAP",nvn_caller,0,24);
+     nvn_gl_completion.completion_valid=0;
 --- a/native/nvn_render.h
 +++ b/native/nvn_render.h
 @@ -509,6 +509,18 @@

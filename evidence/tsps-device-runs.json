@@ -360,6 +360,66 @@
       "bc_uploads": 8,
       "draws_skipped_logged": 6,
       "color_copies": 1
+    },
+    {
+      "run": "device-32",
+      "stop": "NVN_QUEUE_CONTEXT",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 327044,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 1,
+      "submits": 1
+    },
+    {
+      "run": "device-33",
+      "stop": "NVN_QUEUE_CONTEXT",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 327304,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 1,
+      "submits": 1
+    },
+    {
+      "run": "device-34",
+      "stop": "NVN_PRESENT_CONTEXT",
+      "stop_pc": "main.text.seg+0xaf2d14",
+      "rss_kib": 327236,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 1,
+      "submits": 2
+    },
+    {
+      "run": "device-35",
+      "stop": "NVN_EGL_INITIALIZE",
+      "stop_pc": "main.text.seg+0xaeea9c",
+      "rss_kib": 152852,
+      "programs": 0,
+      "textures": 0,
+      "frames_presented": 0,
+      "submits": 0
+    },
+    {
+      "run": "device-36",
+      "stop": "NVN_PRESENT_CONTEXT",
+      "stop_pc": "main.text.seg+0xaf2d14",
+      "rss_kib": 327268,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 1,
+      "submits": 2
+    },
+    {
+      "run": "device-37",
+      "stop": "INVALID_ROMFS_READ_RANGE",
+      "stop_pc": "sdk.text.seg+0xa9d94",
+      "rss_kib": 511736,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 33,
+      "submits": 8
     }
   ]
 }
