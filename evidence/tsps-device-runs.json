@@ -654,6 +654,13 @@
       "presents": 147,
       "nonblack_presents": 0,
       "diagnostic_crash": 0
+    },
+    {
+      "run": "device-68",
+      "stop": "NVN_COMMAND_ARENA_OVERLAP",
+      "presents": 146,
+      "nonblack_presents": 0,
+      "arena_resizes": 0
     }
   ]
 }
