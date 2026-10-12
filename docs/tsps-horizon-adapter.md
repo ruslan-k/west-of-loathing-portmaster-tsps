@@ -428,3 +428,15 @@ bounded long run with the memory floor at 32 MiB. The result is a precise pictur
   and the point where the title uploads its atlases and draws its first visible frame.
 - The per-frame census had already used its budget by frame 49, so the later frames still have no census;
   the census cap needs re-arming (frame-keyed, larger cap) with the next run.
+
+### Run 68: the arena relaxation did not fire, and the frame-145 census settles the question
+
+- The arena overlap stop persists (same guard, a fresh guest address). The acceptance added in this run did
+  **not** trigger (`WOL_COMMAND_ARENA_RESIZE` absent), so the path taken is not the one relaxed - the other
+  arena site (`t2_command_arena_transfer`, nvn_commands.h:326) or a registration whose entry is already
+  `used`/part of a live list. Next: log which site refuses and which flag blocks acceptance, then relax the
+  right one (both sites carry the same message and the stop does not name its call site).
+- The census now reaches frame 145 and reports `src=30 src-nonblack=0` with **no** live texture ever chosen:
+  at frame 145 the title still has no content-bearing texture of its own. Together with the arena stop this
+  says the boot is looping in a black state rather than progressing through its load, and that the draws it
+  would use to show progress are the untranslated pairs.
