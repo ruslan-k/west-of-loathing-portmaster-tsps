@@ -485,7 +485,7 @@
      nvn_gl_completion.completion_valid=0;
 --- a/native/nvn_render.h
 +++ b/native/nvn_render.h
-@@ -509,6 +509,39 @@
+@@ -509,6 +509,42 @@
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
@@ -498,7 +498,10 @@
 +        static unsigned told;
 +        if(told<8) {
 +            told++;
-+            printf("WOL_VERTEX_INTERFACE draw=%u attribs=%u streams=%u",(unsigned)nvn_replay.draws,(unsigned)nvn_render.attrib_count,(unsigned)nvn_render.stream_count);
++            printf("WOL_VERTEX_INTERFACE draw=%u attribs=%u streams=%u bound=0x%lx/v%u,0x%lx/f%u",
++                (unsigned)nvn_replay.draws,(unsigned)nvn_render.attrib_count,(unsigned)nvn_render.stream_count,
++                (unsigned long)wol_bound_object[0],wol_bound_program_id[0],
++                (unsigned long)wol_bound_object[1],wol_bound_program_id[1]);
 +            for(unsigned i=0;i<nvn_render.attrib_count && i<16;i++) {
 +                uint32_t attr=nvn_render.attrib[i];
 +                unsigned stream=attr&31u,format=(attr>>21)&1023u,offset=(attr>>7)&16383u;
@@ -525,7 +528,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1568,80 @@
+@@ -1535,6 +1571,80 @@
          begin=end+1;
      }
  }
@@ -606,7 +609,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +1669,11 @@
+@@ -1562,7 +1672,11 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -747,13 +750,16 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,37 @@
+@@ -46,10 +46,40 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
 +#if defined(WOL_SHADER_CAPTURE) && WOL_SHADER_CAPTURE
 +/* Bring-up inventory state: strictly a placeholder, never a translated program. */
 +static unsigned nvn_capture_slot,nvn_capture_untranslated,nvn_capture_sequence;
++/* WoL bring-up: what the title bound per stage, so the draw-side interface log can correlate a draw
++ * with the programs it would have used (ids and objects only - no shader content). */
++static uint64_t wol_bound_object[2];static unsigned wol_bound_program_id[2];
 +#endif
  static uint64_t nvn_read64(uint64_t address) {uint64_t value;memcpy(&value,nvn_pointer(address,8,PROT_READ),8);return value;}
  static void *nvn_gpu_pointer(uint64_t address,uint64_t size,unsigned perm);
@@ -786,11 +792,18 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -512,7 +539,12 @@
+@@ -512,7 +542,19 @@
      struct nvn_program *p=object?nvn_program_find(object):NULL;
      /* A compute program has no graphics stage (nvn_shaders.h, MEDIDO run momo-096): binding it leaves
       * the vertex/fragment binding untouched. Only a real dispatch would be an error. */
 -    if(p && p->compute_only)return;
++#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++    {   /* WoL bring-up: remember the binding per stage so the draw-side interface log can name the
++         * programs a draw would have used (ids and objects only). */
++        unsigned stage=(mask&1)?0:(mask&2)?1:2;
++        if(stage<2 && p){wol_bound_object[stage]=object;wol_bound_program_id[stage]=p->id;}
++    }
++#endif
 +    if(p && p->compute_only) {
 +#if defined(WOL_SHADER_CAPTURE) && WOL_SHADER_CAPTURE
 +        printf("WOL_PROGRAM_BOUND object=0x%"PRIx64" mask=0x%"PRIx64" action=placeholder-skip\n",object,mask);
@@ -800,7 +813,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +645,22 @@
+@@ -613,6 +655,22 @@
              }
          }
  #endif
