@@ -14,4 +14,9 @@ wol-base
 prod.keys
 wol-analysis.json
 native-layout.txt
-review-opencode*.log
+review-opencode*
+owner-shader-capture*/
+nvn-wol-shader-*.bin
+wol-horizon
+owner-horizon-image/
+horizon-build*/
