@@ -44,6 +44,7 @@ export MEGAMAN_PROBE_SECONDS="${WOL_PROBE_SECONDS:-900}"
 # NOT a safe default now that graphics will really allocate GPU memory, which VmRSS does not show. The
 # conservative 140 MiB floor is the default again; WOL_MEMORY_FLOOR_MIB=64 restores the diagnostic value.
 export T2_MEMORY_FLOOR_MIB="${WOL_MEMORY_FLOOR_MIB:-32}"
+export COTM_BLACK_LIMIT="${WOL_BLACK_LIMIT:-4000}"
 export WOL_PAIR_CHECK="${WOL_PAIR_CHECK:-1}"
 
 # Run 43 measured the guest compactor at zero benefit for this title (compressions=0, saved=0.0,

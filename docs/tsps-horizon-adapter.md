@@ -414,3 +414,17 @@ The two remaining pairs are prepared for translation: their code and control blo
 hash-verified in the private workspace (`v189`/`v266` share vertex code `d88c64a6`, fragments `f191` and
 `f268`), and the shared vertex pair's space map is decoded (three inputs of 12+4+8 bytes matching the
 measured stride 24, four varyings with varying 7 as the clip position).
+
+### Run 67: the black-present bound lifted, and the next real constraint appears
+
+`COTM_BLACK_LIMIT` (default 120, a diagnostic bound rather than a release rule) was raised to 4000 for a
+bounded long run with the memory floor at 32 MiB. The result is a precise picture of where the boot stands:
+
+- **147 frames** presented (up from 120), all still black; memory stayed healthy (available 63 MiB at the
+  worst against the 32 MiB floor, VmRSS 721 MiB), so neither memory nor the black bound was the ceiling.
+- The run then stopped on a **new guard: `NVN_COMMAND_ARENA_OVERLAP`** (a guest address in the detail):
+  during the boot the title's command buffers grow past the arena the runtime recorded, and the arena
+  guard refuses. That is a runtime-side constraint to solve next - it is what now stands between the boot
+  and the point where the title uploads its atlases and draws its first visible frame.
+- The per-frame census had already used its budget by frame 49, so the later frames still have no census;
+  the census cap needs re-arming (frame-keyed, larger cap) with the next run.
