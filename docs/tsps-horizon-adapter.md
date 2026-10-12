@@ -289,3 +289,22 @@ these draws enable slots 0..2 only, so either the SASS attribute-space offsets d
 SDK, or the first draw is not yet the draw that binds programs 233/235. The next measurement correlates the
 **bound program ids** with the attribute state per draw, so the pair-to-interface mapping is exact before any
 GLSL is wired.
+
+### Run 49: the pair-to-interface correlation, measured
+
+With the bound stage objects now printed next to the attribute state, the mapping is exact:
+
+```
+WOL_VERTEX_INTERFACE draw=0 attribs=3 bound=0x1000fc1e68/v266,0x1000fc2ca8/f268 s0=0x22/0 s1=0x25/12 s2=0x16/16 stride=24
+WOL_VERTEX_INTERFACE draw=0 attribs=2 bound=0x100103f168/v233,0x100103f298/f235 s0=0x22/0  s1=0x22/40             stride=88
+```
+
+So **the first pair (v233/f235) belongs to the two-attribute, stride-88 (0x58) draws**: input slot 0 = FLOAT32x3
+at offset 0 (position), input slot 1 = FLOAT32x3 at offset 40. The other draws are different programs
+(v266/f268, v189/f191) with RGBA8 and FLOAT32x2 attributes - other Unity variants, not this pair.
+
+This also corrected the attribute-space reading: in this SDK's SASS the **input attribute space starts at
+0x80**, so `a[0x80]` is input slot 0 and `a[0x90]` is input slot 1 (the earlier "slots 8/9" was the same
+numbers without the base). The decoded `ld`/`st` samples also expose the encoding of that space (byte 0 = the
+slot, byte 1's high nibble = the component: `st a[0x70]` = varying 7.x, `st a[0x84]` = varying 8.y), which is
+what the remaining undecoded lines will be read with - mechanically, against those five known samples.
