@@ -191,3 +191,24 @@ Notable runtime fact for the memory work: `T2_MEMWATCH` documents its own guard 
   Next: name that function from the symbol table and fix it so the real stop surfaces.
 - Launcher: CPU online state is now captured per cpu and restored on exit (runs had left 0-3 permanently
   online); guest zram settings are env-reversible (`WOL_GUEST_ZRAM=0`).
+
+### The first draw's shader pair: identity and captured binaries
+
+The reviewer's P2 item is done from the existing evidence, without a new device run: for the first recorded draw
+(`WOL_DRAW_PLACEHOLDER mode=4 count=6`) the runtime bound two program objects, and their identities are now
+pinned in `evidence/first-pair/`:
+
+| Stage | Program object | Program id | Code bytes | Code SHA-256 | Control SHA-256 (variant used by the bind) |
+|-------|----------------|-----------|-----------|--------------|--------------------------------------------|
+| vertex (mask 0x1) | 0x100103f168 | 233 | 768 | `f309b86a229fafbf3e47c6b33cea95af652212cfe3603c77ac44b2e221c9e20e` | variant of `f309b86a` (many; see note) |
+| fragment (mask 0x2) | 0x100103f298 | 235 | 512 | `f08bad2f44a02bae7083854769755e05be1a692c35f6e17dbc88f80625b83d0e` | variant of `f08bad2f` |
+
+- The captured blobs are `evidence/first-pair/vertex-f309b86a229f.{code,control}.bin` and
+  `evidence/first-pair/fragment-f08bad2f44a0.{code,control}.bin`; both code files were fetched **by matching
+  SHA-256 on the device** (the dumps carry no sha in their names), so the mapping is verified, not guessed.
+- Note on variants: one *code* blob appears with many *control* SHAs (`f309b86a` shows at least four control
+  layouts in a single run). The catalogue must therefore be keyed by **code SHA + control SHA**, not by program
+  id - the control block carries the interface (attributes, uniform layout) for that variant.
+- Next for this workstream (offline, no device): feed the two code blobs to the Hades/Yuzu Maxwell recompiler
+  (`shader-compiler-rs`), check the 0x30-byte SPH expectation against our 0x848-byte control + separate code
+  layout, then translate to GLSL ES and register the pair in the catalogue by its SHA pair.
