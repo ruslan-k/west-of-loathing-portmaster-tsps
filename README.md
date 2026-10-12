@@ -10,10 +10,18 @@ This project explores executing the owner's Nintendo Switch ARM64/IL2CPP build o
 - Local data-stage mapping: 49.613 MiB; 215,921 relocations applied and read back by the independent Python preflight.
 - The experimental C runtime enters the **original guest rtld**, without manually relocating that execution image.
 - Under local `qemu-aarch64-static`, real guest code reaches Nintendo SDK startup, connects to `sm:` and completes CMIF SM Initialize.
-- Current bounded stop: `UNIMPLEMENTED_SERVICE`, requested service **lm**, `sdk+0xa9d94`, 42 SVC calls after segment-permission hardening. See `evidence/native-run-12.log` (the earlier run is retained separately).
-- The updated full local suite passes **21 tests** with owner inputs present: 15 native tests, one preparation integration test and five parser/preflight tests. Without owner inputs, 17 pass and four integration tests skip explicitly.
+- Native-probe/QEMU bounded stop: `UNIMPLEMENTED_SERVICE`, requested service **lm**, `sdk+0xa9d94`, 42 SVC calls after segment-permission hardening. See `evidence/native-run-12.log` (the earlier run is retained separately).
+- The full local suite passes **22 tests** with owner inputs present: 15 native tests, two preparation integration tests and five parser/preflight tests. Without owner inputs, 17 pass and five integration tests skip explicitly.
 
-**Not proven:** Unity application startup, NVN rendering, audio, controls, scene-transition memory usage, native device execution or gameplay. QEMU execution is a bring-up test, not a handheld-performance benchmark.
+**Not proven:** completed Unity application startup, visible NVN rendering, audio, controls, scene-transition memory usage or gameplay. QEMU execution is a bring-up test, not a handheld-performance benchmark.
+
+## Native TSPS adapter milestone
+
+A separate, recovered-GPL Horizon adapter now executes the original WoL modules **on TSPS**, through the Spruce principal launcher flow. Five bounded device launches progressed from queue-builder ABI failure to the first native shader request. The queue, memory-pool and buffer builder device offsets are +0 in this SDK, not the inherited +8; each is verified against the original SDK store instruction.
+
+The adapter creates a real **Mali-G57 EGL / OpenGL ES 3.2 8×8 pbuffer**, initializes the queue, binds GPU memory pools and maps a buffer. This is **not a game window or presented frame**. Latest controlled stop: `WOL_SHADER_TRANSLATION_REQUIRED`, `main+0xafe4c8`, exit 20. The first old-format 2120-byte control section and a 512-byte GPU-code prefix were captured privately. No WoL shader translation exists yet.
+
+Menu recovery is proven by `/proc` and a physical DRM `kmsgrab` screenshot after the last launch. The diagnostic binary stays installed; its first predecessor is backed up. Evidence and exact reproduction commands: [docs/tsps-horizon-adapter.md](docs/tsps-horizon-adapter.md).
 
 ## Build and test without game data
 
@@ -71,8 +79,8 @@ This repository is GPL-3.0. Third-party reference packages remain local; the rep
 
 ## Next gates
 
-1. Implement real LM/logging behavior, then the exact additional services requested by this SDK.
-2. Add memory/thread/synchronization support with separate ABI tests; never fabricate successful service replies.
-3. Establish Unity startup and resource-loading behavior before graphics adaptation.
-4. Implement the WoL-specific NVN/shader path and bounded native device tests.
-5. Require a real frame, controls/audio, scene transition and clean menu return before claiming a working port.
+1. Parse and translate the old WoL NVN shader packages, including the currently blocking first program; preserve exact native code/control identities.
+2. Complete the WoL-specific NVN texture/window/command path, rejecting unknown layouts instead of borrowing another title’s offsets.
+3. Establish real resource-loading/live-set behavior and a physical game frame.
+4. Require controls/audio, scene transition and clean menu return before claiming a working port.
+5. Keep the independent minimal probe’s LM/service frontier separate from the recovered adapter’s progress.

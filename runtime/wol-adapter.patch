@@ -1,0 +1,145 @@
+--- a/native/build.sh
++++ b/native/build.sh
+@@ -54,7 +54,8 @@
+ # test it are included before the catalogue.
+ # Input is included before the shader catalogue: select T2's physical Switch layout here,
+ # independently of the later T2_SHADERS define. Other lineage builds keep their existing map.
+-"$COTM_CC" -O2 -Wall -Wextra -Werror -DMOMO_SHADERS=1 -DT2_SWITCH_INPUT=1 \
++"$COTM_CC" -O2 -Wall -Wextra -Werror -DMOMO_SHADERS=1 -DT2_SWITCH_INPUT=1 -DZERO_ZX_GAME=0 \
++    -Wno-error=unused-result -Wno-error=unused-function \
+     -DMESA_EGL_NO_X11_HEADERS -fno-strict-aliasing -pthread -I"$1" \
+     -I"$COTM_NXAUDIO_DIR" -I"$COTM_NXINPUT_DIR/include" \
+     -I"$COTM_NXINPUT_DIR/engine-glue" -I"$COTM_NXCOMPAT_DIR/include" -I"$shaders" \
+--- a/native/loader.c
++++ b/native/loader.c
+@@ -30,7 +30,7 @@
+ #define MAX_REGIONS 1024   /* one region per aliased thread stack plus the alias-region pieces (MEDIDO run momo-074) */
+ #define MAX_TRAPS 8192
+ #define TRAP_OPCODE 0xd421a000U
+-#define MEMORY_BUDGET (1536ULL << 20)   /* Unity takes the whole declared budget (docs/RUNTIME.md 3.2); 1536 MiB is the Messenger value */
++#define MEMORY_BUDGET (768ULL << 20) /* WoL diagnostic guest budget; virtual declaration, not measured RAM. */
+ #define HOST_ADDRESS_LIMIT (8192ULL << 20)
+ #define HEAP_BASE 0x1000000000ULL
+ #define HEAP_LIMIT MEMORY_BUDGET
+@@ -695,7 +695,7 @@
+ }
+ int main(int argc,char **argv) {
+     (void)argv;if(argc!=1){fprintf(stderr,"Run from the verified native image directory, without arguments.\n");return 1;}
+-    setvbuf(stdout,NULL,_IONBF,0);prctl(PR_SET_NAME,"terminator2d-nextos",0,0,0);main_thread_id=(uint64_t)getpid();
++    setvbuf(stdout,NULL,_IONBF,0);prctl(PR_SET_NAME,"wol-horizon",0,0,0);main_thread_id=(uint64_t)getpid();
+     nvn_platform_argv=argv;
+     t2_runtime_health_capture();
+     if(t2_video_init())return 24;
+@@ -726,7 +726,7 @@
+     struct rlimit no_core={0,0};setrlimit(RLIMIT_CORE,&no_core);
+     struct rlimit address_limit={HOST_ADDRESS_LIMIT,HOST_ADDRESS_LIMIT};
+     if(setrlimit(RLIMIT_AS,&address_limit)){perror("diagnostic memory quota");return 1;}
+-    printf("START native-aarch64 terminator2d-nextos Terminator-2D-NO-FATE-base-v0 sdk=19.3.9 rtld-entry=0x8000000 shims=Memory,Threads,IPC guest-quota=%lluMiB host-as-limit=%lluMiB heap-limit=%lluMiB; virtual limits are not resident-RAM measurements\n",(unsigned long long)(MEMORY_BUDGET>>20),(unsigned long long)(HOST_ADDRESS_LIMIT>>20),(unsigned long long)(HEAP_LIMIT>>20));
++    printf("START native-aarch64 wol-horizon West-of-Loathing-base-v0 shader-catalogue=absent rtld-entry=0x8000000 shims=Memory,Threads,IPC guest-quota=%lluMiB host-as-limit=%lluMiB heap-limit=%lluMiB; virtual limits are not resident-RAM measurements\n",(unsigned long long)(MEMORY_BUDGET>>20),(unsigned long long)(HOST_ADDRESS_LIMIT>>20),(unsigned long long)(HEAP_LIMIT>>20));
+     FILE *random=fopen("/dev/urandom","rb");
+     if(!random || fread(entropy,1,sizeof(entropy),random)!=sizeof(entropy)){fprintf(stderr,"entropy unavailable\n");return 1;}
+     fclose(random);
+--- a/native/nvn_commands.h
++++ b/native/nvn_commands.h
+@@ -73,6 +73,9 @@
+ }
+ static uint64_t aw_clear_texture_count;
+ static void aw_clear_texture_admit(uint64_t object,uint64_t view,const int32_t *region);
++#if !ZERO_ZX_GAME
++static uint64_t zero_texture_record_id(uint64_t object);
++#endif
+ #include "nvn_command_lists.h"
+ static struct nvn_command_buffer *nvn_command_find(uint64_t object) {
+     for(unsigned i=0;i<32;i++)if(nvn_command_buffers[i].live&&nvn_command_buffers[i].object==object)return &nvn_command_buffers[i];
+--- a/native/nvn_memory.h
++++ b/native/nvn_memory.h
+@@ -89,10 +89,13 @@
+     for(unsigned i=0;i<256;i++)if(!*(char *)nvn_pointer(address+i,1,PROT_READ))return;
+     stop("NVN_DEBUG_LABEL_LENGTH",nvn_caller,address,24);
+ }
++#ifndef WOL_NVN_BUFFER_BUILDER_OFFSET
++#define WOL_NVN_BUFFER_BUILDER_OFFSET 8ULL
++#endif
+ static void nvn_buffer_initialize(struct nvn_frame *f,uint64_t *result) {
+     uint64_t *a=f->args,device;
+     void *object=nvn_pointer(a[0],48,PROT_READ|PROT_WRITE);
+-    memcpy(&device,nvn_pointer(a[1]+8,8,PROT_READ),8); /* SDK 6.5 builder prefix */
++    memcpy(&device,nvn_pointer(a[1]+WOL_NVN_BUFFER_BUILDER_OFFSET,8,PROT_READ),8); /* Per-title pinned builder prefix */
+     if(!nvn_device.live || device!=nvn_device.address)stop("NVN_BUFFER_DEVICE",nvn_caller,device,24);
+     struct nvn_pool *p=nvn_pool_find(nvn_builder_get(NI_nvnBufferBuilderGetMemoryPool,a[1],f));
+     uint64_t offset=nvn_builder_get(NI_nvnBufferBuilderGetMemoryOffset,a[1],f),size=nvn_builder_get(NI_nvnBufferBuilderGetSize,a[1],f);
+@@ -135,10 +138,13 @@
+     nvn_buffer_stats.live--;nvn_buffer_stats.finalized++;
+     pthread_mutex_unlock(&kernel_mutex);
+ }
++#ifndef WOL_NVN_POOL_BUILDER_OFFSET
++#define WOL_NVN_POOL_BUILDER_OFFSET 8ULL
++#endif
+ static unsigned nvn_memory_dispatch(unsigned id,struct nvn_frame *f,uint64_t *result) {
+     uint64_t *a=f->args;*result=0;
+     if(id==NI_nvnMemoryPoolInitialize) {
+-        nvn_pointer(a[0],8,PROT_READ|PROT_WRITE);uint64_t device;memcpy(&device,nvn_pointer(a[1]+8,8,PROT_READ),8);
++        nvn_pointer(a[0],8,PROT_READ|PROT_WRITE);uint64_t device;memcpy(&device,nvn_pointer(a[1]+WOL_NVN_POOL_BUILDER_OFFSET,8,PROT_READ),8);
+         if(!nvn_device.live || device!=nvn_device.address)stop("NVN_MEMORY_POOL_DEVICE",nvn_caller,device,24);
+         uint64_t address=nvn_builder_get(NI_nvnMemoryPoolBuilderGetMemory,a[1],f),size=nvn_builder_get(NI_nvnMemoryPoolBuilderGetSize,a[1],f);
+         uint32_t flags=nvn_builder_get(NI_nvnMemoryPoolBuilderGetFlags,a[1],f);
+--- a/native/nvn_queue.h
++++ b/native/nvn_queue.h
+@@ -57,7 +57,11 @@
+ static void nvn_async_queue_complete(struct nvn_queue *q,unsigned finish);
+ static uint64_t nvn_queue_layout(uint64_t address,struct nvn_queue_builder *b) {
+     /* SDK 6.5 SetDevice +0x4018e0 / SetQueueMemory +0x401960. */
+-    memcpy(b,nvn_pointer(address+8,sizeof(*b),PROT_READ),sizeof(*b));
++    /* WoL SDK SetDevice stores at +0; inherited default stays +8 for its pinned title. */
++#ifndef WOL_NVN_QUEUE_BUILDER_OFFSET
++#define WOL_NVN_QUEUE_BUILDER_OFFSET 8ULL
++#endif
++    memcpy(b,nvn_pointer(address+WOL_NVN_QUEUE_BUILDER_OFFSET,sizeof(*b),PROT_READ),sizeof(*b));
+     if(!nvn_device.live || b->device!=nvn_device.address)stop("NVN_QUEUE_DEVICE",nvn_caller,b->device,24);
+     /* NVN QueueFlags: 1 disables fragment interlock; 2 disables ZCull.
+      * Neither optional Tegra path is enabled by this GLES2 backend. Ordinary
+--- a/native/nvn_shaders.h
++++ b/native/nvn_shaders.h
+@@ -49,7 +49,22 @@
+ static uint64_t nvn_read64(uint64_t address) {uint64_t value;memcpy(&value,nvn_pointer(address,8,PROT_READ),8);return value;}
+ static void *nvn_gpu_pointer(uint64_t address,uint64_t size,unsigned perm);
+ static unsigned nvn_megaman_shader_match(uint64_t code,uint64_t control) {
+-#if defined(ZERO_ZX_SHADER_DISCOVERY) && ZERO_ZX_SHADER_DISCOVERY
++#if defined(WOL_SHADER_CAPTURE) && WOL_SHADER_CAPTURE
++    /* Capture the measured WoL v0 control envelope; do not invent a translation. */
++    const uint8_t *header=nvn_pointer(control,0x24,PROT_READ);
++    if(read32(header)!=0x98761234 || read32(header+4)!=1 || read32(header+0x20)!=0x848)
++        stop("WOL_SHADER_CAPTURE_LAYOUT",nvn_caller,control,24);
++    const uint8_t *blob=nvn_pointer(control,0x848,PROT_READ);
++    const uint8_t *prefix=nvn_gpu_pointer(code,0x200,PROT_READ);
++    uint8_t hash[32];zero_sha256(blob,0x848,hash);
++    printf("WOL_SHADER_CAPTURE control-bytes=2120 code-prefix-bytes=512 control-sha256=");
++    for(unsigned i=0;i<32;i++){printf("%02x",hash[i]);}
++    putchar('\n');
++    nvn_private_dump("wol-shader-control",0,blob,0x848);
++    nvn_private_dump("wol-shader-code-prefix",0,prefix,0x200);
++    stop("WOL_SHADER_TRANSLATION_REQUIRED",nvn_caller,control,20);
++    return UINT32_MAX;
++#elif defined(ZERO_ZX_SHADER_DISCOVERY) && ZERO_ZX_SHADER_DISCOVERY
+     const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
+     printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
+     for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
+--- a/native/nvn_textures.h
++++ b/native/nvn_textures.h
+@@ -321,7 +321,7 @@
+     return NULL;
+ }
+ #endif
+-#if ZERO_ZX_GAME
++/* These two lifetime/view validation helpers are also referenced by the generic recorder. */
+ static uint64_t zero_texture_record_id(uint64_t object) {return nvn_texture_find(object)->id;}
+ static void aw_clear_texture_admit(uint64_t object,uint64_t view,const int32_t *region) {
+     struct nvn_texture *t=nvn_texture_find(object);
+@@ -329,6 +329,7 @@
+     if(region[0]<0||region[1]<0||region[2]||region[3]<=0||region[4]<=0||region[5]!=1||
+        (uint64_t)region[0]+region[3]>t->b.width||(uint64_t)region[1]+region[4]>t->b.height)stop("NVN_CLEAR_TEXTURE_REGION",nvn_caller,object,20);
+ }
++#if ZERO_ZX_GAME
+ static void zero_record_target_view(uint64_t object,const uint8_t *view,unsigned attachment) {
+     struct nvn_texture *t=object?nvn_texture_find(object):NULL;
+ #ifdef MOMO_SHADERS
