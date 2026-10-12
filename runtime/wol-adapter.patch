@@ -265,6 +265,175 @@
      if(!nvn_device.live || b->device!=nvn_device.address)stop("NVN_QUEUE_DEVICE",nvn_caller,b->device,24);
      /* NVN QueueFlags: 1 disables fragment interlock; 2 disables ZCull.
       * Neither optional Tegra path is enabled by this GLES2 backend. Ordinary
+--- a/native/nvn_render.h
++++ b/native/nvn_render.h
+@@ -509,6 +509,18 @@
+ static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
+ static void nvn_render_draw_inner(struct nvn_record *r) {
+     uint64_t aw_t0=aw_setup_now();
++#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++    /* Placeholder mode: every program this title binds is untranslated, so a draw with no recorded
++     * stage belongs to a placeholder. It is counted and skipped - no geometry, no pixels, no claims -
++     * which keeps the recorded frame replayable while translations do not exist yet. */
++    if(!nvn_render.program_stages[0].object && !nvn_render.program_stages[1].object) {
++        static unsigned told;static uint64_t skipped;
++        skipped++;
++        if(told<6) { told++;printf("WOL_DRAW_PLACEHOLDER mode=%"PRIu64" count=%"PRIu64" sequence=%"PRIu64" action=skipped note=no-translated-program\n",r->args[0],r->args[2],skipped); }
++        if(!(skipped%4096))printf("WOL_DRAW_PLACEHOLDER_TOTAL skipped=%"PRIu64"\n",skipped);
++        nvn_render.program=NULL;return;
++    }
++#endif
+     if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
+     if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
+     if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
+@@ -1535,6 +1547,80 @@
+         begin=end+1;
+     }
+ }
++#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++/* This title copies colour targets (RGBA8 -> RGBA8, one level, identical extents) between its own
++ * CPU-backed textures. The storage holds the authoritative bytes, so the copy is a byte move plus a
++ * dirty mark; the host copy follows on the next refresh. Depth copies keep the zero-family path. */
++static unsigned wol_color_texture_copy(const struct nvn_record *r) {
++    const uint64_t *a=r->args;
++    if(!a[0] || !a[3])return 0;
++    struct nvn_texture *src=nvn_texture_find(a[0]),*dst=nvn_texture_find(a[3]);
++    if(src->b.format==0x35 || dst->b.format==0x35)return 0;
++    src=zero_texture_storage_state(src);dst=zero_texture_storage_state(dst);
++    unsigned fail=0;
++    if(src->b.format!=dst->b.format)fail|=1;
++    if(src->b.levels!=1 || dst->b.levels!=1)fail|=4;
++    if(src->b.target>4 || dst->b.target>4)fail|=8;
++    if(zero_bc_bytes(src->b.format) || zero_bc_bytes(dst->b.format))fail|=16;
++    if(a[6]&~0x1eU)fail|=32;
++    if(fail) {
++        printf("WOL_COLOR_COPY_CONTRACT_FAIL src=%"PRIu64"(f=0x%x %ux%u l=%u t=%u) dst=%"PRIu64"(f=0x%x %ux%u l=%u t=%u) flags=0x%"PRIx64" fail=0x%x\n",
++               src->id,src->b.format,src->b.width,src->b.height,src->b.levels,src->b.target,
++               dst->id,dst->b.format,dst->b.width,dst->b.height,dst->b.levels,dst->b.target,a[6],fail);
++        stop("WOL_COLOR_COPY_CONTRACT",nvn_caller,src->b.format,20);
++    }
++    uint32_t from[6],to[6];memcpy(from,r->payload,24);memcpy(to,r->payload+24,24);
++    if(from[2] || from[5]!=1 || to[2] || to[5]!=1 || !from[3] || !from[4] || !to[3] || !to[4] ||
++       (uint64_t)from[0]+from[3]>src->b.width || (uint64_t)from[1]+from[4]>src->b.height ||
++       (uint64_t)to[0]+to[3]>dst->b.width || (uint64_t)to[1]+to[4]>dst->b.height)
++        stop("WOL_COLOR_COPY_REGION",nvn_caller,src->id,20);
++    unsigned bpp=nvn_texture_format_bytes(src->b.format);
++    uint64_t src_bytes=(uint64_t)src->b.width*src->b.height*bpp,dst_bytes=(uint64_t)dst->b.width*dst->b.height*bpp;
++    if(!src_bytes || !dst_bytes || src_bytes>src->size || dst_bytes>dst->size)stop("WOL_COLOR_COPY_SIZE",nvn_caller,src->id,20);
++    uint8_t *s=nvn_pointer(src->pool->address+src->b.offset,src_bytes,PROT_READ);
++    uint8_t *d=nvn_pointer(dst->pool->address+dst->b.offset,dst_bytes,PROT_READ|PROT_WRITE);
++    static unsigned told;
++    unsigned fw=from[3],fh=from[4],tw=to[3],th=to[4];
++    if(fw==tw && fh==th) {
++        /* The region is copied one to one; Unity lifts the visible 1280x720 area out of a larger
++         * render target this way. */
++        for(unsigned y=0;y<th;y++) {
++            const uint8_t *sr=s+((size_t)(from[1]+y)*src->b.width+from[0])*bpp;
++            uint8_t *dr=d+((size_t)(to[1]+y)*dst->b.width+to[0])*bpp;
++            memcpy(dr,sr,(size_t)tw*bpp);
++        }
++        if(told++<4)printf("WOL_COLOR_COPY source=%"PRIu64" destination=%"PRIu64" region=%ux%u@%u,%u->%u,%u mode=copy-1:1\n",
++            src->id,dst->id,fw,fh,from[0],from[1],to[0],to[1]);
++    } else {
++        /* Different extents need a scale; with no translated blit shader yet the storage is resampled
++         * with a box average - a documented approximation, revisited with the real blit. */
++        for(unsigned y=0;y<th;y++) {
++            unsigned sy0=from[1]+(unsigned)((uint64_t)y*fh/th);
++            unsigned sy1=from[1]+(unsigned)(((uint64_t)(y+1)*fh+th-1)/th);
++            if(sy1<=sy0)sy1=sy0+1;
++            if(sy1>from[1]+fh)sy1=from[1]+fh;
++            for(unsigned x=0;x<tw;x++) {
++                unsigned sx0=from[0]+(unsigned)((uint64_t)x*fw/tw);
++                unsigned sx1=from[0]+(unsigned)(((uint64_t)(x+1)*fw+tw-1)/tw);
++                if(sx1<=sx0)sx1=sx0+1;
++                if(sx1>from[0]+fw)sx1=from[0]+fw;
++                unsigned sum[4]={0,0,0,0},count=0;
++                for(unsigned sy=sy0;sy<sy1;sy++)for(unsigned sx=sx0;sx<sx1;sx++) {
++                    const uint8_t *p=s+((size_t)sy*src->b.width+sx)*bpp;
++                    for(unsigned c=0;c<bpp;c++)sum[c]+=p[c];
++                    count++;
++                }
++                uint8_t *o=d+((size_t)(to[1]+y)*dst->b.width+to[0]+x)*bpp;
++                for(unsigned c=0;c<bpp;c++)o[c]=(uint8_t)(count?sum[c]/count:0);
++            }
++        }
++        if(told++<4)printf("WOL_COLOR_COPY source=%"PRIu64" destination=%"PRIu64" region=%ux%u->%ux%u filter=box-average note=approximation-until-blit-shader\n",
++            src->id,dst->id,fw,fh,tw,th);
++    }
++    dst->zero_cpu_dirty=1;
++    return 1;
++}
++#endif
+ static unsigned nvn_render_record(struct nvn_record *r) {
+     uint64_t *a=r->args;
+     switch(r->op) {
+@@ -1562,7 +1648,11 @@
+         for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
+         glBlendColor(color[0],color[1],color[2],color[3]);return 1;
+     }
+-    case NI_nvnCommandBufferCopyTextureToTexture:zero_depth_copy(r);return 1;
++    case NI_nvnCommandBufferCopyTextureToTexture:
++#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++        if(wol_color_texture_copy(r))return 1;
++#endif
++        zero_depth_copy(r);return 1;
+     case NI_nvnCommandBufferSetLineWidth:case NI_nvnCommandBufferSetPointSize: {
+         float size;memcpy(&size,r->vectors,4);
+         if(!isfinite(size) || size<=0)stop("ZERO_RASTER_SIZE_INVALID",nvn_caller,r->op,24);
+--- a/native/nvn_replay.h
++++ b/native/nvn_replay.h
+@@ -259,7 +259,13 @@
+         }
+         if(nvn_low_color(t)>=0)stop("NVN_LOW_COPY_DESTINATION_REQUIRED",nvn_caller,t->id,20);
+         /* The view selects the destination level (Unity uploads one mip per copy, run momo-053). */
++#if defined(WOL_TEXTURE_VIEW_36) && WOL_TEXTURE_VIEW_36
++        /* This SDK's 36-byte view keeps flags at byte 0 and the level base at byte 1; reading the
++         * 18.3.2 offsets here would take the layer field as a level index. */
++        unsigned copy_level=(a[2] && (r->payload[24]&WOL_VIEW_FLAG_LEVELS))?r->payload[24+1]:0;
++#else
+         unsigned copy_level=(a[2] && (r->payload[24+7]&MOMO_VIEW_FLAG_LEVELS))?r->payload[24+4]:0;
++#endif
+         unsigned level_width=t->b.width>>copy_level,level_height=t->b.height>>copy_level;
+         if(!level_width)level_width=1;
+         if(!level_height)level_height=1;
+@@ -267,6 +273,37 @@
+            box[0]>level_width || box[3]>level_width-box[0] ||
+            box[1]>level_height || box[4]>level_height-box[1])stop("NVN_COPY_REGION_REQUIRED",nvn_caller,a[1],24);
+         unsigned bpp=nvn_texture_format_bytes(t->b.format);
++        unsigned copy_bc=zero_bc_bytes(t->b.format);
++        if(copy_bc) {
++            /* Compressed upload (MEDIDO run wol-23, format 0x41): the staging buffer carries this
++             * level's blocks linearly and row-major, while the retained guest storage and the host
++             * copy are the tiled-decoded forms. Region and pitch follow the 4x4 block grid. */
++            struct zero_bc_level m={0};
++            if(!zero_bc_level_layout(t->b.width,t->b.height,copy_bc,copy_level,&m) ||
++               m.offset!=t->levels[copy_level] || m.offset>t->size || m.size>t->size-m.offset)
++                stop("NVN_BC_COPY_LEVEL_REQUIRED",nvn_caller,t->id,24);
++            unsigned level_width=t->b.width>>copy_level,level_height=t->b.height>>copy_level;
++            if(!level_width)level_width=1;
++            if(!level_height)level_height=1;
++            if((box[0]&3) || (box[1]&3) || ((box[3]&3) && box[0]+box[3]!=level_width) ||
++               ((box[4]&3) && box[1]+box[4]!=level_height))
++                stop("NVN_BC_COPY_BLOCK_REGION",nvn_caller,a[1],24);
++            unsigned nx=(level_width+3)/4,ny=(level_height+3)/4;
++            size_t stride=(size_t)nx*copy_bc;
++            const uint8_t *sorted=nvn_gpu_pointer(a[0],stride*ny,PROT_READ);
++            uint8_t *tiled=nvn_pointer(t->pool->address+t->b.offset+m.offset,m.size,PROT_READ|PROT_WRITE);
++            if(!zero_bc_blocks_copy(&m,tiled,m.size,(void *)sorted,stride*ny,box[0]/4,box[1]/4,(box[3]+3)/4,(box[4]+3)/4,1))
++                stop("NVN_BC_COPY_BLOCKS_REQUIRED",nvn_caller,t->id,24);
++            size_t rgba_bytes=(size_t)box[3]*box[4]*4;uint8_t *rgba=malloc(rgba_bytes);
++            if(!rgba)stop("NVN_TEXTURE_UPLOAD_MEMORY",nvn_caller,rgba_bytes,21);
++            zero_texture_bc_pixels(t,copy_level,box,rgba,rgba_bytes);
++            glBindTexture(GL_TEXTURE_2D,t->name);glPixelStorei(GL_UNPACK_ALIGNMENT,1);
++            glTexSubImage2D(GL_TEXTURE_2D,(GLint)copy_level,box[0],box[1],box[3],box[4],GL_RGBA,GL_UNSIGNED_BYTE,rgba);
++            free(rgba);
++            static unsigned told;if(told++<8)printf("WOL_BC_COPY texture=%"PRIu64" level=%u box=%u,%u,%u,%u format=0x%x blocks=%zu note=linear-to-tiled-and-decoded\n",
++                t->id,copy_level,box[0],box[1],box[3],box[4],t->b.format,stride*ny);
++            return;
++        }
+         if(!bpp || nvn_texture_format_depth(t->b.format))stop("NVN_COPY_TEXTURE_FORMAT_REQUIRED",nvn_caller,t->b.format,20);
+         uint64_t row=(uint64_t)box[3]*bpp,stride=nvn_replay.row_stride?nvn_replay.row_stride:row;
+         if(stride<row || stride>64U*1024U*1024U)stop("NVN_COPY_ROW_STRIDE",nvn_caller,stride,24);
 --- a/native/nvn_samplers.h
 +++ b/native/nvn_samplers.h
 @@ -9,6 +9,20 @@
@@ -470,6 +639,35 @@
  static void zero_record_target_view(uint64_t object,const uint8_t *view,unsigned attachment) {
      struct nvn_texture *t=object?nvn_texture_find(object):NULL;
  #ifdef MOMO_SHADERS
+@@ -473,9 +493,26 @@
+ }
+ static void zero_texture_bc_pixels(struct nvn_texture *t,unsigned level,const uint32_t *box,void *pixels,size_t bytes) {
+     struct zero_bc_level m;
+-    if(t->b.target!=1 || !zero_bc_level_layout(t->b.width,t->b.height,zero_bc_bytes(t->b.format),level,&m) ||
++    /* This SDK's 2D targets are 2 and 4 (target 1 is 1D); the zero-family check for 1 does not apply
++     * to it, so the accepted target set is selected per title. */
++    /* Accepted 2D targets are selected per title; the WoL build logs the measured target once per
++     * texture so the enum stays evidence-driven instead of assumed. */
++#if defined(WOL_TEXTURE_VIEW_36) && WOL_TEXTURE_VIEW_36
++    unsigned target_2d=(t->b.target==1 || t->b.target==2 || t->b.target==4);
++    {   static unsigned told;
++        static uint64_t reported[16];unsigned seen=0;
++        for(unsigned i=0;i<told && i<16;i++)if(reported[i]==t->id)seen=1;
++        if(!seen) {
++            if(told<16)reported[told++]=t->id;
++            printf("WOL_BC_PIXELS texture=%"PRIu64" target=%u format=0x%x level=%u box=%s\n",t->id,t->b.target,t->b.format,level,box?"region":"whole");
++        }
++    }
++#else
++    unsigned target_2d=(t->b.target==1);
++#endif
++    if(!target_2d || !zero_bc_level_layout(t->b.width,t->b.height,zero_bc_bytes(t->b.format),level,&m) ||
+        m.offset!=t->levels[level] || m.offset>t->size || m.size>t->size-m.offset)
+-        stop("ZERO_BC_MIP_STORAGE",nvn_caller,t->id,24);
++        stop("ZERO_BC_MIP_STORAGE",nvn_caller,((uint64_t)t->b.target<<32)|t->b.format,24);
+     unsigned x=box?box[0]/4:0,y=box?box[1]/4:0,width=box?box[3]:m.width,height=box?box[4]:m.height;
+     unsigned nx=(width+3)/4,ny=(height+3)/4;size_t linear_bytes=(size_t)nx*ny*m.bytes;
+     uint8_t *linear=malloc(linear_bytes);if(!linear)stop("ZERO_BC_LINEAR_MEMORY",nvn_caller,linear_bytes,21);
 --- a/native/nvn_window.h
 +++ b/native/nvn_window.h
 @@ -51,8 +51,17 @@
