@@ -63,7 +63,29 @@
  #define HOST_ADDRESS_LIMIT (8192ULL << 20)
  #define HEAP_BASE 0x1000000000ULL
  #define HEAP_LIMIT MEMORY_BUDGET
-@@ -258,11 +263,47 @@
+@@ -175,11 +180,19 @@
+     return (uint64_t)now.tv_sec*19200000ULL+(uint64_t)now.tv_nsec*192ULL/10000ULL;
+ }
+ static void trace_frames(ucontext_t *ctx) {
+-    struct line b={0};text(&b,"GUEST_FRAMES lr=");location(&b,ctx->uc_mcontext.regs[30]);
++    /* This runs while a stop is already being reported, so it must never fault itself: every address it
++     * walks is validated first. Measured on WoL run 41: an unguarded lr walked the module table with a
++     * bogus value and the SIGSEGV in the tracer replaced the real stop in the log. */
++    struct line b={0};text(&b,"GUEST_FRAMES lr=");
++    uint64_t lr=ctx->uc_mcontext.regs[30];
++    if(accessible(lr,4,PROT_READ)){location(&b,lr);}else{text(&b,"unmapped");}
+     uint64_t fp=ctx->uc_mcontext.regs[29];
+     for(unsigned i=0;i<16 && fp && !(fp&15) && accessible(fp,16,PROT_READ);i++) {
+         uint64_t pair[2];memcpy(pair,(void *)(uintptr_t)fp,16);
+-        text(&b," <- ");location(&b,pair[1]);if(pair[0]<=fp)break;fp=pair[0];
++        text(&b," <- ");
++        if(accessible(pair[1],4,PROT_READ)){location(&b,pair[1]);}else{text(&b,"unmapped");}
++        if(pair[0]<=fp)break;
++        fp=pair[0];
+     }
+     emit(&b);
+ }
+@@ -258,11 +271,47 @@
      }
      return 0;
  }
@@ -111,7 +133,7 @@
          for(unsigned i=0;i<31;i++){struct line r={0};text(&r,"FAULT_REG x");hex(&r,i);text(&r,"=");hex(&r,ctx->uc_mcontext.regs[i]);text(&r," ");location(&r,ctx->uc_mcontext.regs[i]);emit(&r);}
  #ifdef AW_NO_ROMFS
          if(pc==LC2_SDK_BASE+0x1dfe90) {
-@@ -288,6 +329,23 @@
+@@ -288,6 +337,23 @@
          }
  #endif
          for(unsigned i=0;i<24;i++){uint64_t at=ctx->uc_mcontext.sp+i*8,v=0;if(!accessible(at,8,PROT_READ))break;memcpy(&v,(void *)(uintptr_t)at,8);struct line w={0};text(&w,"FAULT_STACK +");hex(&w,i*8);text(&w,"=");hex(&w,v);text(&w," ");location(&w,v);emit(&w);}
@@ -135,7 +157,7 @@
          if(momo_dump_address) {
              /* Bounded stall diagnostic: hexdump of a guest range chosen by MOMO_DUMP=address:bytes. */
              const unsigned char *at=(const unsigned char *)(uintptr_t)momo_dump_address;
-@@ -695,7 +753,7 @@
+@@ -695,7 +761,7 @@
  }
  int main(int argc,char **argv) {
      (void)argv;if(argc!=1){fprintf(stderr,"Run from the verified native image directory, without arguments.\n");return 1;}
@@ -144,7 +166,7 @@
      nvn_platform_argv=argv;
      t2_runtime_health_capture();
      if(t2_video_init())return 24;
-@@ -726,7 +784,7 @@
+@@ -726,7 +792,7 @@
      struct rlimit no_core={0,0};setrlimit(RLIMIT_CORE,&no_core);
      struct rlimit address_limit={HOST_ADDRESS_LIMIT,HOST_ADDRESS_LIMIT};
      if(setrlimit(RLIMIT_AS,&address_limit)){perror("diagnostic memory quota");return 1;}

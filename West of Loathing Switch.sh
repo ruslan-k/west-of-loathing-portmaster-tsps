@@ -22,7 +22,15 @@ export SDL_VIDEODRIVER=kmsdrm SDL_AUDIODRIVER=alsa
 export SDL_NO_SIGNAL_HANDLERS=1
 export SDL_GAMECONTROLLERCONFIG='0300a3845e0400008e02000014010000,TRIMUI Player1,a:b0,b:b1,back:b6,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b8,leftshoulder:b4,leftstick:b9,lefttrigger:a2,leftx:a0,lefty:a1,rightshoulder:b5,rightstick:b10,righttrigger:a5,rightx:a3,righty:a4,start:b7,x:b2,y:b3,platform:Linux,'
 export COTM_RUN_ID=$(date +%s)
-export MEGAMAN_PROBE_SECONDS=35
+# A/B (wol-39 -> wol-40): the load hit the memory floor after 32 frames while staging the 191 MiB RomFS
+# read. The staging peak may be transient, so let the load finish inside the same bounded run:
+# WOL_PROBE_SECONDS=35 restores the shorter diagnostic budget.
+export MEGAMAN_PROBE_SECONDS="${WOL_PROBE_SECONDS:-90}"
+# A/B (wol-40 -> wol-41): the load holds its staging memory (RSS 693 MiB, 33 frames, availability 133 MiB)
+# and the runtime's own floor (140 MiB) stops the run before the kernel would act - nothing has been
+# swapped yet (swap-free 1986 MiB, vmswap 0). Lower the floor for this bounded diagnostic so the kernel
+# (and zram) can show what the real demand is; WOL_MEMORY_FLOOR_MIB=140 restores the safe floor.
+export T2_MEMORY_FLOOR_MIB="${WOL_MEMORY_FLOOR_MIB:-64}"
 export MEGAMAN_LAZY_ZERO=0 T2_GUEST_ZRAM=0 T2_LAZY_MESH=0 T2_IMAGE_FILE_MAP=1
 export T2_SAVE_DIR="$GAMEDIR/save-laboratory"
 # A/B (wol-31 -> wol-32): the async GPU pipeline is auto-admitted on this display (EGL_KHR_wait_sync

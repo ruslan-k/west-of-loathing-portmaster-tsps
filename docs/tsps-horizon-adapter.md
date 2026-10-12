@@ -165,3 +165,13 @@ Run 39 then presented 32 frames and stopped on `T2_MEMORY_FLOOR` with VmRSS 666 
 runtime's own availability guard (140 MiB, `T2_MEMORY_FLOOR_MIB`) caught the device running out of RAM during
 asset load. That is a memory-budget problem, not a graphics one: the guest heap is declared 2048 MiB virtual,
 the device has ~1 GiB, and the title keeps its bundles resident.
+
+### Runs 40-42: memory ceiling, and a tracer that must never crash the report
+
+| Run | Change | Result |
+|----|--------|--------|
+| 40 | probe budget 35s -> 90s | Same floor hit (available 133 MiB, RSS 693 MiB): the load's memory is resident, not a transient peak. |
+| 41 | `T2_MEMORY_FLOOR_MIB=64` (bounded diagnostic) | **120 frames presented** (3.6x run 39) with the kernel starting to swap (VmSwap 95 MiB); then a **host** SIGSEGV inside the runtime's own frame tracer while it reported another problem. |
+| 42 | tracer hardening (`accessible()` guard on lr and each frame) | The tracer now prints `unmapped` instead of dying on guest addresses, and the remaining host fault is localised: `trace_frames` is also called with a **host** fault context, where its module lookup walks host addresses (`pc` offset 0x19abc in the binary, resolved offline with the cross toolchain as `trace_frames.isra.0`). |
+
+Notable runtime fact for the memory work: `T2_MEMWATCH` documents its own guard - `floor-MiB=140 swap-floor-MiB=16 texture-budget-MiB=420 reason=gpu-memory-is-invisible-to-vmrss`.

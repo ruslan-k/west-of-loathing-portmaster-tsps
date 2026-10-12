@@ -436,6 +436,30 @@
       "rss_kib": 681904,
       "frames_presented": 32,
       "submits": 8
+    },
+    {
+      "run": "device-40",
+      "stop": "T2_MEMORY_FLOOR",
+      "stop_pc": "0x0",
+      "rss_kib": 693304,
+      "frames_presented": 33,
+      "submits": 8
+    },
+    {
+      "run": "device-41",
+      "stop": "CPU_FAULT",
+      "stop_pc": "0x5594c49ab4",
+      "rss_kib": 700264,
+      "frames_presented": 120,
+      "submits": 9
+    },
+    {
+      "run": "device-42",
+      "stop": "CPU_FAULT",
+      "stop_pc": "0x557d659abc",
+      "rss_kib": 706696,
+      "frames_presented": 120,
+      "submits": 9
     }
   ]
 }
