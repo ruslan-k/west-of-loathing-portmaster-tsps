@@ -88,10 +88,13 @@ void main() {
 //  * the attribute/varying space of this SDK encodes: byte0 = register, byte2 = (component<<4)|0x7,
 //    byte3 = slot; control word 0xefd87f80 = `ld b32`, 0xeff07f80 = `st b32`; the INPUT attribute space
 //    starts at 0x80, the OUTPUT (varying) space at 0x00.
-//  * inputs of this pair: slot 0 = (r6,r4,r5) = position x/y/z (FLOAT32x3 at offset 0 of a stride-88
-//    stream), slot 1 = (r8,r9,..) = the second FLOAT32x3 at offset 40.
-//  * outputs: varying 7 = (r6,r7,r3,r0) - a full vec4; varying 8 = (r8,r5) - a vec2. The fragment reads
-//    exactly v7.w and v8.y, so the storage map now matches on both sides.
+//  * inputs of this pair, all five loads with the validated address rule (address = 0x10*slot + 4*comp,
+//    the component read from bits 6-7 of the third byte): slot 0 = (r6,r4,r5) = position x/y/z
+//    (FLOAT32x3 at offset 0 of a stride-88 stream), slot 1 = (r8,r9) = the second FLOAT32x3 at offset 40,
+//    read only as a vec2.
+//  * outputs, all six stores: varying 7 = (r6,r7,r3,r0) - a full vec4; varying 8 = (r8,r5) - a vec2.
+//    The fragment reads exactly v7.w and v8.y, so the storage map matches on both sides; note that the
+//    value stored into v8.y is r5 = input slot 0 component 2, i.e. the position z.
 //  * therefore v7 is the clip-position candidate (a vec4 stored by the vertex stage) and v8 the uv-like
 //    pair; that assignment is confirmed empirically when the pair is first wired, not assumed here.
 //  * still open: the predicated ALU ops (fe/3e/ff forms) that feed the stored values, the TEX operand
