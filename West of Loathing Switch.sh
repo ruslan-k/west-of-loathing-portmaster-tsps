@@ -25,6 +25,23 @@ export COTM_RUN_ID=$(date +%s)
 export MEGAMAN_PROBE_SECONDS=35
 export MEGAMAN_LAZY_ZERO=0 T2_GUEST_ZRAM=0 T2_LAZY_MESH=0 T2_IMAGE_FILE_MAP=1
 export T2_SAVE_DIR="$GAMEDIR/save-laboratory"
+# A/B (wol-31 -> wol-32): the async GPU pipeline is auto-admitted on this display (EGL_KHR_wait_sync
+# present with a separate present context). After the first present the queue path's eglMakeCurrent
+# then fails with EGL_BAD_SURFACE (NVN_QUEUE_CONTEXT, detail=0x300d). Block the pipeline for this run;
+# WOL_GPU_PIPELINE=1 restores the automatic behaviour.
+export T2_GPU_PIPELINE="${WOL_GPU_PIPELINE:-0}"
+# A/B (wol-33 -> wol-34): the queue path replaces nvn_device.surface with the 1280x720 window surface
+# (single-context mode) and the second submit's eglMakeCurrent fails with EGL_BAD_SURFACE while the
+# surface itself still queries alive. The runtime's own pbuffer-producer design renders while bound to
+# the 8x8 pbuffer and uses the window surface only for the swap; that mode requires single-context off
+# (NVN_SINGLE_CONTEXT_PBUFFER otherwise). WOL_SURFACE_MODE=window restores the previous behaviour.
+if [ "${WOL_SURFACE_MODE:-pbuffer}" = pbuffer ]; then
+    export COTM_SINGLE_CONTEXT=0 COTM_GAME_PBUFFER=1
+fi
+# A/B (wol-35, falsified): T2_DISPLAY_BACKEND=fbdev fails at device init with EGL_BAD_DISPLAY (0x3008)
+# - SDL/KMSDRM owns the display - so the SDL window stays. The stale-surface problem is fixed in the
+# runtime instead (nvn_platform_live_surface): SDL recreates its EGL surface on swap, so the present
+# asks SDL for the live surface before binding.
 unset NX_PC_BENCH MEGAMAN_OMIT_VIDEOS T2_BOOTCFG_OVERLAY
 ./wol-horizon
 status=$?

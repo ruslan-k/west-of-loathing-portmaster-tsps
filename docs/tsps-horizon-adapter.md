@@ -131,3 +131,23 @@ Next engineering steps, in order:
    inventory, write the GLSL ES translation into the catalogue, and re-run until the documented stop
    moves past the draw.
 3. Only then revisit quality items (real downsample blit, real MSAA, filtered scaling).
+
+### Runs 32-37: the surface lifecycle fix, and 33 frames on the panel
+
+`NVN_QUEUE_CONTEXT`/`NVN_PRESENT_CONTEXT` (EGL_BAD_SURFACE, 0x300d) were the same root cause: the window comes
+from **SDL's KMSDRM backend** (`NVN_SYSTEM_WINDOW backend=SDL driver=KMSDRM`), SDL recreates its EGL surface on
+swap, and the runtime kept binding the cached handle. Measured along the way:
+
+| Run | Change | Result |
+|----|--------|--------|
+| 32 | `T2_GPU_PIPELINE=0` | **Falsified**: the async present path is not the cause, identical stop. |
+| 33 | surface diagnostic before the bind | The window surface answers `eglQuerySurface` (alive) while `eglMakeCurrent` still fails; `EGL_SUCCESS` pending. |
+| 34 | `COTM_SINGLE_CONTEXT=0 COTM_GAME_PBUFFER=1` (the runtime's pbuffer-producer mode) | The **second submit passes** (157 commands, `glFinish`); the stop moves to the second present. |
+| 35 | `T2_DISPLAY_BACKEND=fbdev` | **Falsified**: device init fails with EGL_BAD_DISPLAY (0x3008) — SDL/KMSDRM owns the display. |
+| 36 | `nvn_platform_live_surface()` with `eglGetCurrentContext()` | No effect: the runtime detaches between operations, so the thread has no current context to hand SDL. |
+| **37** | same helper using **SDL's own context** | **33 frames presented in a row**, 8 submits, no EGL error. Render surface = pbuffer, presentation = physical window. |
+
+Runtime is now stably in the game loop: the stop is `INVALID_ROMFS_READ_RANGE` (a guest asset read outside the
+mapped RomFS section, detail 0x4630d0) with RSS 500 MiB - an asset-mounting question, not a graphics one.
+Nothing here is a rendered picture; every draw is still a placeholder, so every present is `BLACK-SAMPLE` by
+construction.
