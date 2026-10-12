@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+wol-native-probe
+owner-image/
+owner-input/
+wol-base
+*.seg
+*.nsp
+*.nsz
+*.nca
+*.tik
+*.cert
+*.keys
+prod.keys
+wol-analysis.json
+native-layout.txt
+review-opencode*.log

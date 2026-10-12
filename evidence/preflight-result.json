@@ -1,0 +1,21 @@
+{
+  "verdict": "DATA_STAGE_PASS_EXECUTION_NOT_ATTEMPTED",
+  "modules": 4,
+  "mapped_bytes": 52023296,
+  "relocations_applied_and_read_back": 215921,
+  "relocation_types": {
+    "1027": 173522,
+    "1025": 1899,
+    "257": 30078,
+    "1026": 10422
+  },
+  "strong_guest_imports_unresolved": 0,
+  "execution_enabled": false,
+  "blockers": [
+    "No Horizon SVC/IPC implementations installed",
+    "Guest TPIDR_EL0 access needs isolation from host TLS",
+    "No West of Loathing NVN/shader adapter",
+    "No title frame/audio/input/memory validation"
+  ],
+  "note": "mmap is host-native RW data only, never executable; resolving SDK exports does NOT implement the operating system underneath them."
+}

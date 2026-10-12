@@ -1,0 +1,15 @@
+name: Native ARM64 probe
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  synthetic-native-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cross compiler and QEMU
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu qemu-user-static
+      - name: Build with warnings as errors
+        run: bash build.sh
+      - name: Run data-free ARM64 trap and IPC tests
+        run: python3 -m unittest -v test_native
