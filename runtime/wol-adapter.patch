@@ -485,10 +485,31 @@
      nvn_gl_completion.completion_valid=0;
 --- a/native/nvn_render.h
 +++ b/native/nvn_render.h
-@@ -509,6 +509,18 @@
+@@ -509,6 +509,39 @@
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
++#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++    {   /* WoL bring-up: the title declares its vertex interface through the attribute state object. In
++         * placeholder mode the attribute loop below never runs (a placeholder program uses no
++         * attributes), so the declared state is dumped here, before the skip: slot, stream, packed
++         * attribute word (stream/format/offset) and the stream stride. Measured, printed, never guessed;
++         * the draw itself stays skipped while programs are placeholders. */
++        static unsigned told;
++        if(told<8) {
++            told++;
++            printf("WOL_VERTEX_INTERFACE draw=%u attribs=%u streams=%u",(unsigned)nvn_replay.draws,(unsigned)nvn_render.attrib_count,(unsigned)nvn_render.stream_count);
++            for(unsigned i=0;i<nvn_render.attrib_count && i<16;i++) {
++                uint32_t attr=nvn_render.attrib[i];
++                unsigned stream=attr&31u,format=(attr>>21)&1023u,offset=(attr>>7)&16383u;
++                printf(" s%u=%s/%u/0x%x/off%u",i,(attr&64u)?"on":"off",stream,format,offset);
++            }
++            for(unsigned s=0;s<nvn_render.stream_count && s<4;s++)printf(" stride%u=%u",s,(unsigned)nvn_render.streams[s][0]);
++            putchar('\n');
++        }
++    }
++#endif
++
 +#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
 +    /* Placeholder mode: every program this title binds is untranslated, so a draw with no recorded
 +     * stage belongs to a placeholder. It is counted and skipped - no geometry, no pixels, no claims -
@@ -504,7 +525,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1547,80 @@
+@@ -1535,6 +1568,80 @@
          begin=end+1;
      }
  }
@@ -585,7 +606,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +1648,11 @@
+@@ -1562,7 +1669,11 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
