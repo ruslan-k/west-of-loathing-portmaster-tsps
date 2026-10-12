@@ -607,6 +607,38 @@
       "pair_draws": 66,
       "blits": 44,
       "diagnostic_crash": 0
+    },
+    {
+      "run": "device-62",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 66,
+      "blits": 44,
+      "presents": 22,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-63",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 63,
+      "blits": 42,
+      "presents": 21,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-64",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 63,
+      "blits": 42,
+      "presents": 21,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-65",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 129,
+      "blits": 86,
+      "presents": 42,
+      "diagnostic_crash": 0
     }
   ]
 }

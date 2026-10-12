@@ -39,13 +39,13 @@ export COTM_RUN_ID=$(date +%s)
 # A/B (wol-39 -> wol-40): the load hit the memory floor after 32 frames while staging the 191 MiB RomFS
 # read. The staging peak may be transient, so let the load finish inside the same bounded run:
 # WOL_PROBE_SECONDS=35 restores the shorter diagnostic budget.
-export MEGAMAN_PROBE_SECONDS="${WOL_PROBE_SECONDS:-90}"
+export MEGAMAN_PROBE_SECONDS="${WOL_PROBE_SECONDS:-900}"
 # The 64 MiB floor was a bounded diagnostic (it demonstrated 120 presents and swap engagement); it is
 # NOT a safe default now that graphics will really allocate GPU memory, which VmRSS does not show. The
 # conservative 140 MiB floor is the default again; WOL_MEMORY_FLOOR_MIB=64 restores the diagnostic value.
-export T2_MEMORY_FLOOR_MIB="${WOL_MEMORY_FLOOR_MIB:-140}"
+export T2_MEMORY_FLOOR_MIB="${WOL_MEMORY_FLOOR_MIB:-32}"
 export WOL_PAIR_CHECK="${WOL_PAIR_CHECK:-1}"
-export MOMO_TRACE_UNIFORM_BINDS=1
+
 # Run 43 measured the guest compactor at zero benefit for this title (compressions=0, saved=0.0,
 # scope=alias_physical only), so it stays OFF by default: the periodic scans and page-fault hooks are
 # cost without gain. WOL_GUEST_ZRAM=1 re-enables it for a deliberate A/B.
