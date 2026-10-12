@@ -7,13 +7,26 @@ LOG="$GAMEDIR/logs/latest.log"
 exec >"$LOG" 2>&1
 printf 'WOL_LAUNCH native-horizon diagnostic-budget=35s shader-catalogue=absent\n'
 # Spruce normally offlines the cluster to which this recovered runtime pins its threads.
+# The runtime pins its threads to the cluster Spruce normally offlines. Remember each file's original
+# state and restore it on exit so a run leaves the device exactly as it found it (run 42 left 0-7 online).
+CPU_RESTORE=""
 for c in 0 1 2 3; do
     p="/sys/devices/system/cpu/cpu${c}/online"
     [ -e "$p" ] || continue
-    chmod a+w "$p" 2>/dev/null || true
-    if [ "$(<"$p")" = 0 ]; then printf 1 >"$p" || true; fi
-    chmod a-w "$p" 2>/dev/null || true
+    previous=$(<"$p")
+    CPU_RESTORE="$CPU_RESTORE $c:$previous"
+    chmod u+w "$p" 2>/dev/null || true
+    if [ "$previous" = 0 ]; then printf 1 >"$p" || true; fi
 done
+restore_cpu() {
+    for entry in $CPU_RESTORE; do
+        c=${entry%%:*}; want=${entry##*:}
+        p="/sys/devices/system/cpu/cpu${c}/online"
+        [ -e "$p" ] || continue
+        printf '%s' "$want" >"$p" 2>/dev/null || true
+    done
+}
+trap restore_cpu EXIT
 export HOME="$GAMEDIR"
 export SDL_VIDEODRIVER=kmsdrm SDL_AUDIODRIVER=alsa
 # SDL installs crash handlers that catch SIGSEGV and re-raise it themselves, which hides the
@@ -31,7 +44,12 @@ export MEGAMAN_PROBE_SECONDS="${WOL_PROBE_SECONDS:-90}"
 # swapped yet (swap-free 1986 MiB, vmswap 0). Lower the floor for this bounded diagnostic so the kernel
 # (and zram) can show what the real demand is; WOL_MEMORY_FLOOR_MIB=140 restores the safe floor.
 export T2_MEMORY_FLOOR_MIB="${WOL_MEMORY_FLOOR_MIB:-64}"
-export MEGAMAN_LAZY_ZERO=0 T2_GUEST_ZRAM=0 T2_LAZY_MESH=0 T2_IMAGE_FILE_MAP=1
+# A/B (wol-42 -> wol-43): the guest memory compactors are the reviewer's first memory experiment.
+# T2_GUEST_ZRAM=1 compresses cold guest blocks (LZ4 + mprotect page-fault handler); stats every second.
+# WOL_GUEST_ZRAM=0 restores the previous profile. The diagnostic floor (64 MiB) is kept from run 41/42.
+export T2_GUEST_ZRAM="${WOL_GUEST_ZRAM:-1}"
+export T2_GZRAM_TARGET_MIB="${WOL_GZRAM_TARGET_MIB:-400}" T2_GZRAM_STATS_MS=1000 T2_GZRAM_POOLS=0
+export MEGAMAN_LAZY_ZERO=0 T2_LAZY_MESH=0 T2_IMAGE_FILE_MAP=1
 export T2_SAVE_DIR="$GAMEDIR/save-laboratory"
 # A/B (wol-31 -> wol-32): the async GPU pipeline is auto-admitted on this display (EGL_KHR_wait_sync
 # present with a separate present context). After the first present the queue path's eglMakeCurrent

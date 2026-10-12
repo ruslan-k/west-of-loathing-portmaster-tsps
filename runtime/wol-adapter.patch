@@ -63,7 +63,22 @@
  #define HOST_ADDRESS_LIMIT (8192ULL << 20)
  #define HEAP_BASE 0x1000000000ULL
  #define HEAP_LIMIT MEMORY_BUDGET
-@@ -175,11 +180,19 @@
+@@ -124,6 +129,14 @@
+     }
+     hex(b,pc);
+ }
++/* A stop report must survive the fault it describes. Guest frame walking is only meaningful when the
++ * faulting pc is inside a guest image; host faults get their registers logged instead of a walk that
++ * would read host stack values as guest frames (measured: run 42 died in this tracer). */
++static int inside_guest_image(uint64_t pc) {
++    for(size_t i=0;i<sizeof(images)/sizeof(images[0]);i++)
++        if(pc>=images[i].base && pc<images[i].base+images[i].map_size)return 1;
++    return 0;
++}
+ static void momo_thread_census(void);
+ static void stop(const char *why, uint64_t pc, uint64_t detail, int status) {
+     momo_thread_census();
+@@ -175,11 +188,19 @@
      return (uint64_t)now.tv_sec*19200000ULL+(uint64_t)now.tv_nsec*192ULL/10000ULL;
  }
  static void trace_frames(ucontext_t *ctx) {
@@ -85,7 +100,7 @@
      }
      emit(&b);
  }
-@@ -258,11 +271,47 @@
+@@ -258,11 +279,47 @@
      }
      return 0;
  }
@@ -133,7 +148,7 @@
          for(unsigned i=0;i<31;i++){struct line r={0};text(&r,"FAULT_REG x");hex(&r,i);text(&r,"=");hex(&r,ctx->uc_mcontext.regs[i]);text(&r," ");location(&r,ctx->uc_mcontext.regs[i]);emit(&r);}
  #ifdef AW_NO_ROMFS
          if(pc==LC2_SDK_BASE+0x1dfe90) {
-@@ -288,6 +337,23 @@
+@@ -288,6 +345,23 @@
          }
  #endif
          for(unsigned i=0;i<24;i++){uint64_t at=ctx->uc_mcontext.sp+i*8,v=0;if(!accessible(at,8,PROT_READ))break;memcpy(&v,(void *)(uintptr_t)at,8);struct line w={0};text(&w,"FAULT_STACK +");hex(&w,i*8);text(&w,"=");hex(&w,v);text(&w," ");location(&w,v);emit(&w);}
@@ -157,7 +172,52 @@
          if(momo_dump_address) {
              /* Bounded stall diagnostic: hexdump of a guest range chosen by MOMO_DUMP=address:bytes. */
              const unsigned char *at=(const unsigned char *)(uintptr_t)momo_dump_address;
-@@ -695,7 +761,7 @@
+@@ -380,7 +454,7 @@
+     if(svc==2) {
+         /* SetMemoryPermission: nn::ro::ProtectRelro on the sdk data image (SDK 17). Only R/RW/none on an
+          * existing private image or heap range; the split region keeps its state and attributes. */
+-        trace_frames(ctx);
++        if(inside_guest_image(ctx->uc_mcontext.pc))trace_frames(ctx);
+         uint64_t address=r[0],size=r[1];unsigned perm=(unsigned)r[2];
+         if((address|size)&(PAGE-1) || !size || perm>3 || perm==2)stop("INVALID_MEMORY_PERMISSION_REQUEST",pc,address,24);
+         struct region old=query(address);
+@@ -391,7 +465,7 @@
+     }
+     if(svc==3) {
+         /* SetMemoryAttribute: SDK 17 ProtectRelro locks the permission (attribute 0x10) after making it read-only. */
+-        trace_frames(ctx);
++        if(inside_guest_image(ctx->uc_mcontext.pc))trace_frames(ctx);
+         uint64_t address=r[0],size=r[1];unsigned mask=(unsigned)r[2],attr=(unsigned)r[3];
+         if((address|size)&(PAGE-1) || !size || mask!=0x10 || attr!=0x10)stop("UNSUPPORTED_MEMORY_ATTRIBUTE",pc,mask,20);
+         struct region old=query(address);
+@@ -401,7 +475,7 @@
+         r[0]=0;ctx->uc_mcontext.pc+=4;return;
+     }
+     if(svc==1) {
+-        trace_frames(ctx);
++        if(inside_guest_image(ctx->uc_mcontext.pc))trace_frames(ctx);
+         uint64_t requested=r[1];
+         if(requested%(2ULL<<20) || requested>HEAP_LIMIT)stop("HEAP_REQUEST_OUTSIDE_EXPERIMENT_LIMIT",pc,requested,20);
+         /* The first allocation and same-size queries are supported. Growing or
+@@ -571,7 +645,7 @@
+             struct line w={0};text(&w,"MOMO_WAIT_KEY thread=");hex(&w,guest_thread_index);
+             text(&w," key=");hex(&w,r[0]);text(&w," mutex=");hex(&w,r[1]);text(&w," tag=");hex(&w,r[2]);
+             text(&w," timeout=");hex(&w,r[3]);emit(&w);
+-            trace_frames(ctx);
++            if(inside_guest_image(ctx->uc_mcontext.pc))trace_frames(ctx);
+         }
+         r[0]=key_wait(r[0],r[1],r[2],(int64_t)r[3],pc);ctx->uc_mcontext.pc+=4;return;
+     }
+@@ -621,7 +695,7 @@
+             struct line b={0};text(&b,"MOMO_SAMPLE thread=");hex(&b,guest_thread_index);
+             text(&b," in-kernel=");hex(&b,signal_handler_depth);text(&b," pc=");
+             location(&b,ctx->uc_mcontext.pc);emit(&b);
+-            if(!signal_handler_depth)trace_frames(ctx);
++            if(!signal_handler_depth && inside_guest_image(ctx->uc_mcontext.pc))trace_frames(ctx);
+         }
+         return;
+     }
+@@ -695,7 +769,7 @@
  }
  int main(int argc,char **argv) {
      (void)argv;if(argc!=1){fprintf(stderr,"Run from the verified native image directory, without arguments.\n");return 1;}
@@ -166,7 +226,7 @@
      nvn_platform_argv=argv;
      t2_runtime_health_capture();
      if(t2_video_init())return 24;
-@@ -726,7 +792,7 @@
+@@ -726,7 +800,7 @@
      struct rlimit no_core={0,0};setrlimit(RLIMIT_CORE,&no_core);
      struct rlimit address_limit={HOST_ADDRESS_LIMIT,HOST_ADDRESS_LIMIT};
      if(setrlimit(RLIMIT_AS,&address_limit)){perror("diagnostic memory quota");return 1;}
