@@ -212,3 +212,27 @@ pinned in `evidence/first-pair/`:
 - Next for this workstream (offline, no device): feed the two code blobs to the Hades/Yuzu Maxwell recompiler
   (`shader-compiler-rs`), check the 0x30-byte SPH expectation against our 0x848-byte control + separate code
   layout, then translate to GLSL ES and register the pair in the catalogue by its SHA pair.
+
+### The first pair disassembled: a tinted 2D sprite (both stages)
+
+Tooling: envytools' `envydis` built from source (cmake + ninja) - the captured blob already begins with the
+NVIDIA SPH header (`0x12345678`), so the SASS starts at `+0x30`:
+
+    envydis -m gm107 -d 0x30 -i <blob>      # gm107 covers the Tegra X1 GM20B ISA
+
+Full listings are `evidence/first-pair/vertex.sass.txt` and `fragment.sass.txt`. What they do:
+
+- **Vertex (`f309b86a`, 768 B)**: two `mov $rX c3[0x80/0x84]` uniform constants, two attribute loads
+  (`ld b32 $r6 a[0x80]`, `ld b32 $r8 a[0x90]` - attribute slots 8 and 9, matching the 0x58-byte vertex
+  stride seen in the bind logs), then a chain of `fmul`/`ffma`/`fadd` against `c3[0x4..0x34]` - i.e. a
+  uniform matrix/offset transform of the position, no texture access.
+- **Fragment (`f08bad2f`, 512 B)**: two `ipa pass` interpolants (`a[0x7c]`, `a[0x84]`), `mufu rcp` +
+  `fmul` (the perspective divide of the UV), `texs nodep $r2 $r0 $r4 $r5 0x8 t2d rgba` (a 2D RGBA texture
+  sample with computed LOD), two `fmul ... c3[0x4/0x8]` tint multiplies, `exit`.
+
+In other words the target is Unity's ordinary tinted sprite/UI pair. That makes a **hand translation to
+GLES2 GLSL tractable** (the reviewer's variant B), and it fixes the interface for the catalogue entry:
+constant bank c3 offsets, attribute slots 8/9, one sampler, one interpolated UV pair.
+
+Next: write that GLSL ES pair, key it by (code SHA + control SHA), and let the first draw use it instead of a
+placeholder - the first pixels that actually come from the game's own draw.
