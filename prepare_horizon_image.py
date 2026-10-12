@@ -92,6 +92,7 @@ def main():
        '#define ROMFS_SECTION_SIZE %dULL'%rom['section_size'],
        '#define ROMFS_OFFSET %dULL'%rom['romfs_offset'],
        '#define ROMFS_SIZE %dULL'%rom['romfs_size'],
+       '#define FILESYSTEM_ROMFS_READ_LIMIT (256ULL<<20)',
        '#define LC2_ROMFS_SHA256 "%s"'%rom['sha256']]
     for name,m in mods.items():
         prefix='LC2_'+name.upper()

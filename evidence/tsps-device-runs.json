@@ -420,6 +420,22 @@
       "textures": 33,
       "frames_presented": 33,
       "submits": 8
+    },
+    {
+      "run": "device-38",
+      "stop": "INVALID_ROMFS_READ_RANGE",
+      "stop_pc": "sdk.text.seg+0xa9d94",
+      "rss_kib": 520808,
+      "frames_presented": 32,
+      "submits": 8
+    },
+    {
+      "run": "device-39",
+      "stop": "T2_MEMORY_FLOOR",
+      "stop_pc": "0x0",
+      "rss_kib": 681904,
+      "frames_presented": 32,
+      "submits": 8
     }
   ]
 }

@@ -151,3 +151,17 @@ Runtime is now stably in the game loop: the stop is `INVALID_ROMFS_READ_RANGE` (
 mapped RomFS section, detail 0x4630d0) with RSS 500 MiB - an asset-mounting question, not a graphics one.
 Nothing here is a rendered picture; every draw is still a placeholder, so every present is `BLACK-SAMPLE` by
 construction.
+
+### Runs 38-39: the engine loads its assets, and the device runs out of RAM
+
+After the surface fix the title reads its own content: 23 RomFS reads succeed, then one request is refused by
+the runtime's own guard. The refused request says exactly what it wanted (`ROMFS_READ_REFUSED`):
+`offset=0x4630d0 size=0xbf15cfc romfs-size=0xcf2ffe4 outputs=1 output-size=0xbf15cfc clause=over-64M` - the
+title reads the **whole remaining RomFS (191 MiB) in one request** with a matching guest buffer, and only the
+zero-family 64 MiB cap rejected it. The cap is now a build parameter (`FILESYSTEM_ROMFS_READ_LIMIT`, 64 MiB by
+default, 256 MiB for this title) and the refusal prints every field instead of just the offset.
+
+Run 39 then presented 32 frames and stopped on `T2_MEMORY_FLOOR` with VmRSS 666 MiB, VmPeak 3.0 GiB - the
+runtime's own availability guard (140 MiB, `T2_MEMORY_FLOOR_MIB`) caught the device running out of RAM during
+asset load. That is a memory-budget problem, not a graphics one: the guest heap is declared 2048 MiB virtual,
+the device has ~1 GiB, and the title keeps its bundles resident.
