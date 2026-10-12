@@ -467,3 +467,32 @@ WOL_COMMAND_ARENA_RETIRE ... action=RETIRED_TAIL
 The previous arena's `used` cursor ends exactly where the new arena begins, and no retained range or live
 list reaches into the overlap, so the tail is retired and the new arena is registered. Everything else stays
 fail-closed with the original `NVN_COMMAND_ARENA_OVERLAP`.
+
+### The stop after the arena fix: a corrupted stack pointer, not a contract violation
+
+Run 71 passes the arena step (evidence above) and then stops at
+`NVN_GUEST_POINTER pc=main.text.seg+0xaf4684 detail=0x0`. The guest frame trace and a disassembly of that
+address pin it down exactly:
+
+```
+GUEST_FRAMES lr=sdk.text.seg+0x8f52c <- sdk.text.seg+0x8b5e4 <- sdk.text.seg+0x894b0
+             <- main.text.seg+0x13a4b94 <- sdk.text.seg+0x686a8 <- rtld.text.seg+0xac
+
+main.text.seg+0xaf4670:
+  af4670  csel x3, x10, xzr, ne
+  af4674  mov  x2, sp        ; the caller passes its own stack pointer as an argument
+  af4678  mov  x0, x8
+  af467c  mov  x5, xzr
+  af4680  blr  x9            ; call through the guest function pointer
+  af4684  ldp  x29, x30, [sp, #64]   <-- fault, address 0x0 (sp no longer points at this frame)
+  af4688  add  sp, sp, #0x50
+  af468c  ret
+```
+
+So the game calls through a function pointer while handing over its own stack pointer, and the frame restore
+after the call reads address 0. No guest signal is delivered around it (the log has none), so this is a
+**guest stack switch** - a fiber/coroutine-style helper - whose continuation returns to the original frame
+with a different stack pointer. The next diagnostic axis is therefore the bridge's handling of a guest stack
+switch inside a callback: does the guest stack pointer survive `cotm_nvn_call_original`, and what does the
+runtime do when the guest changes `sp` inside a nested call? That question is measured before anything is
+changed, as with every other blocker in this project.
