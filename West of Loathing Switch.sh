@@ -5,7 +5,8 @@ cd "$GAMEDIR" || exit 1
 mkdir -p logs save-laboratory
 LOG="$GAMEDIR/logs/latest.log"
 exec >"$LOG" 2>&1
-printf 'WOL_LAUNCH native-horizon diagnostic-budget=35s shader-catalogue=absent\n'
+printf 'WOL_LAUNCH native-horizon diagnostic-budget=%ss shader-catalogue=absent\n' "${WOL_PROBE_SECONDS:-90}"
+printf 'WOL_BUILD_ID sha256=%s\n' "$(sha256sum ./wol-horizon 2>/dev/null | cut -d ' ' -f1)"
 # Spruce normally offlines the cluster to which this recovered runtime pins its threads.
 # The runtime pins its threads to the cluster Spruce normally offlines. Remember each file's original
 # state and restore it on exit so a run leaves the device exactly as it found it (run 42 left 0-7 online).
@@ -39,15 +40,14 @@ export COTM_RUN_ID=$(date +%s)
 # read. The staging peak may be transient, so let the load finish inside the same bounded run:
 # WOL_PROBE_SECONDS=35 restores the shorter diagnostic budget.
 export MEGAMAN_PROBE_SECONDS="${WOL_PROBE_SECONDS:-90}"
-# A/B (wol-40 -> wol-41): the load holds its staging memory (RSS 693 MiB, 33 frames, availability 133 MiB)
-# and the runtime's own floor (140 MiB) stops the run before the kernel would act - nothing has been
-# swapped yet (swap-free 1986 MiB, vmswap 0). Lower the floor for this bounded diagnostic so the kernel
-# (and zram) can show what the real demand is; WOL_MEMORY_FLOOR_MIB=140 restores the safe floor.
-export T2_MEMORY_FLOOR_MIB="${WOL_MEMORY_FLOOR_MIB:-64}"
-# A/B (wol-42 -> wol-43): the guest memory compactors are the reviewer's first memory experiment.
-# T2_GUEST_ZRAM=1 compresses cold guest blocks (LZ4 + mprotect page-fault handler); stats every second.
-# WOL_GUEST_ZRAM=0 restores the previous profile. The diagnostic floor (64 MiB) is kept from run 41/42.
-export T2_GUEST_ZRAM="${WOL_GUEST_ZRAM:-1}"
+# The 64 MiB floor was a bounded diagnostic (it demonstrated 120 presents and swap engagement); it is
+# NOT a safe default now that graphics will really allocate GPU memory, which VmRSS does not show. The
+# conservative 140 MiB floor is the default again; WOL_MEMORY_FLOOR_MIB=64 restores the diagnostic value.
+export T2_MEMORY_FLOOR_MIB="${WOL_MEMORY_FLOOR_MIB:-140}"
+# Run 43 measured the guest compactor at zero benefit for this title (compressions=0, saved=0.0,
+# scope=alias_physical only), so it stays OFF by default: the periodic scans and page-fault hooks are
+# cost without gain. WOL_GUEST_ZRAM=1 re-enables it for a deliberate A/B.
+export T2_GUEST_ZRAM="${WOL_GUEST_ZRAM:-0}"
 export T2_GZRAM_TARGET_MIB="${WOL_GZRAM_TARGET_MIB:-400}" T2_GZRAM_STATS_MS=1000 T2_GZRAM_POOLS=0
 export MEGAMAN_LAZY_ZERO=0 T2_LAZY_MESH=0 T2_IMAGE_FILE_MAP=1
 export T2_SAVE_DIR="$GAMEDIR/save-laboratory"
