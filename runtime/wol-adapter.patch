@@ -750,7 +750,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,40 @@
+@@ -46,10 +46,128 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -760,6 +760,94 @@
 +/* WoL bring-up: what the title bound per stage, so the draw-side interface log can correlate a draw
 + * with the programs it would have used (ids and objects only - no shader content). */
 +static uint64_t wol_bound_object[2];static unsigned wol_bound_program_id[2];
++static const char *wol_pair_vertex_glsl =
++"#version 100\n"
++"precision highp float;\n"
++"attribute vec3 a_pos;\n"        /* input slot 0 */
++"attribute vec2 a_extra;\n"      /* input slot 1, vec3 declared, only x/y read */
++"uniform float c3[96];\n"        /* constant bank 3, floats; c3[N] is the word at byte 4*N */
++"varying vec4 v7;\n"
++"varying vec2 v8;\n"
++"void main() {\n"
++"    float r6 = a_pos.x;\n"
++"    float r4 = a_pos.y;\n"
++"    float r5 = a_pos.z;\n"
++"    float r8 = a_extra.x;\n"
++"    float r9 = a_extra.y;\n"
++"    float r10 = c3[0x84/4];\n"
++"    float r7  = c3[0x80/4];\n"
++"    float r0, r1, r2, r3;\n"
++/* --- transcription of the decoded ALU chain (fmul/ftz, ffma, fadd32i, mov c3) --- */
++"    r1 = r4 * c3[0x14/4];\n"
++"    r0 = r4 * c3[0x10/4];\n"
++"    r3 = r6 * c3[0x04/4] + r1;\n"
++"    r3 = r5 * c3[0x24/4] + r3;\n"
++"    r1 = r4 * c3[0x18/4];\n"
++"    r2 = r5 * c3[0x20/4];\n"
++"    r3 = r3 + c3[0x34/4];\n"
++"    r0 = r6 * c3[0x0c/4] + r0;\n"
++"    r2 = r2 + c3[0x30/4];\n"
++"    r1 = r5 * c3[0x28/4] + r1;\n"
++"    r0 = r5 * c3[0x2c/4] + r0;\n"
++"    r6 = r2 * c3[0x40/4] + r6;\n"
++"    r4 = r3 * c3[0x58/4];\n"
++"    r8 = r8 * r7 + c3[0x88/4];\n"
++"    r1 = r1 + c3[0x38/4];\n"
++"    r7 = r2 * c3[0x44/4] + r4;\n"
++"    r4 = r2 * c3[0x48/4] + r4;\n"
++"    r0 = r0 + c3[0x3c/4];\n"
++"    r6 = r1 * c3[0x60/4] + r6;\n"
++"    r3 = r1 * c3[0x68/4] + r4;\n"
++"    r0 = r0 * c3[0x78/4] + (r1 * c3[0x6c/4] + r2);\n"
++"    r6 = r0 * c3[0x70/4] + r6;\n"
++"    r3 = r0 * c3[0x74/4] + r3;\n"
++"    v8 = vec2(r8, r5);\n"        /* measured: v8.x = r8, v8.y = r5 (position z) */
++"    v7 = vec4(r6, r7, r3, r0);\n" /* measured stores; r10 is not stored */
++"    gl_Position = v7;\n"          /* the storage map is complete, so the position comes from v7 */
++"}\n";
++
++static const char *wol_pair_fragment_glsl =
++"#version 100\n"
++"precision mediump float;\n"
++"varying vec4 v7;\n"
++"varying vec2 v8;\n"
++"uniform highp float c3[96];\n"      /* highp must match the vertex declaration or the link fails */
++"uniform sampler2D tex0;\n"
++"void main() {\n"
++"    float r6 = v7.w;\n"
++"    float r0 = v8.y;\n"
++"    float r5 = 1.0 / r6;\n"
++"    r5 = r5 * r0;\n"
++"    vec4 t = texture2D(tex0, vec2(r0, r5));\n"   /* TEX operand roles: u=r0, v=r5 is the natural reading, marked as such */
++"    float r1 = t.x * c3[0x04/4];\n"
++"    float r2 = t.y * c3[0x08/4];\n"
++"    gl_FragColor = vec4(r1, r2, t.z, t.w);\n"     /* third/fourth channel: transcribe after the tail decode */
++"}\n";
++
++/* Compile-and-link check for the hand-translated first pair. It runs once, at the first placeholder bind
++ * (the GL context is current there), and only reports; nothing is drawn with it yet. WOL_PAIR_CHECK=1. */
++static void wol_pair_compile_check(void) {
++    static int done;
++    if(done)return;
++    done=1;
++    const char *o=getenv("WOL_PAIR_CHECK");
++    if(!o||strcmp(o,"1"))return;
++    GLint ok=0;char log[2048];
++    GLuint vs=glCreateShader(GL_VERTEX_SHADER),fs=glCreateShader(GL_FRAGMENT_SHADER);
++    const char *src=wol_pair_vertex_glsl;
++    glShaderSource(vs,1,&src,NULL);glCompileShader(vs);
++    glGetShaderiv(vs,GL_COMPILE_STATUS,&ok);log[0]=0;glGetShaderInfoLog(vs,sizeof log,NULL,log);
++    printf("WOL_PAIR_COMPILE stage=vertex ok=%d log=%s\n",ok,log);
++    src=wol_pair_fragment_glsl;
++    glShaderSource(fs,1,&src,NULL);glCompileShader(fs);
++    glGetShaderiv(fs,GL_COMPILE_STATUS,&ok);log[0]=0;glGetShaderInfoLog(fs,sizeof log,NULL,log);
++    printf("WOL_PAIR_COMPILE stage=fragment ok=%d log=%s\n",ok,log);
++    GLuint p=glCreateProgram();glAttachShader(p,vs);glAttachShader(p,fs);
++    glBindAttribLocation(p,0,"a_pos");glBindAttribLocation(p,1,"a_extra");glLinkProgram(p);
++    glGetProgramiv(p,GL_LINK_STATUS,&ok);log[0]=0;glGetProgramInfoLog(p,sizeof log,NULL,log);
++    printf("WOL_PAIR_COMPILE stage=link ok=%d log=%s\n",ok,log);
++    glDeleteProgram(p);glDeleteShader(vs);glDeleteShader(fs);
++}
 +#endif
  static uint64_t nvn_read64(uint64_t address) {uint64_t value;memcpy(&value,nvn_pointer(address,8,PROT_READ),8);return value;}
  static void *nvn_gpu_pointer(uint64_t address,uint64_t size,unsigned perm);
@@ -792,7 +880,15 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -512,7 +542,19 @@
+@@ -507,12 +625,27 @@
+     /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
+      * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
+      * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
++#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++    wol_pair_compile_check();
++#endif
+     if(!object && !(mask&~UINT64_C(0x3c)))return;
+     if(mask>3)stop("NVN_PROGRAM_STAGE_MASK_REQUIRED",nvn_caller,mask,20);
      struct nvn_program *p=object?nvn_program_find(object):NULL;
      /* A compute program has no graphics stage (nvn_shaders.h, MEDIDO run momo-096): binding it leaves
       * the vertex/fragment binding untouched. Only a real dispatch would be an error. */
@@ -813,7 +909,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +655,22 @@
+@@ -613,6 +746,22 @@
              }
          }
  #endif

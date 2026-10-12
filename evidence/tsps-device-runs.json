@@ -522,6 +522,14 @@
       "frames_presented": 33,
       "submits": 8,
       "diagnostic_crash": 0
+    },
+    {
+      "run": "device-50",
+      "stop": "T2_MEMORY_FLOOR",
+      "rss_kib": 671112,
+      "frames_presented": 32,
+      "diagnostic_crash": 0,
+      "pair_compile": "ok"
     }
   ]
 }
