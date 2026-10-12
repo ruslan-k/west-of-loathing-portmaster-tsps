@@ -353,3 +353,31 @@ Two honest gaps keep the frame black, and both are named by the log rather than 
    still does not blit to the window.
 
 The present line stays honest: `NVN_PRESENT_PIXELS frame=1 nonblack=0 status=BLACK-SAMPLE`.
+
+### Runs 52-61: constants, sampler, the resolve blit - and the frame census
+
+Four measured findings, each from a device run:
+
+1. **Constant banks.** The binds are applied by `nvn_render_record`, but the shader's `c3` is not bank 3 at
+   bind time: the title binds stage 0 at index 0 (144 bytes) and stage 1 at index 0 (16 bytes). Feeding the
+   vertex bank to both stages made the fragment read the vertex matrix; the stage-1 bank measures `1,1,1,1`,
+   which is the sprite tint. The hook now discovers the slots and feeds each stage its own bank.
+2. **Sampler.** The sprite sampler asks for behaviour the adapter refuses (`anisotropy=9` on id 52). It is
+   now admitted once with the exact values printed - the same shape as the Animal Well precedent.
+3. **The resolve is a GPU blit.** The title's camera target lives in a GL texture and its guest storage
+   mirror stays empty (a CPU census through the mirror read zero after real draws), so a CPU copy can only
+   resolve zeros. `wol_downsample_copy` is now a real blit: destination texture bound as a framebuffer,
+   source texture sampled through the driver, the previous binding restored afterwards. `glerror=0x0`.
+4. **The frame census.** The blit's read-back census of the camera target measures `src-nonblack=0`: the
+   translated pair is a *consumer* of the camera image (it samples a camera-sized texture), while the draws
+   that *produce* that image are still placeholders. The pair-to-draw census of the first frames is:
+
+| vertex | fragment | draws | path |
+|--------|----------|-------|------|
+| 0x100103f168 | 0x100103f298 | 66 | translated (this pair) |
+| 0x100103d158 | 0x100103d288 | 4 | placeholder |
+| 0x1000fc2b78 | 0x1000fc2ca8 | 2 | placeholder |
+
+**The whole frame is drawn with three program pairs.** Translating the remaining two covers every draw of
+the frame, which is the concrete path to a picture: the machinery (space rule, interface log, pair hook,
+bank feed, blit) is in place and each new pair is a mechanical repetition of the first one.

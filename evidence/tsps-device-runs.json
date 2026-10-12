@@ -537,6 +537,76 @@
       "frames_presented": 31,
       "pair_draws": 93,
       "diagnostic_crash": 0
+    },
+    {
+      "run": "device-52",
+      "stop": "NVN_RENDER_SAMPLER_FEATURE_REQUIRED",
+      "pair_draws": 0,
+      "blits": 0,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-53",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 51,
+      "blits": 0,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-54",
+      "stop": "NVN_GUEST_POINTER",
+      "pair_draws": 1,
+      "blits": 0,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-55",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 52,
+      "blits": 0,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-56",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 27,
+      "blits": 0,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-57",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 27,
+      "blits": 0,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-58",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 29,
+      "blits": 0,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-59",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 51,
+      "blits": 34,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-60",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 48,
+      "blits": 32,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-61",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 66,
+      "blits": 44,
+      "diagnostic_crash": 0
     }
   ]
 }

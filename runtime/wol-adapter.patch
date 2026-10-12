@@ -346,24 +346,41 @@
  #include "nvn_command_lists.h"
  static struct nvn_command_buffer *nvn_command_find(uint64_t object) {
      for(unsigned i=0;i<32;i++)if(nvn_command_buffers[i].live&&nvn_command_buffers[i].object==object)return &nvn_command_buffers[i];
-@@ -555,6 +558,17 @@
-         }
-         return 1;
-     }
-+#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
-+    if(id==NI_nvnCommandBufferDownsample) {
-+        /* This title resolves its MSAA camera target with a downsample; the MSAA request itself is
-+         * already downgraded to a plain 2D target (WOL_MSAA_DOWNGRADED) and no translated draw path
-+         * produces GPU content yet, so no bytes are copied and none are invented. The call is accepted
-+         * as a logged placeholder; the real resolve blit belongs with the translated draw path. */
-+        static unsigned told;
-+        if(told++<8)printf("WOL_DOWNSAMPLE_PLACEHOLDER command-buffer=0x%"PRIx64" texture-a=0x%"PRIx64" texture-b=0x%"PRIx64" action=accepted-no-copy note=no-gpu-content-yet\n",a[0],a[1],a[2]);
-+        *result=0;return 1;
+@@ -120,6 +123,11 @@
+     case NI_nvnCommandBufferBindUniformBuffers:
+         if(a[0]>1 || a[1]>16 || a[2]>16-a[1])stop("NVN_UNIFORM_BUFFER_COUNT",nvn_caller,a[2],24);
+         *payload=a[2]*16;break;
++    case NI_nvnCommandBufferDownsample:
++        /* Both arguments are guest view structs whose first word is the texture object (36-byte old-SDK
++         * view). Only the two objects are recorded; the replay resolves the extents from them and picks
++         * the larger one as the source, so neither order of the arguments has to be assumed. */
++        *payload=2*sizeof(uint64_t);break;
+     case NI_nvnCommandBufferBindUniformBuffersDeferred:
+         /* Terminator 2D: same (stage, first, count, ranges) shape as BindUniformBuffers, but the ranges
+          * are read when the command executes, so the record keeps only the guest pointer (a[3]). */
+@@ -461,6 +469,13 @@
+         source=f->args[3];break;
+     case NI_nvnCommandBufferBindUniformBuffers:
+         source=f->args[4];break;
++    case NI_nvnCommandBufferDownsample: {
++        /* The two arguments are recorded raw; the replay resolves them against the live texture table,
++         * which is only visible there. No guest memory is dereferenced while building the record. */
++        uint64_t values[2]={f->args[1],f->args[2]};
++        memcpy(snapshot.payload,values,sizeof values);
++        break;
 +    }
-+#endif
-     switch(id) {
-     case NI_nvnCommandBufferSetAlphaRef:case NI_nvnCommandBufferReportCounter:
-     case NI_nvnCommandBufferSetBlendColor:
+     case NI_nvnCommandBufferSetRenderTargets: {
+ #if !ZERO_ZX_GAME
+         if(f->args[1] && f->args[3] && *(uint64_t *)nvn_pointer(f->args[3],8,PROT_READ))
+@@ -583,7 +598,7 @@
+     case NI_nvnCommandBufferSetShaderScratchMemory:case NI_nvnCommandBufferSetPrimitiveRestart:
+     case NI_nvnCommandBufferSaveZCullData:case NI_nvnCommandBufferRestoreZCullData:
+     case NI_nvnCommandBufferSetDepthClamp:case NI_nvnCommandBufferSetConservativeRasterEnable:
+-    case NI_nvnCommandBufferSetRasterizerDiscard:
++    case NI_nvnCommandBufferSetRasterizerDiscard:case NI_nvnCommandBufferDownsample:
+     case NI_nvnCommandBufferSetDepthBounds:
+         nvn_command_record(nvn_command_find(a[0]),id,f);return 1;
+     /* Animal Well (NVN 17.x array forms): a single viewport/scissor/depth range at index 0 is the singular command;
 --- a/native/nvn_memory.h
 +++ b/native/nvn_memory.h
 @@ -89,10 +89,13 @@
@@ -485,7 +502,27 @@
      nvn_gl_completion.completion_valid=0;
 --- a/native/nvn_render.h
 +++ b/native/nvn_render.h
-@@ -509,6 +509,70 @@
+@@ -312,8 +312,19 @@
+      * sampler2D shaders never evaluate; both are admitted once-logged. Reduction/anisotropy/bias stay closed. */
+     {static unsigned aw_sampler_reported;
+      if((b->compare || b->lod_min<0) && !aw_sampler_reported++)printf("AW_SAMPLER_ADMIT compare=%u lod-min=%g shaders=sampler2D-only\n",b->compare,b->lod_min);}
++#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++    /* WoL bring-up: the title's sprite sampler asks for LOD behaviour the adapter normally refuses. The
++     * texture storage carries level 0 only, so the honest move is to admit the sampler once, printing the
++     * exact values, instead of refusing the draw outright - the same shape as the Animal Well precedent a
++     * few lines up. If the values turn out to matter for what is sampled, the log says which one did it. */
++    {static unsigned wol_sampler_reported;
++     if((b->reduction||b->anisotropy!=1||b->lod_min>0||b->lod_max<1000||b->lod_bias!=0||b->lod_snap!=0) && !wol_sampler_reported++)
++        printf("WOL_SAMPLER_ADMIT id=%"PRIu64" reduction=%u anisotropy=%g lod-min=%g lod-max=%g bias=%g snap=%g note=level0-storage\n",
++            s->id,b->reduction,b->anisotropy,b->lod_min,b->lod_max,b->lod_bias,b->lod_snap);}
++#else
+     if(b->reduction||b->anisotropy!=1||b->lod_min>0||b->lod_max<1000||b->lod_bias!=0||b->lod_snap!=0)
+         stop("NVN_RENDER_SAMPLER_FEATURE_REQUIRED",nvn_caller,s->id,20);
++#endif
+     GLenum wrap[2];for(unsigned i=0;i<2;i++) {
+         wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
+         if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
+@@ -509,6 +520,121 @@
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
@@ -524,16 +561,67 @@
 +         * with the measured vertex layout (two attributes, stride from the stream). Everything is
 +         * guarded; any missing precondition falls back to the counted skip and says why. */
 +        if(wol_pair_stage_is_pair() && wol_pair_realize()) {
-+            struct nvn_range c3r=nvn_render.uniform[0][3];
++            /* The bank slot is whatever the guest actually bound - the shader names it c3, but the bind
++             * index is the title's business, so the slot is discovered from the live uniform state and the
++             * choice is printed rather than assumed. */
++            unsigned bank=16;struct nvn_range c3r={0,0};
++            for(unsigned s=0;s<16;s++)if(nvn_render.uniform[0][s].size){bank=s;c3r=nvn_render.uniform[0][s];break;}
 +            float words[96];memset(words,0,sizeof words);
 +            unsigned avail=c3r.size>sizeof words?(unsigned)sizeof words:(unsigned)c3r.size;
 +            if(c3r.address&&avail)memcpy(words,nvn_gpu_pointer(c3r.address,avail,PROT_READ),avail);
++            /* The fragment stage has its own bank; feeding the vertex bank to both stages made the tint
++             * read the vertex matrix by accident (measured: fragment bank is a separate 16-byte range). */
++            unsigned fbank=16;struct nvn_range c3f={0,0};
++            for(unsigned s=0;s<16;s++)if(nvn_render.uniform[1][s].size){fbank=s;c3f=nvn_render.uniform[1][s];break;}
++            float fwords[96];memset(fwords,0,sizeof fwords);
++            unsigned favail=c3f.size>sizeof fwords?(unsigned)sizeof fwords:(unsigned)c3f.size;
++            if(c3f.address&&favail)memcpy(fwords,nvn_gpu_pointer(c3f.address,favail,PROT_READ),favail);
++            printf("WOL_PAIR_BANK stage=0 slot=%u size=%u first=%g,%g,%g,%g stage=1 slot=%u size=%u first=%g,%g,%g,%g\n",
++                bank,(unsigned)c3r.size,words[0],words[1],words[2],words[3],
++                fbank,(unsigned)c3f.size,fwords[0],fwords[1],fwords[2],fwords[3]);
 +            glUseProgram(wol_pair_program);
 +            if(wol_pair_c3_loc>=0)glUniform1fv(wol_pair_c3_loc,96,words);
++            if(wol_pair_c3f_loc>=0)glUniform1fv(wol_pair_c3f_loc,96,fwords);
++            {   /* the fragment samples one 2D texture. Which bound slot it is has not been decoded yet, so
++                 * the candidates are tried by content: each bound handle is bound and its storage read
++                 * back once, and the first candidate with real pixels wins. A choice is a measurement. */
++                uint64_t handle=0;unsigned tslot=128;
++                static unsigned told_tex;
++                for(unsigned s=0;s<128 && !handle;s++) {
++                    uint64_t candidate=nvn_render.texture_handles[1][s];
++                    if(!candidate)continue;
++                    if(told_tex>=8)break;
++                    GLint minf=0;GLenum wrap[2]={GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE};
++                    struct nvn_texture *ct=nvn_render_sampler(candidate,3,0,0,&minf,wrap);
++                    if(!ct)continue;
++                    GLint previous=0;glGetIntegerv(GL_FRAMEBUFFER_BINDING,&previous);
++                    GLuint fb=0;glGenFramebuffers(1,&fb);glBindFramebuffer(GL_FRAMEBUFFER,fb);
++                    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,ct->name,0);
++                    unsigned nb=0,maxc=0;
++                    if(glCheckFramebufferStatus(GL_FRAMEBUFFER)==GL_FRAMEBUFFER_COMPLETE && ct->b.width && ct->b.height) {
++                        size_t bytes=(size_t)ct->b.width*ct->b.height*4;uint8_t *px=malloc(bytes);
++                        if(px){glReadPixels(0,0,(GLsizei)ct->b.width,(GLsizei)ct->b.height,GL_RGBA,GL_UNSIGNED_BYTE,px);
++                            for(size_t k=0;k+3<bytes;k+=4*397){if(px[k]>7||px[k+1]>7||px[k+2]>7)nb++;if(px[k]>maxc)maxc=px[k];if(px[k+1]>maxc)maxc=px[k+1];if(px[k+2]>maxc)maxc=px[k+2];}
++                            free(px);}
++                    }
++                    glBindFramebuffer(GL_FRAMEBUFFER,(GLuint)previous);glDeleteFramebuffers(1,&fb);
++                    told_tex++;
++                    printf("WOL_PAIR_TEX_CANDIDATE slot=%u id=%"PRIu64" name=%u %ux%u nonblack=%u max=%u\n",
++                        s,ct->id,ct->name,ct->b.width,ct->b.height,nb,maxc);
++                    if(!handle && nb) {handle=candidate;tslot=s;}
++                }
++                if(handle&&wol_pair_tex_loc>=0) {
++                    GLint minf=0;GLenum wrap[2]={GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE};
++                    struct nvn_texture *t=nvn_render_sampler(handle,0,0,0,&minf,wrap);
++                    if(t){glActiveTexture(GL_TEXTURE0);glUniform1i(wol_pair_tex_loc,0);
++                        printf("WOL_PAIR_TEX slot=%u handle=0x%llx name=%u %ux%u\n",tslot,(unsigned long long)handle,(unsigned)t->name,t->b.width,t->b.height);}
++                } else printf("WOL_PAIR_TEX none=1\n");
++            }
 +            uint64_t mode=r->args[0],count=r->args[2];
 +            unsigned long long stride=nvn_render.streams[0][0],vsize=nvn_render.vertex[0].size;
-+            printf("WOL_PAIR_DRAW mode=%"PRIu64" count=%"PRIu64" stride=%llu stream=%llu c3bank=%llx/%u avail=%u\n",
-+                mode,count,stride,vsize,(unsigned long long)c3r.address,(unsigned)c3r.size,avail);
++            printf("WOL_PAIR_DRAW mode=%"PRIu64" count=%"PRIu64" stride=%llu stream=%llu c3bank=%llx/%u avail=%u target=%"PRIu64"/%ux%u\n",
++                mode,count,stride,vsize,(unsigned long long)c3r.address,(unsigned)c3r.size,avail,
++                nvn_render.target?nvn_render.target->id:0,nvn_render.target?nvn_render.target->b.width:0,nvn_render.target?nvn_render.target->b.height:0);
 +            if(mode==4 && count && stride && vsize>=(unsigned long long)count*stride) {
 +                const uint8_t *base=(const uint8_t *)nvn_gpu_pointer(nvn_render.vertex[0].address,(size_t)(count*stride),PROT_READ);
 +                glEnableVertexAttribArray(0);glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,(GLsizei)stride,base);
@@ -556,7 +644,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1599,80 @@
+@@ -1535,6 +1661,193 @@
          begin=end+1;
      }
  }
@@ -634,10 +722,123 @@
 +    return 1;
 +}
 +#endif
++/* Non-stopping texture lookup: a downsample argument may be a texture object or something else
++ * entirely, and that must produce a log line, never a faulted guest read. */
++static struct nvn_texture *wol_texture_probe(uint64_t object) {
++    if(!object)return NULL;
++    for(unsigned i=0;i<nvn_textures_high&&i<4096;i++)if(nvn_textures[i].live&&nvn_textures[i].object==object)return &nvn_textures[i];
++    return NULL;
++}
++/* Resolve blit on the GPU. The title's camera target is rendered into a GL texture and its guest
++ * storage mirror stays empty (measured: the CPU census of the mirror read zero after real draws), so a
++ * CPU copy can only ever resolve zeros. This blit reads the GPU texture and writes the destination
++ * texture, both through the driver, and restores the framebuffer binding it found. */
++static GLuint wol_blit_program;static GLint wol_blit_tex=-1;
++static unsigned wol_blit_realize(void) {
++    if(wol_blit_program)return 1;
++    static const char *vs="attribute vec2 p;varying vec2 uv;void main(){uv=p*0.5+0.5;gl_Position=vec4(p,0.0,1.0);}\n";
++    static const char *fs="precision mediump float;varying vec2 uv;uniform sampler2D tex;void main(){gl_FragColor=texture2D(tex,uv);}\n";
++    GLint ok=0;char log[512];
++    GLuint v=glCreateShader(GL_VERTEX_SHADER),f=glCreateShader(GL_FRAGMENT_SHADER);
++    glShaderSource(v,1,&vs,NULL);glCompileShader(v);glGetShaderiv(v,GL_COMPILE_STATUS,&ok);
++    if(!ok){log[0]=0;glGetShaderInfoLog(v,sizeof log,NULL,log);printf("WOL_BLIT_REALIZE stage=vertex ok=0 log=%s\n",log);return 0;}
++    glShaderSource(f,1,&fs,NULL);glCompileShader(f);glGetShaderiv(f,GL_COMPILE_STATUS,&ok);
++    if(!ok){log[0]=0;glGetShaderInfoLog(f,sizeof log,NULL,log);printf("WOL_BLIT_REALIZE stage=fragment ok=0 log=%s\n",log);return 0;}
++    GLuint pr=glCreateProgram();glAttachShader(pr,v);glAttachShader(pr,f);
++    glBindAttribLocation(pr,0,"p");glLinkProgram(pr);glGetProgramiv(pr,GL_LINK_STATUS,&ok);
++    if(!ok){log[0]=0;glGetProgramInfoLog(pr,sizeof log,NULL,log);printf("WOL_BLIT_REALIZE stage=link ok=0 log=%s\n",log);return 0;}
++    wol_blit_program=pr;wol_blit_tex=glGetUniformLocation(pr,"tex");
++    printf("WOL_BLIT_REALIZE ok=1 program=%u tex=%d\n",(unsigned)pr,(int)wol_blit_tex);
++    return 1;
++}
++
++static unsigned wol_downsample_copy(const struct nvn_record *r) {
++    uint64_t objects[2];memcpy(objects,r->payload,sizeof objects);
++    struct nvn_texture *a=wol_texture_probe(objects[0]),*b=wol_texture_probe(objects[1]);
++    if((!a||!b||a==b)) {
++        /* The recorded arguments are not texture objects on this title (measured: a guest read through
++         * them is refused, so they are packed values, not pointers). The textures are taken from live
++         * state instead: the render target bound right now is the resolve destination, and the source is
++         * the largest live texture of the same format and pixel format - measured, and both are printed. */
++        struct nvn_texture *dst=nvn_render.target?zero_texture_storage_state(nvn_render.target):NULL,*src=NULL;
++        if(dst&&dst->live) {
++            for(unsigned i=0;i<nvn_textures_high&&i<4096;i++) {
++                struct nvn_texture *c=&nvn_textures[i];
++                if(!c->live||c==dst)continue;
++                if(c->b.format!=dst->b.format||c->b.levels!=1||c->b.target>4)continue;
++                if((uint64_t)c->b.width*c->b.height<=(uint64_t)dst->b.width*dst->b.height)continue;
++                if(!src||(uint64_t)c->b.width*c->b.height>(uint64_t)src->b.width*src->b.height)src=c;
++            }
++        }
++        if(!src||!dst) {
++            printf("WOL_DOWNSAMPLE_UNRESOLVED a=0x%"PRIx64" b=0x%"PRIx64" target=%"PRIu64"\n",objects[0],objects[1],nvn_render.target?nvn_render.target->id:0);
++            return 1;
++        }
++        a=src;b=dst;
++    } else { a=zero_texture_storage_state(a);b=zero_texture_storage_state(b); }
++    /* The larger extent is the rendered camera target, the smaller one the panel-sized resolve target. */
++    struct nvn_texture *src=((uint64_t)a->b.width*a->b.height>=(uint64_t)b->b.width*b->b.height)?a:b;
++    struct nvn_texture *dst=(src==a)?b:a;
++    unsigned bpp=nvn_texture_format_bytes(src->b.format);
++    if(src->b.format!=dst->b.format||!bpp) {
++        printf("WOL_DOWNSAMPLE_CONTRACT src=%"PRIu64"(f=0x%x) dst=%"PRIu64"(f=0x%x) action=accepted-no-copy\n",
++            src->id,src->b.format,dst->id,dst->b.format);
++        return 1;
++    }
++    uint64_t sb=(uint64_t)src->b.width*src->b.height*bpp,db=(uint64_t)dst->b.width*dst->b.height*bpp;
++    if(!sb||!db||sb>src->size||db>dst->size)return 1;
++    (void)sb;(void)db;
++    if(!wol_blit_realize())return 1;
++    {   GLint previous=0;glGetIntegerv(GL_FRAMEBUFFER_BINDING,&previous);
++        GLuint fb=0;glGenFramebuffers(1,&fb);glBindFramebuffer(GL_FRAMEBUFFER,fb);
++        glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,dst->name,0);
++        if(glCheckFramebufferStatus(GL_FRAMEBUFFER)==GL_FRAMEBUFFER_COMPLETE) {
++            glViewport(0,0,(GLsizei)dst->b.width,(GLsizei)dst->b.height);
++            glDisable(GL_BLEND);glDisable(GL_DEPTH_TEST);glDisable(GL_SCISSOR_TEST);
++            glUseProgram(wol_blit_program);
++            glActiveTexture(GL_TEXTURE1);
++            glBindTexture(GL_TEXTURE_2D,src->name);
++            glActiveTexture(GL_TEXTURE0);
++            if(wol_blit_tex>=0)glUniform1i(wol_blit_tex,1);
++            static const float quad[8]={-1.f,-1.f,1.f,-1.f,-1.f,1.f,1.f,1.f};
++            glEnableVertexAttribArray(0);glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,0,quad);
++            glDrawArrays(GL_TRIANGLE_STRIP,0,4);
++            glDisableVertexAttribArray(0);
++            printf("WOL_DOWNSAMPLE_BLIT src=%"PRIu64"(%ux%u texture=%u) dst=%"PRIu64"(%ux%u texture=%u) glerror=0x%x\n",
++                src->id,src->b.width,src->b.height,src->name,dst->id,dst->b.width,dst->b.height,dst->name,(unsigned)glGetError());
++            {   /* Decisive census: what the blit wrote (the presented-sized frame) and what the source
++                 * texture holds, both read back from the GPU. A black resolve is only diagnosable when the
++                 * source is measured in the same place. */
++                static unsigned told;
++                if(told<4) {
++                    told++;
++                    size_t bytes=(size_t)dst->b.width*dst->b.height*4;uint8_t *px=malloc(bytes);
++                    if(px){glReadPixels(0,0,(GLsizei)dst->b.width,(GLsizei)dst->b.height,GL_RGBA,GL_UNSIGNED_BYTE,px);
++                        unsigned nb=0,maxc=0;for(size_t k=0;k+3<bytes;k+=4*997){if(px[k]>7||px[k+1]>7||px[k+2]>7)nb++;if(px[k]>maxc)maxc=px[k];if(px[k+1]>maxc)maxc=px[k+1];if(px[k+2]>maxc)maxc=px[k+2];}
++                        printf("WOL_BLIT_CENSUS dst-nonblack=%u dst-max=%u\n",nb,maxc);free(px);}
++                    GLuint sfb=0;glGenFramebuffers(1,&sfb);glBindFramebuffer(GL_FRAMEBUFFER,sfb);
++                    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,src->name,0);
++                    if(glCheckFramebufferStatus(GL_FRAMEBUFFER)==GL_FRAMEBUFFER_COMPLETE) {
++                        size_t sbytes=(size_t)src->b.width*src->b.height*4;uint8_t *spx=malloc(sbytes);
++                        if(spx){glReadPixels(0,0,(GLsizei)src->b.width,(GLsizei)src->b.height,GL_RGBA,GL_UNSIGNED_BYTE,spx);
++                            unsigned nb=0,maxc=0;for(size_t k=0;k+3<sbytes;k+=4*997){if(spx[k]>7||spx[k+1]>7||spx[k+2]>7)nb++;if(spx[k]>maxc)maxc=spx[k];if(spx[k+1]>maxc)maxc=spx[k+1];if(spx[k+2]>maxc)maxc=spx[k+2];}
++                            printf("WOL_BLIT_CENSUS src-nonblack=%u src-max=%u\n",nb,maxc);free(spx);}
++                    }
++                    glBindFramebuffer(GL_FRAMEBUFFER,fb);glDeleteFramebuffers(1,&sfb);
++                }
++            }
++        } else printf("WOL_DOWNSAMPLE_BLIT_FBO_INCOMPLETE dst=%u\n",dst->name);
++        glBindFramebuffer(GL_FRAMEBUFFER,(GLuint)previous);
++        glDeleteFramebuffers(1,&fb);
++    }
++    dst->zero_cpu_dirty=1;
++    return 1;
++}
++
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +1700,11 @@
+@@ -1562,7 +1875,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -647,6 +848,11 @@
 +        if(wol_color_texture_copy(r))return 1;
 +#endif
 +        zero_depth_copy(r);return 1;
++    case NI_nvnCommandBufferDownsample:
++#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++        if(wol_downsample_copy(r))return 1;
++#endif
++        return 1;
      case NI_nvnCommandBufferSetLineWidth:case NI_nvnCommandBufferSetPointSize: {
          float size;memcpy(&size,r->vectors,4);
          if(!isfinite(size) || size<=0)stop("ZERO_RASTER_SIZE_INVALID",nvn_caller,r->op,24);
@@ -778,7 +984,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,156 @@
+@@ -46,10 +46,158 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -839,7 +1045,7 @@
 +"precision mediump float;\n"
 +"varying vec4 v7;\n"
 +"varying vec2 v8;\n"
-+"uniform highp float c3[96];\n"      /* highp must match the vertex declaration or the link fails */
++"uniform highp float c3f[96];\n"     /* the fragment stage reads its own constant bank on NVN */
 +"uniform sampler2D tex0;\n"
 +"void main() {\n"
 +"    float r6 = v7.w;\n"
@@ -847,8 +1053,8 @@
 +"    float r5 = 1.0 / r6;\n"
 +"    r5 = r5 * r0;\n"
 +"    vec4 t = texture2D(tex0, vec2(r0, r5));\n"   /* TEX operand roles: u=r0, v=r5 is the natural reading, marked as such */
-+"    float r1 = t.x * c3[0x04/4];\n"
-+"    float r2 = t.y * c3[0x08/4];\n"
++"    float r1 = t.y * c3f[0x04/4];\n"
++"    float r2 = t.x * c3f[0x08/4];\n"
 +"    gl_FragColor = vec4(r1, r2, t.z, t.w);\n"     /* third/fourth channel: transcribe after the tail decode */
 +"}\n";
 +
@@ -877,7 +1083,7 @@
 +    glDeleteProgram(p);glDeleteShader(vs);glDeleteShader(fs);
 +}
 +/* Realization of the translated pair: compile and link once, keep the program, cache the c3 location. */
-+static GLuint wol_pair_program;static GLint wol_pair_c3_loc=-1;
++static GLuint wol_pair_program;static GLint wol_pair_c3_loc=-1,wol_pair_c3f_loc=-1,wol_pair_tex_loc=-1;
 +static unsigned wol_pair_realize(void) {
 +    if(wol_pair_program)return 1;
 +    GLint ok=0;char log[1024];
@@ -893,7 +1099,9 @@
 +    glLinkProgram(pr);glGetProgramiv(pr,GL_LINK_STATUS,&ok);
 +    if(!ok){log[0]=0;glGetProgramInfoLog(pr,sizeof log,NULL,log);printf("WOL_PAIR_REALIZE stage=link ok=0 log=%s\n",log);glDeleteProgram(pr);return 0;}
 +    wol_pair_program=pr;wol_pair_c3_loc=glGetUniformLocation(pr,"c3");
-+    printf("WOL_PAIR_REALIZE ok=1 program=%u c3=%d\n",(unsigned)pr,(int)wol_pair_c3_loc);
++    wol_pair_c3f_loc=glGetUniformLocation(pr,"c3f");
++    wol_pair_tex_loc=glGetUniformLocation(pr,"tex0");
++    printf("WOL_PAIR_REALIZE ok=1 program=%u c3=%d c3f=%d tex=%d\n",(unsigned)pr,(int)wol_pair_c3_loc,(int)wol_pair_c3f_loc,(int)wol_pair_tex_loc);
 +    return 1;
 +}
 +/* Does the state bound right now belong to the measured first pair? Objects from run 49; the env
@@ -936,7 +1144,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +653,27 @@
+@@ -507,12 +655,27 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -965,7 +1173,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +774,22 @@
+@@ -613,6 +776,22 @@
              }
          }
  #endif
