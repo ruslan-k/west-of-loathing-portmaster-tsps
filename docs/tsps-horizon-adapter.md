@@ -73,3 +73,36 @@ Require a previously absent output directory. The final executable is `horizon-b
 3. Obtain a physical DRM screenshot containing WoL, then verify controls, audio, scene transition, memory behavior and clean exit.
 
 The five controlled stops establish a graphics bring-up frontier, **not completion of the requested port**.
+
+## Progress log: runs 06-23 (same principal flow, one variable per run)
+
+Every run below launched through the Spruce principal flow and ended with the menu restored (verified by
+`/proc` plus a physical DRM capture). `evidence/tsps-device-runs.json` tabulates the stop code, guest PC
+and RSS of each run; the per-run logs live in `evidence/device-NN/`.
+
+| Run | Stop | Cause and what the fix had to prove |
+|----|------|--------------------------------------|
+| 01-03 | `NVN_QUEUE_DEVICE` / `NVN_MEMORY_POOL_DEVICE` / `NVN_BUFFER_DEVICE` | The inherited runtime read the device pointer at builder+8; this SDK stores it at builder+0 (`str x1,[x0]` in `sdk+0x2c5238`, `+0x2c154c`, `+0x2b6590`). Three separate builder offsets, each pinned to the original store. |
+| 04-05 | `ZERO_SHADER_CONTROL_LAYOUT` | The inherited control-layout checks (`0x850`/`0x880`, `+0x70c` semantics) do not describe this SDK. The WoL build now validates the measured envelope: magic `0x98761234`, version 1, control size `0x848`, code size at `+0x704`, and stops with `WOL_SHADER_TRANSLATION_REQUIRED` instead of guessing a translation. |
+| 06-07 | `NVN_CAPTURE_OPEN` -> `NVN_SAMPLER_PARAMETERS` | Dump filenames collided (same sequence); the sampler builder was decoded with the 17.5.3 packed layout. This SDK's `NVNsamplerBuilder` is the unpacked `0x48`-byte form (`nvnSamplerInitialize` copies exactly `0x48` bytes; `SetDefaults` writes min 1 / mag 1 / wrap 1,1,1 / lod 0..1000 / compare 0,2 / aniso 1.0). |
+| 08-09 | `NVN_SAMPLER_ALREADY_LIVE` -> `NVN_TEXTURE_DEVICE` | This title re-initialises one stack `NVNsampler` several times (legal: the pool copies the state at register time). Referenced entries are now retired by address but keep their id, unreferenced ones are rewritten. The texture builder is likewise unprefixed (device +0, flags +0x18, target +0x1c, size +0x20.., levels +0x2c, format +0x30, samples +0x34). |
+| 10-11 | `NVN_WINDOW_CONTRACT` -> `ZERO_TEXEL_VIEW_RESERVED` | Window builder is unprefixed too (device +0, count +8, textures +0x10, native +0x18, interval +0x20; `nvnWindowInitialize` copies the same offsets). `NVNtextureView` is the 36-byte form (flags byte +0 with bits levels/layers/format/swizzle/depth-stencil/target, level u8 at +1/+2, layer u16 at +4/+6, format +8, swizzle +0xc, depth-stencil +0x1c, target +0x20). |
+| 12 | `WOL_SHADER_TRANSLATION_REQUIRED` on the second shader | All 16 shader programs in `main.rodata` are enumerated, disassembled and hashed; the runtime logs each request with code/control SHA-256 and continues with a placeholder that binds and draws nothing. |
+| 13-19 | `CPU_FAULT` (SDL-raised, then the real guest fault) | The SDL crash handler was masking the real fault; `SDL_NO_SIGNAL_HANDLERS=1` makes this runtime's handler authoritative. The real fault was in the guest SDK's `printf` path: Unity's `DynamicHeapAllocator` reported "System out of memory!" while formatting the message. |
+| 20 | (no stop) | The guest memory budget was the diagnostic 768MiB; this title sizes its Unity heap from the reported total and then failed an allocation during asset loading. Raised to 2048MiB as a **virtual** quota (guest mappings stay lazy; RSS is reported separately). The run then passed the OOM point entirely. |
+| 21 | `NVN_TEXTURE_DIMENSIONS_REQUIRED` | The camera target is requested as target 5 with 2 samples (1920x1080). Downgraded to a plain 2D target with `WOL_MSAA_DOWNGRADED` logged - a quality deviation in the same class as the existing HDR-as-RGBA8 case, not an MSAA claim. |
+| 22 | `NVN_OPERATION_REQUIRED` (`nvnCommandBufferDownsample`) | The title resolves its camera target with a downsample. Accepted as `WOL_DOWNSAMPLE_PLACEHOLDER` (logged, copies nothing, invents nothing): the source has no GPU-produced content until draws are translated. |
+| 23 (current) | `NVN_COPY_TEXTURE_FORMAT_REQUIRED` (format `0x41`) | **The title now records and submits real frames**: run 23 reached `nvnCommandBufferBindProgram` and `nvnQueueSubmitCommands` with a 182-command list. The stop is in the replay of a compressed (`0x41`) buffer-to-texture upload, which the copy path does not accept yet. |
+
+### Current frontier
+
+- Device: real EGL/KMSDRM window at 1280x720, 29 textures, 116 shader programs inventoried, ~300MB RSS,
+  zero swap, menu returns cleanly after every run.
+- The rendering pipeline is exercised end to end except the parts that need translated shaders: programs are
+  bound (`mask=0x1` seen) and command lists are submitted; nothing is rasterised because every program is
+  still a placeholder.
+- Next, in order: (1) accept the compressed upload in the copy replay path (BC layout helpers already exist
+  for texel writes), (2) translate the first real shader pair and replace the placeholders programme by
+  programme, (3) then re-check the downsample as a real blit and, only after that, claim a frame.
+
+**Nothing in this document claims a rendered frame, playable launch, input or audio.**

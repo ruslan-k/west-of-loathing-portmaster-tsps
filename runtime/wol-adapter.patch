@@ -12,16 +12,93 @@
      -I"$COTM_NXINPUT_DIR/engine-glue" -I"$COTM_NXCOMPAT_DIR/include" -I"$shaders" \
 --- a/native/loader.c
 +++ b/native/loader.c
-@@ -30,7 +30,7 @@
+@@ -30,7 +30,12 @@
  #define MAX_REGIONS 1024   /* one region per aliased thread stack plus the alias-region pieces (MEDIDO run momo-074) */
  #define MAX_TRAPS 8192
  #define TRAP_OPCODE 0xd421a000U
 -#define MEMORY_BUDGET (1536ULL << 20)   /* Unity takes the whole declared budget (docs/RUNTIME.md 3.2); 1536 MiB is the Messenger value */
-+#define MEMORY_BUDGET (768ULL << 20) /* WoL diagnostic guest budget; virtual declaration, not measured RAM. */
++/* Guest memory budget as a VIRTUAL declaration, not resident RAM: the guest heap and every pool are
++ * mapped lazily (physical-pages=on-access), so this number bounds what the title may reserve. WoL's
++ * Unity dynamic heap sized itself from the previously reported 768MiB and then failed an allocation
++ * during asset loading, printing DynamicHeapAllocator "System out of memory" (MEDIDO run wol-20).
++ * The console reports the physical (RSS/swap) numbers separately; never confuse the two. */
++#define MEMORY_BUDGET (2048ULL << 20)
  #define HOST_ADDRESS_LIMIT (8192ULL << 20)
  #define HEAP_BASE 0x1000000000ULL
  #define HEAP_LIMIT MEMORY_BUDGET
-@@ -695,7 +695,7 @@
+@@ -258,11 +263,47 @@
+     }
+     return 0;
+ }
++#if defined(WOL_DIAGNOSE_HOST_FAULT) && WOL_DIAGNOSE_HOST_FAULT
++#include <dlfcn.h>
++static void host_location(struct line *l,const char *tag,uint64_t address) {
++    text(l,tag);hex(l,address);
++    Dl_info info;memset(&info,0,sizeof(info));
++    if(dladdr((void *)(uintptr_t)address,&info)) {
++        if(info.dli_fname){text(l," module=");text(l,info.dli_fname);}
++        if(info.dli_sname){text(l," symbol=");text(l,info.dli_sname);}
++        if(!info.dli_fname && !info.dli_sname)text(l," module=<anonymous>");
++    } else text(l," module=<unmapped>");
++}
++#endif
+ static void signal_dispatch(int sig,siginfo_t *info,void *opaque) {
+     ucontext_t *ctx=opaque;current_guest_context=ctx;uint64_t pc=ctx->uc_mcontext.pc;
+     if(sig!=SIGTRAP) {
+         struct line fault={0};text(&fault,"FAULT signal=");hex(&fault,sig);text(&fault," code=");hex(&fault,info->si_code);
+         text(&fault," lr=");location(&fault,ctx->uc_mcontext.regs[30]);text(&fault," sp=");hex(&fault,ctx->uc_mcontext.sp);emit(&fault);
++        {   /* Which thread, what it last asked the kernel, and the last NVN call site of this thread. */
++            struct line t={0};text(&t,"FAULT_THREAD index=");hex(&t,guest_thread_index);
++            if(guest_thread_index<MAX_THREADS){text(&t," last-svc=");hex(&t,threads[guest_thread_index].last_svc_id);
++                text(&t," last-svc-pc=");location(&t,threads[guest_thread_index].last_svc_pc);}
++            text(&t," nvn-caller=");location(&t,nvn_caller);
++            text(&t," x18=");hex(&t,ctx->uc_mcontext.regs[18]);
++            emit(&t);}
++        /* Guest frame chain (AAPCS64): the guest is native code, so x29 walks its real call stack.
++         * Bounded and range-checked; a broken chain simply ends the walk. */
++        {   uint64_t fp=ctx->uc_mcontext.regs[29];
++            for(unsigned n=0;n<24 && fp;n++) {
++                if(!accessible(fp,16,PROT_READ))break;
++                uint64_t next=0,lr=0;memcpy(&next,(void *)(uintptr_t)fp,8);memcpy(&lr,(void *)(uintptr_t)(fp+8),8);
++                struct line f={0};text(&f,"FAULT_GUEST_FRAME n=");hex(&f,n);text(&f," ret=");location(&f,lr);emit(&f);
++                if(next<=fp)break;
++                fp=next;
++            }
++        }
++#if defined(WOL_DIAGNOSE_HOST_FAULT) && WOL_DIAGNOSE_HOST_FAULT
++        /* Name the host modules holding pc/lr: a fault outside the guest modules is a host-side
++         * defect, and the module is the first fact needed to tell driver from runtime code. */
++        {struct line m={0};host_location(&m,"FAULT_PC",pc);emit(&m);}
++        {struct line m={0};host_location(&m,"FAULT_LR",ctx->uc_mcontext.regs[30]);emit(&m);}
++#endif
+         for(unsigned i=0;i<31;i++){struct line r={0};text(&r,"FAULT_REG x");hex(&r,i);text(&r,"=");hex(&r,ctx->uc_mcontext.regs[i]);text(&r," ");location(&r,ctx->uc_mcontext.regs[i]);emit(&r);}
+ #ifdef AW_NO_ROMFS
+         if(pc==LC2_SDK_BASE+0x1dfe90) {
+@@ -288,6 +329,23 @@
+         }
+ #endif
+         for(unsigned i=0;i<24;i++){uint64_t at=ctx->uc_mcontext.sp+i*8,v=0;if(!accessible(at,8,PROT_READ))break;memcpy(&v,(void *)(uintptr_t)at,8);struct line w={0};text(&w,"FAULT_STACK +");hex(&w,i*8);text(&w,"=");hex(&w,v);text(&w," ");location(&w,v);emit(&w);}
++#if defined(WOL_DIAGNOSE_HOST_FAULT) && WOL_DIAGNOSE_HOST_FAULT
++        /* Host-side fault: accessible() only knows guest mappings and rejects host stacks, so read
++         * the live stack directly (it is mapped by definition) and name code words with dladdr. */
++        {const uint64_t *host_sp=(const uint64_t *)(uintptr_t)ctx->uc_mcontext.sp;
++         for(unsigned i=0;i<48;i++) {
++             uint64_t v=host_sp[i];
++             struct line w={0};text(&w,"FAULT_HOST_STACK +");hex(&w,i*8);text(&w,"=");hex(&w,v);
++             {   /* Host code words resolve through the link map; guest words through the module table. */
++                 Dl_info inf;memset(&inf,0,sizeof(inf));
++                 if(dladdr((void *)(uintptr_t)v,&inf) && inf.dli_fname){
++                     text(&w," module=");text(&w,inf.dli_fname);
++                     if(inf.dli_sname){text(&w," symbol=");text(&w,inf.dli_sname);}
++                 } else if(v>=0x8000000ULL && v<0x800000000ULL) {text(&w," ");location(&w,v);}
++             }
++             emit(&w);
++         }}
++#endif
+         if(momo_dump_address) {
+             /* Bounded stall diagnostic: hexdump of a guest range chosen by MOMO_DUMP=address:bytes. */
+             const unsigned char *at=(const unsigned char *)(uintptr_t)momo_dump_address;
+@@ -695,7 +753,7 @@
  }
  int main(int argc,char **argv) {
      (void)argv;if(argc!=1){fprintf(stderr,"Run from the verified native image directory, without arguments.\n");return 1;}
@@ -30,7 +107,7 @@
      nvn_platform_argv=argv;
      t2_runtime_health_capture();
      if(t2_video_init())return 24;
-@@ -726,7 +726,7 @@
+@@ -726,7 +784,7 @@
      struct rlimit no_core={0,0};setrlimit(RLIMIT_CORE,&no_core);
      struct rlimit address_limit={HOST_ADDRESS_LIMIT,HOST_ADDRESS_LIMIT};
      if(setrlimit(RLIMIT_AS,&address_limit)){perror("diagnostic memory quota");return 1;}
@@ -39,6 +116,78 @@
      FILE *random=fopen("/dev/urandom","rb");
      if(!random || fread(entropy,1,sizeof(entropy),random)!=sizeof(entropy)){fprintf(stderr,"entropy unavailable\n");return 1;}
      fclose(random);
+--- a/native/megaman_texture_view.h
++++ b/native/megaman_texture_view.h
+@@ -55,6 +55,64 @@
+ static inline unsigned megaman_texture_view_identity(const uint8_t *view,unsigned levels) {
+     return momo_texture_view_identity_target(view,levels,0,0);
+ }
++#if defined(WOL_TEXTURE_VIEW_36) && WOL_TEXTURE_VIEW_36
++/* This title's SDK uses the 36-byte NVNtextureView, measured from its own setters
++ * (sdk+0x2c8cc4 SetDefaults zeroes 36 bytes; SetLevels sets flags bit 0 and stores byte level
++ * base/count at +1/+2; SetLayers stores u16 base/count at +4/+6; SetFormat u32 at +8; SetSwizzle
++ * u32[4] at +0xc; SetTarget u32 at +0x1c; reserved u32 at +0x20). The 18.3.2 16-byte layout with
++ * flags at byte 7 does not apply to this title. Only the whole single-level single-layer image is
++ * admitted, with an optionally restated format/swizzle/target that must match. */
++#undef MEGAMAN_TEXTURE_VIEW_BYTES
++#define MEGAMAN_TEXTURE_VIEW_BYTES 36U
++#define WOL_VIEW_FLAG_LEVELS 0x01U
++#define WOL_VIEW_FLAG_LAYERS 0x02U
++#define WOL_VIEW_FLAG_FORMAT 0x04U
++#define WOL_VIEW_FLAG_SWIZZLE 0x08U
++#define WOL_VIEW_FLAG_TARGET 0x20U
++#define WOL_VIEW_FLAG_DEPTH_STENCIL 0x10U
++static inline unsigned wol_texture_view_identity_target(const uint8_t *v,unsigned levels,unsigned format,unsigned target) {
++    if(!v)return 1;
++    unsigned flags=v[0];
++    if(flags&~0x1fU || v[3])return 0;
++    for(unsigned i=0x20;i<0x24;i++)if(v[i])return 0;
++    if(flags&WOL_VIEW_FLAG_LEVELS) { if(v[1] || (v[2]!=1 && v[2]!=0) || levels!=1)return 0; }
++    else if(v[1]||v[2])return 0;
++    uint16_t first,count;memcpy(&first,v+4,2);memcpy(&count,v+6,2);
++    if(flags&WOL_VIEW_FLAG_LAYERS) { if(first || (count!=1 && count!=0))return 0; }
++    else if(first||count)return 0;
++    uint32_t vformat;memcpy(&vformat,v+8,4);
++    if(flags&WOL_VIEW_FLAG_FORMAT) { if(format && vformat!=format)return 0; }
++    else if(vformat)return 0;
++    if(flags&WOL_VIEW_FLAG_SWIZZLE) { if(v[0xc]!=2||v[0xd]!=3||v[0xe]!=4||v[0xf]!=5)return 0; }
++    else for(unsigned i=0xc;i<0x10;i++)if(v[i])return 0;
++    uint32_t vdepth;memcpy(&vdepth,v+0x1c,4);
++    if(flags&WOL_VIEW_FLAG_DEPTH_STENCIL) { if(vdepth>3)return 0; }
++    else if(vdepth)return 0;
++    uint32_t vtarget;memcpy(&vtarget,v+0x20,4);
++    if(flags&WOL_VIEW_FLAG_TARGET) { if(target && vtarget!=target)return 0; }
++    else if(vtarget)return 0;
++    for(unsigned i=0x10;i<0x1c;i++)if(v[i])return 0;
++    return 1;
++}
++/* The WoL layout replaces every MOMO-flavoured use in this build; the cube sub-case in
++ * nvn_textures.h reads bytes that belong to the layer field here and never triggers. */
++#define momo_texture_view_identity_target wol_texture_view_identity_target
++#define momo_texture_view_identity wol_texture_view_identity_wrap
++#define megaman_texture_view_identity wol_texture_view_identity_levels
++static inline unsigned wol_texture_view_identity_wrap(const uint8_t *v,unsigned levels,unsigned format) {
++    return wol_texture_view_identity_target(v,levels,format,0);
++}
++static inline unsigned wol_texture_view_identity_levels(const uint8_t *v,unsigned levels) {
++    return wol_texture_view_identity_target(v,levels,0,0);
++}
++static inline unsigned wol_texture_view_single_level(const uint8_t *v,unsigned format,unsigned target) {
++    if(!v)return 1;
++    if((v[0]&WOL_VIEW_FLAG_LEVELS) && v[2]!=1 && v[2]!=0)return 0;
++    uint8_t single[MEGAMAN_TEXTURE_VIEW_BYTES];
++    memcpy(single,v,sizeof(single));single[1]=0;   /* the base level is validated by the caller */
++    return wol_texture_view_identity_target(single,1,format,target);
++}
++#define momo_texture_view_single_level wol_texture_view_single_level
+ #else
+ #define MEGAMAN_TEXTURE_VIEW_BYTES 36U
+ static inline unsigned megaman_texture_view_identity(const uint8_t *view,unsigned levels) {
+@@ -65,3 +123,4 @@
+ }
+ #endif
+ #endif
++#endif
 --- a/native/nvn_commands.h
 +++ b/native/nvn_commands.h
 @@ -73,6 +73,9 @@
@@ -51,6 +200,24 @@
  #include "nvn_command_lists.h"
  static struct nvn_command_buffer *nvn_command_find(uint64_t object) {
      for(unsigned i=0;i<32;i++)if(nvn_command_buffers[i].live&&nvn_command_buffers[i].object==object)return &nvn_command_buffers[i];
+@@ -555,6 +558,17 @@
+         }
+         return 1;
+     }
++#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++    if(id==NI_nvnCommandBufferDownsample) {
++        /* This title resolves its MSAA camera target with a downsample; the MSAA request itself is
++         * already downgraded to a plain 2D target (WOL_MSAA_DOWNGRADED) and no translated draw path
++         * produces GPU content yet, so no bytes are copied and none are invented. The call is accepted
++         * as a logged placeholder; the real resolve blit belongs with the translated draw path. */
++        static unsigned told;
++        if(told++<8)printf("WOL_DOWNSAMPLE_PLACEHOLDER command-buffer=0x%"PRIx64" texture-a=0x%"PRIx64" texture-b=0x%"PRIx64" action=accepted-no-copy note=no-gpu-content-yet\n",a[0],a[1],a[2]);
++        *result=0;return 1;
++    }
++#endif
+     switch(id) {
+     case NI_nvnCommandBufferSetAlphaRef:case NI_nvnCommandBufferReportCounter:
+     case NI_nvnCommandBufferSetBlendColor:
 --- a/native/nvn_memory.h
 +++ b/native/nvn_memory.h
 @@ -89,10 +89,13 @@
@@ -98,35 +265,195 @@
      if(!nvn_device.live || b->device!=nvn_device.address)stop("NVN_QUEUE_DEVICE",nvn_caller,b->device,24);
      /* NVN QueueFlags: 1 disables fragment interlock; 2 disables ZCull.
       * Neither optional Tegra path is enabled by this GLES2 backend. Ordinary
+--- a/native/nvn_samplers.h
++++ b/native/nvn_samplers.h
+@@ -9,6 +9,20 @@
+ /* Animal Well SDK 17.5.3 sampler builder (measured from the game's setter calls): device +0, lodMin +8, lodMax +0xc,
+  * lodBias +0x10, anisotropy +0x14, lodSnap +0x18, border[4] +0x1c, packed +0x2c = wrapS|wrapT<<4|wrapR<<8|min<<16|mag<<20|
+  * compareEnable<<24|compareFunc<<26|reduction<<30. */
++/* WoL SDK (measured from sdk.text.seg): NVNsamplerBuilder is the UNPACKED layout and is
++ * 0x48 bytes; nvnSamplerInitialize copies it verbatim (mov w2,#0x48; memcpy). Confirmed from the
++ * SDK\'s own SetDefaults: min +0x8, mag +0xc, wrapS/T/R +0x10/+0x14/+0x18, lodMin +0x1c,
++ * lodMax +0x20, lodBias +0x24, compare +0x28, compareFunc +0x2c, border +0x30..+0x3c,
++ * anisotropy +0x40, reduction +0x44 (defaults: 1,1,1,1,1, 0, 1000.0, 0.0, 0, 2, aniso 1.0).
++ * The decoded struct matches those offsets field for field, so the decode is a direct copy;
++ * the field checks below still fail closed if a title with another layout reaches this path. */
++#if defined(WOL_SAMPLER_LEGACY_LAYOUT) && WOL_SAMPLER_LEGACY_LAYOUT
++static void wol_sampler_builder_translate(const uint8_t *raw,struct nvn_sampler_builder *b) {
++    memset(b,0,sizeof(*b));
++    memcpy(b,raw,0x48);
++    b->lod_snap=0.0f; /* absent in this SDK; the builder ends at +0x47 */
++}
++#endif
+ static void aw_sampler_builder_translate(const uint8_t *raw,struct nvn_sampler_builder *b) {
+     uint32_t packed;memcpy(&packed,raw+0x2c,4);
+     memset(b,0,sizeof(*b));memcpy(&b->device,raw,8);
+@@ -20,7 +34,8 @@
+ struct nvn_sampler {uint64_t object,id;struct nvn_sampler_builder b;unsigned live,references;};
+ static struct nvn_sampler nvn_samplers[4096];
+ static struct nvn_sampler *nvn_sampler_find(uint64_t object) {
+-    for(unsigned i=0;i<4096;i++)if(nvn_samplers[i].live&&nvn_samplers[i].object==object)return &nvn_samplers[i];
++    /* Retired entries keep their id (pool slots resolve them) but drop the address. */
++    for(unsigned i=0;i<4096;i++)if(nvn_samplers[i].live&&nvn_samplers[i].object&&nvn_samplers[i].object==object)return &nvn_samplers[i];
+     stop("NVN_SAMPLER_INVALID",nvn_caller,object,24);return NULL;
+ }
+ static unsigned nvn_sampler_dispatch(unsigned id,struct nvn_frame *f,uint64_t *result) {
+@@ -38,17 +53,35 @@
+     }
+     if(id==NI_nvnSamplerInitialize) {
+         nvn_pointer(a[0],8,PROT_READ|PROT_WRITE);struct nvn_sampler_builder b;
++#if defined(WOL_SAMPLER_LEGACY_LAYOUT) && WOL_SAMPLER_LEGACY_LAYOUT
++        wol_sampler_builder_translate(nvn_pointer(a[1],0x48,PROT_READ),&b);
++#else
+         aw_sampler_builder_translate(nvn_pointer(a[1],sizeof(b),PROT_READ),&b);
++#endif
+         if(!nvn_device.live||b.device!=nvn_device.address)stop("NVN_SAMPLER_DEVICE",nvn_caller,b.device,24);
+         printf("AW_SAMPLER min=%u mag=%u wrap=%u/%u/%u lod=%g..%g bias=%g compare=%u/%u reduction=%u\n",b.min,b.mag,b.wrap[0],b.wrap[1],b.wrap[2],b.lod_min,b.lod_max,b.lod_bias,b.compare,b.compare_func,b.reduction);
+         if(b.min>5 || b.mag>1 || b.wrap[0]>7 || b.wrap[1]>7 || b.wrap[2]>7 || b.compare>1 || b.reduction>2 ||
+            !isfinite(b.lod_min)||!isfinite(b.lod_max)||!isfinite(b.lod_bias)||!isfinite(b.anisotropy)||!isfinite(b.lod_snap)||b.anisotropy<1)
+             stop("NVN_SAMPLER_PARAMETERS",nvn_caller,b.min,24);
+-        unsigned slot=4096;
++        unsigned slot=4096,replace=4096;
+         for(unsigned i=0;i<4096;i++) {
+-            if(nvn_samplers[i].live&&nvn_samplers[i].object==a[0])stop("NVN_SAMPLER_ALREADY_LIVE",nvn_caller,a[0],24);
+-            if(!nvn_samplers[i].live&&!nvn_samplers[i].references&&slot==4096)slot=i;
++            if(nvn_samplers[i].live&&nvn_samplers[i].object&&nvn_samplers[i].object==a[0]) {
++                /* This SDK's NVNsampler is a temporary whose state RegisterSampler copies into the pool,
++                 * and the title reuses one stack object for several samplers (MEDIDO run wol-08).
++                 * A referenced entry stays reachable by id and loses its address; an unreferenced one
++                 * is simply rewritten. Re-initialisation is legal, not a stale handle. */
++                if(nvn_samplers[i].references) {
++                    printf("NVN_SAMPLER_REINITIALIZED address=0x%"PRIx64" previous-id=%"PRIu64" action=retire-keep-id\n",a[0],nvn_samplers[i].id);
++                    nvn_samplers[i].object=0;
++                } else {
++                    printf("NVN_SAMPLER_REINITIALIZED address=0x%"PRIx64" previous-id=%"PRIu64" action=replace\n",a[0],nvn_samplers[i].id);
++                    replace=i;
++                }
++            }
++            if(slot==4096 && ((!nvn_samplers[i].live&&!nvn_samplers[i].references) ||
++                              (nvn_samplers[i].live&&!nvn_samplers[i].object&&!nvn_samplers[i].references)))slot=i;
+         }
++        if(replace!=4096)slot=replace;
+         if(slot==4096)stop("NVN_SAMPLER_CAPACITY",nvn_caller,slot,21);
+         nvn_samplers[slot]=(struct nvn_sampler){.object=a[0],.id=zero_next_object_id(),.b=b,.live=1};
+         printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -49,7 +49,22 @@
+@@ -46,10 +46,37 @@
+     stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
+ }
+ #include "diagnostic_dump.h"
++#if defined(WOL_SHADER_CAPTURE) && WOL_SHADER_CAPTURE
++/* Bring-up inventory state: strictly a placeholder, never a translated program. */
++static unsigned nvn_capture_slot,nvn_capture_untranslated,nvn_capture_sequence;
++#endif
  static uint64_t nvn_read64(uint64_t address) {uint64_t value;memcpy(&value,nvn_pointer(address,8,PROT_READ),8);return value;}
  static void *nvn_gpu_pointer(uint64_t address,uint64_t size,unsigned perm);
  static unsigned nvn_megaman_shader_match(uint64_t code,uint64_t control) {
 -#if defined(ZERO_ZX_SHADER_DISCOVERY) && ZERO_ZX_SHADER_DISCOVERY
 +#if defined(WOL_SHADER_CAPTURE) && WOL_SHADER_CAPTURE
-+    /* Capture the measured WoL v0 control envelope; do not invent a translation. */
++    /* WoL v0 inventory: log the exact identity, dump privately, and report the
++     * program as UNTRANSLATED. The caller substitutes a placeholder that binds
++     * and draws nothing; no shader is invented and no frame is claimed. */
 +    const uint8_t *header=nvn_pointer(control,0x24,PROT_READ);
 +    if(read32(header)!=0x98761234 || read32(header+4)!=1 || read32(header+0x20)!=0x848)
 +        stop("WOL_SHADER_CAPTURE_LAYOUT",nvn_caller,control,24);
++    unsigned code_bytes=read32(header+0x704);
++    if(code_bytes<0x80 || code_bytes>131072)stop("WOL_SHADER_CAPTURE_CODE_SIZE",nvn_caller,code_bytes,24);
 +    const uint8_t *blob=nvn_pointer(control,0x848,PROT_READ);
-+    const uint8_t *prefix=nvn_gpu_pointer(code,0x200,PROT_READ);
-+    uint8_t hash[32];zero_sha256(blob,0x848,hash);
-+    printf("WOL_SHADER_CAPTURE control-bytes=2120 code-prefix-bytes=512 control-sha256=");
-+    for(unsigned i=0;i<32;i++){printf("%02x",hash[i]);}
++    const uint8_t *bytes=nvn_gpu_pointer(code,code_bytes,PROT_READ);
++    uint8_t code_hash[32],control_hash[32];
++    zero_sha256(bytes,code_bytes,code_hash);zero_sha256(blob,0x848,control_hash);
++    printf("WOL_SHADER_STAGE slot=%u code-bytes=%u code-sha256=",nvn_capture_slot,code_bytes);
++    for(unsigned i=0;i<32;i++){printf("%02x",code_hash[i]);}
++    printf(" control-sha256=");
++    for(unsigned i=0;i<32;i++){printf("%02x",control_hash[i]);}
 +    putchar('\n');
-+    nvn_private_dump("wol-shader-control",0,blob,0x848);
-+    nvn_private_dump("wol-shader-code-prefix",0,prefix,0x200);
-+    stop("WOL_SHADER_TRANSLATION_REQUIRED",nvn_caller,control,20);
++    unsigned sequence=nvn_capture_sequence++;
++    nvn_private_dump("wol-shader-control",sequence,blob,0x848);
++    nvn_private_dump("wol-shader-code",sequence,bytes,code_bytes);
++    nvn_capture_untranslated=1;
 +    return UINT32_MAX;
 +#elif defined(ZERO_ZX_SHADER_DISCOVERY) && ZERO_ZX_SHADER_DISCOVERY
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
+@@ -512,7 +539,12 @@
+     struct nvn_program *p=object?nvn_program_find(object):NULL;
+     /* A compute program has no graphics stage (nvn_shaders.h, MEDIDO run momo-096): binding it leaves
+      * the vertex/fragment binding untouched. Only a real dispatch would be an error. */
+-    if(p && p->compute_only)return;
++    if(p && p->compute_only) {
++#if defined(WOL_SHADER_CAPTURE) && WOL_SHADER_CAPTURE
++        printf("WOL_PROGRAM_BOUND object=0x%"PRIx64" mask=0x%"PRIx64" action=placeholder-skip\n",object,mask);
++#endif
++        return;}
++
+     if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
+     unsigned empty[2]={0};
+     if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
+@@ -613,6 +645,22 @@
+             }
+         }
+ #endif
++#if defined(WOL_SHADER_CAPTURE) && WOL_SHADER_CAPTURE
++        /* Inventory placeholders: no WoL translation exists yet. Untranslated
++         * programs become compute-only so bind and draw paths skip them; the GPU
++         * work is omitted, never faked. */
++        for(unsigned i=0;i<a[1];i++) {
++            nvn_capture_slot=i;
++            if(nvn_megaman_shader_match(inputs[i*2],inputs[i*2+1])==UINT32_MAX)nvn_capture_untranslated=1;
++        }
++        if(nvn_capture_untranslated) {
++            p->stage_mask=0;p->sources[0]=p->sources[1]=0;p->compute_only=1;
++            nvn_capture_untranslated=0;
++            printf("WOL_PROGRAM_INVENTORY object=0x%"PRIx64" id=%"PRIu64" stages=%"PRIu64" recorded=placeholder-no-translation\n",
++                   p->object,p->id,(uint64_t)a[1]);
++            *result=1;return 1;
++        }
++#endif
+         for(unsigned i=0;i<a[1];i++) {
+             unsigned source=nvn_megaman_shader_match(inputs[i*2],inputs[i*2+1]),stage=nvn_shader_sources[source].stage;
+             if(stage>1 || matched&(1U<<stage))stop("NVN_LC2_SHADER_STAGE_DUPLICATE",nvn_caller,source,24);
 --- a/native/nvn_textures.h
 +++ b/native/nvn_textures.h
-@@ -321,7 +321,7 @@
+@@ -99,9 +99,16 @@
+ #include "nvn_normal.h"
+ #include "nvn_texture_coherence.h"
+ static uint64_t nvn_texture_layout(uint64_t address,struct nvn_texture_builder *b,uint64_t levels[14]) {
++#if defined(WOL_TEXTURE_BUILDER_UNPREFIXED) && WOL_TEXTURE_BUILDER_UNPREFIXED
++    /* Measured on this SDK: nvnTextureBuilderSetDevice stores at +0x0 (sdk+0x2c88b0) and
++     * SetDefaults fills flags +0x18, target +0x1c, size +0x20/+0x24/+0x28, levels +0x2c,
++     * format +0x30, samples +0x34, up to +0x60 (sdk+0x2c88b8). No opaque prefix here. */
++    memcpy(b,nvn_pointer(address,sizeof(*b),PROT_READ),sizeof(*b));
++#else
+     /* SDK 6.5 prefixes this builder with an opaque word; remaining fields
+      * match the normalized layout. SetDevice +0x405a60, SetStride +0x405ba0. */
+     memcpy(b,nvn_pointer(address+8,sizeof(*b),PROT_READ),sizeof(*b));
++#endif
+     /* SDK 17.5.3 builder (measured): the linear stride lives at +0x50 (the former packaged slot), the former stride and
+      * packaged-layout slots are unused and +0x60 holds a builder marker (0x50). Packaged textures never occur here. */
+     b->stride=(uint32_t)b->packaged;b->packaged=0;b->packaged_layout=0;b->gl_name=0;
+@@ -173,6 +180,18 @@
+        b->width>(uint32_t)nvn_device.texture_limit || b->height>(uint32_t)nvn_device.texture_limit ||
+        0){static unsigned told;if(told++<8)printf("MOMO_TEXTURE_BUILDER flags=0x%x target=%u size=%ux%ux%u levels=%u format=0x%x samples=%u stride=%u\n",
+            b->flags,b->target,b->width,b->height,b->depth,b->levels,b->format,b->samples,b->stride);}
++#if defined(WOL_MSAA_DOWNGRADE) && WOL_MSAA_DOWNGRADE
++    /* This title asks for its 1920x1080 camera target as target 5 with 2 samples (MEDIDO run wol-21,
++     * MOMO_TEXTURE_BUILDER line). On this host the surface has no multisampled storage, so the
++     * request is downgraded to a plain 2D target and the sample count reported as 1 - a quality
++     * deviation in the same class as the existing HDR-as-RGBA8 case, logged, never an MSAA claim. */
++    if(b->target==5 && b->samples>1 && b->depth==1) {
++        static unsigned told;
++        if(told++<4)printf("WOL_MSAA_DOWNGRADED requested-target=5 samples=%u size=%ux%u action=plain-2d note=no-multisample-storage\n",
++                           b->samples,b->width,b->height);
++        b->target=2;b->samples=1;
++    }
++#endif
+     if((b->target!=1 && !((b->target==2||b->target==4) && b->depth==1)) || b->depth!=1 || !b->width || !b->height ||
+        b->width>(uint32_t)nvn_device.texture_limit || b->height>(uint32_t)nvn_device.texture_limit ||
+        !b->levels || b->levels>14 || b->samples>1)stop("NVN_TEXTURE_DIMENSIONS_REQUIRED",nvn_caller,((uint64_t)b->width<<32)|b->height,20);
+@@ -321,7 +340,7 @@
      return NULL;
  }
  #endif
@@ -135,7 +462,7 @@
  static uint64_t zero_texture_record_id(uint64_t object) {return nvn_texture_find(object)->id;}
  static void aw_clear_texture_admit(uint64_t object,uint64_t view,const int32_t *region) {
      struct nvn_texture *t=nvn_texture_find(object);
-@@ -329,6 +329,7 @@
+@@ -329,6 +348,7 @@
      if(region[0]<0||region[1]<0||region[2]||region[3]<=0||region[4]<=0||region[5]!=1||
         (uint64_t)region[0]+region[3]>t->b.width||(uint64_t)region[1]+region[4]>t->b.height)stop("NVN_CLEAR_TEXTURE_REGION",nvn_caller,object,20);
  }
@@ -143,3 +470,56 @@
  static void zero_record_target_view(uint64_t object,const uint8_t *view,unsigned attachment) {
      struct nvn_texture *t=object?nvn_texture_find(object):NULL;
  #ifdef MOMO_SHADERS
+--- a/native/nvn_window.h
++++ b/native/nvn_window.h
+@@ -51,8 +51,17 @@
+         /* Animal Well SDK 17.5.3 window builder (measured): +8 device, +0x10 count, +0x18 native window,
+          * +0x20 present interval minus one, +0x28 textures pointer. */
+         struct nvn_window_builder b;const uint8_t *raw=nvn_pointer(a[1],0x30,PROT_READ);
+-        memset(&b,0,sizeof(b));memcpy(&b.device,raw+8,8);memcpy(&b.count,raw+0x10,4);memcpy(&b.native,raw+0x18,8);
++        memset(&b,0,sizeof(b));
++#if defined(WOL_WINDOW_BUILDER_UNPREFIXED) && WOL_WINDOW_BUILDER_UNPREFIXED
++        /* Measured on this SDK (sdk+0x2ca7e0..0x2ca810): device +0x0, count +0x8, textures +0x10,
++         * native +0x18, present interval minus one +0x20; nvnWindowInitialize copies the same
++         * offsets into its NVNwindow (count clamped to 4 at sdk+0x2ca9f0). No opaque prefix. */
++        memcpy(&b.device,raw,8);memcpy(&b.count,raw+8,4);memcpy(&b.textures,raw+0x10,8);
++        memcpy(&b.native,raw+0x18,8);memcpy(&b.interval_minus_one,raw+0x20,4);
++#else
++        memcpy(&b.device,raw+8,8);memcpy(&b.count,raw+0x10,4);memcpy(&b.native,raw+0x18,8);
+         memcpy(&b.interval_minus_one,raw+0x20,4);memcpy(&b.textures,raw+0x28,8);
++#endif
+         if(!nvn_device.live || b.device!=nvn_device.address || nvn_window.live || !layer.opened || !b.native || b.count<2 || b.count>3)
+             stop("NVN_WINDOW_CONTRACT",nvn_caller,b.count,24);
+         if(b.interval_minus_one<-1 || b.interval_minus_one>0)stop("NVN_WINDOW_INTERVAL_REQUIRED",nvn_caller,b.interval_minus_one,20);
+--- a/native/zero_texture_writes.h
++++ b/native/zero_texture_writes.h
+@@ -5,7 +5,28 @@
+     uint8_t view[MEGAMAN_TEXTURE_VIEW_BYTES]={0};
+     if(a[1])memcpy(view,nvn_pointer(a[1],MEGAMAN_TEXTURE_VIEW_BYTES,PROT_READ),MEGAMAN_TEXTURE_VIEW_BYTES);
+     unsigned level=0,layer=0;uint16_t first,count;
+-#ifdef MOMO_SHADERS
++#if defined(WOL_TEXTURE_VIEW_36) && WOL_TEXTURE_VIEW_36
++    /* This SDK's 36-byte view (setters sdk+0x2c8cc4..0x2c8d40): flags byte at +0 (1 levels, 2
++     * layers, 4 format, 8 swizzle, 0x10 target), byte level base/count at +1/+2, u16 layer
++     * base/count at +4/+6; +8 format, +0xc swizzle, +0x1c target, +0x20 reserved. A texel write
++     * selects one level of one layer; the SDK reads exactly those fields (nvnTextureWriteTexels
++     * sdk+0x2ca3fc tests flag bit 1 for the layer base at +4). */
++    if(view[0]&~0x3fU || view[3])stop("ZERO_TEXEL_VIEW_REQUIRED",nvn_caller,view[0],20);
++    /* format (bit 2), swizzle (bit 3) and depth-stencil mode (bit 4) have not been measured on a
++     * write path for this title: fail closed instead of assuming their fields. */
++    if(view[0]&0x1cU)stop("ZERO_TEXEL_VIEW_UNMEASURED_FIELDS",nvn_caller,view[0],20);
++    if(view[0]&1){level=view[1];if(view[2]!=1)stop("ZERO_TEXEL_LEVEL_COUNT",nvn_caller,view[2],20);}
++    else if(view[1]||view[2])stop("ZERO_TEXEL_VIEW_RESERVED",nvn_caller,1,24);
++    memcpy(&first,view+4,2);memcpy(&count,view+6,2);
++    if(view[0]&2){layer=first;if(count!=1)stop("ZERO_TEXEL_LAYER_COUNT",nvn_caller,count,20);}
++    else if(first||count)stop("ZERO_TEXEL_VIEW_RESERVED",nvn_caller,4,24);
++    {   /* The target field (bit 5, u32 at +0x20) may restate the image target. */
++        uint32_t vtarget;memcpy(&vtarget,view+0x20,4);
++        if(view[0]&0x20U){if(vtarget!=t->b.target)stop("ZERO_TEXEL_VIEW_TARGET",nvn_caller,vtarget,20);}
++        else if(vtarget)stop("ZERO_TEXEL_VIEW_RESERVED",nvn_caller,0x20,24);
++    }
++    for(unsigned i=8;i<0x20;i++)if(view[i])stop("ZERO_TEXEL_VIEW_RESERVED",nvn_caller,i,24);
++#elif defined(MOMO_SHADERS)
+     /* SDK 18.3.2 view (16 bytes, megaman_texture_view.h): flags at [7], level base/count at [4]/[5],
+      * layer base/count as u16 at [0]/[2]. A texel write selects one level of one layer. */
+     memcpy(&first,view,2);memcpy(&count,view+2,2);
