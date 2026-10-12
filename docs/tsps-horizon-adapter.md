@@ -440,3 +440,30 @@ bounded long run with the memory floor at 32 MiB. The result is a precise pictur
   at frame 145 the title still has no content-bearing texture of its own. Together with the arena stop this
   says the boot is looping in a black state rather than progressing through its load, and that the draws it
   would use to show progress are the untranslated pairs.
+
+## Status (latest measured run)
+
+| Subsystem | State |
+|-----------|-------|
+| ARM64 / IL2CPP guest | runs on the device |
+| Horizon SVC / IPC | game runtime reached |
+| Mali-G57 / EGL context | created and used |
+| NVN command record + replay | works; 146-147 consecutive presents |
+| Command arenas | **unused-tail overlap solved with evidence** (see below) |
+| GLSL ES translation | 1 of 3 frame pairs; compiles, links and draws with zero GL errors |
+| Render targets | real GPU blit 1920x1080 -> 1280x720 |
+| Present | 146-147 frames, all still black |
+| Current stop | `NVN_GUEST_POINTER` in the game's own code (`main.text.seg+0xaf4684`, detail 0x0) |
+
+### Command arena: what was measured
+
+```
+WOL_ARENA_OVERLAP owner=0x1000a7f010 pool=... old=0x107595c000 old_size=2097152 old_used=2097088
+                 limit=2097152 new=0x1075b5bfc0 new_size=2083008 overlap=64 current=0 recording=1
+                 generation=2 safe_end=0x1075b5bfc0 classification=UNUSED_TAIL
+WOL_COMMAND_ARENA_RETIRE ... action=RETIRED_TAIL
+```
+
+The previous arena's `used` cursor ends exactly where the new arena begins, and no retained range or live
+list reaches into the overlap, so the tail is retired and the new arena is registered. Everything else stays
+fail-closed with the original `NVN_COMMAND_ARENA_OVERLAP`.
