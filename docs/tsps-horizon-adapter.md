@@ -381,3 +381,21 @@ Four measured findings, each from a device run:
 **The whole frame is drawn with three program pairs.** Translating the remaining two covers every draw of
 the frame, which is the concrete path to a picture: the machinery (space rule, interface log, pair hook,
 bank feed, blit) is in place and each new pair is a mechanical repetition of the first one.
+
+### Runs 62-65: shader identity by address, the pair blobs, and what the boot frames really contain
+
+- The capture log now carries `code-address`/`control-address` on both the inventory and the stage lines,
+  so a program object joins to its code/control hashes directly (the log interleaves lines from several
+  threads, so the join strips the interleaved `IPC` fragments first). The blobs of the two remaining pairs
+  were fetched by content hash and verified: v189/v266 share one vertex code (`d88c64a6`, 1024 B, two
+  different controls), f191 is 512 B and f268 is 1024 B.
+- Space maps decoded with the validated rule: the shared vertex reads **three** input attributes (slot 0 all
+  four components, slot 1 all four - the RGBA8 colour, slot 2 two) and writes four varyings (7 = the clip
+  position, 8 = colour.rgb + position.w, 9 = the second attribute, 10 = the raw position). This matches the
+  measured stride-24 layout (12 + 4 + 8) exactly.
+- The boot frames were censused per frame: the camera target is black at frames 30, 33 and 41 as well, and
+  the live texture table at that time holds only default fills (4x4, 16x16, 256x2, 64x64 with no pixels) -
+  **the title has no sprite textures uploaded yet**. A black frame in the first ~40 frames is the game's own
+  boot behaviour, not only a translation gap.
+- The per-frame pace is limited by the memory floor (42 frames at the 64 MiB floor) and by the diagnostic
+  volume; the long run that follows uses a 32 MiB floor and a 900 s budget to see how far the boot gets.
