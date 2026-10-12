@@ -29,7 +29,7 @@ provider="$source_root/provider-build/nxaudio"
 mkdir -p "$provider"
 cp "$source_root/framework/nxaudio/include/"*.h "$provider/"
 for name in nxaudio nxaudio_receipt nxaudio_runtime; do
-    "$COTM_CC" -O2 -fPIC -pthread -std=c11 -D_POSIX_C_SOURCE=200809L \
+    "$COTM_CC" -O2 -g -fno-omit-frame-pointer -fPIC -pthread -std=c11 -D_POSIX_C_SOURCE=200809L \
         -I"$provider" -c "$source_root/framework/nxaudio/src/$name.c" -o "$provider/$name.o"
 done
 aarch64-linux-gnu-ar rcs "$provider/libnxaudio.a" "$provider/"*.o
