@@ -1081,3 +1081,15 @@ post-state indices 11/12) - thread rankings now print; `WOL_VMA_TOP` attributes 
 the dominant one is the 1.76 GB Unity allocator arena (rss 358 MB + swap 502 MB of it committed).
 An external watchdog (device-side, 30 s cadence: VmRSS/VmSwap/MemAvailable/utime_stime/wchan) runs
 alongside the port as the review requested (`/mnt/UDISK/wol_watch.sh` -> `wol_watch.log`).
+
+### Run 133: the user's eyes beat the logs - the strip semantics confirmed, the screen fills
+
+The user reported run 132's screen as "half black, half gray". That is exactly the signature of the
+pair draws' 6-vertex layout: four quad vertices plus two degenerate tail vertices - **triangle-strip
+semantics** - drawn by us as GL_TRIANGLES, so only the first triangle covered half the screen and
+the fill sampled one texel. A primitive A/B (`WOL_PAIR_PRIM=strip|quad4|triangles`) was added; the
+strip run measured **presented nonblack 912488 against 460800 - exactly double, the missing half
+filled** (99% of the 1280x720 frame), frame 386, textures 251, audio nonzero 1.46M. Strip is now
+the default for the pair draws; the env still offers triangles/quad4 for A/B. The coherence A/B
+re-confirmed STALE-OVERWRITE (897 -> 0) with the fix active - the CPU mirror no longer overwrites
+GPU results.
