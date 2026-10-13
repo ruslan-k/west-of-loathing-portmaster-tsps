@@ -725,6 +725,13 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-85",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 977,
+      "textures_real": 130,
+      "note": "downsample views decoded by id (269/270, 280/281) - UNRESOLVED 0 for the run; green pair test: all 977 readbacks black even with a solid-green fragment, so the translated pair's geometry/target attachment is the break; WOL_PAIR_MATH CPU transform probe queued for run 110"
+    },
+    {
       "run": "device-84",
       "stop": "none (governor SIGTERM, exit 143)",
       "presents": 433,
