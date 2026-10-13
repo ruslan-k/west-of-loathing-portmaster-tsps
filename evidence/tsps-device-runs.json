@@ -725,6 +725,12 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-93",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 197,
+      "note": "real fragment + known UV-gradient texture: (25,25,128,255) everywhere with max=128 - the gradient's blue passes through the real fragment to the presented frame; the uniform (0.1,0.1) texel matches the fragment's SASS (u = v8.y = vertex's st a[0x84] <- r5 <- a[0x88]=pos.z) - the hand translation is faithful and this pair is a solid/tint quad pass; the sprite pairs are d88c64a6+f191/f268 (fragments read v9=uv per the access map) - the next translation target"
+    },
+    {
       "run": "device-92",
       "stop": "none (governor SIGTERM, exit 143)",
       "presents": 193,

@@ -855,3 +855,18 @@ gradient appears, the fragment's sampling path is correct and only the game's te
 choice remains; the quiet pick now often finds no atlas among the recorded slots (it reported
 `id=0 0x0`, falling back to a 4x4 fill), which is exactly the binding-fidelity problem the review
 asked to solve by decoding the sampler binding from NVN state instead of the heuristic.
+
+### Run 117: the real fragment samples - and the SASS says the translation was faithful
+
+With the green fragment off and a known 256x256 UV-gradient bound as tex0, the real f08bad2f
+fragment produces `(25,25,128,255)` at every sampled point, and all 197 present readbacks report
+nonblack=460800 with `max=128` - the gradient's constant blue channel passes through the fragment
+and reaches the presented frame. The sampled texel is (0.1, 0.1) uniformly, which matches the
+fragment's SASS exactly: it reads `v8.y` for u, and the vertex's own store line is
+`st a[0x84] $r5` with `r5 <- a[0x88]` (position.z) - the hand translation did not lie.
+
+The coherent reading: the f309b86a+f08bad2f pair is a **solid/tint quad pass** (single-texel
+sample), while the sprite/UI pairs are `d88c64a6 + f191/f268` (their fragments read `v9 = uv` per
+the access map; both draw as fullscreen TEST diagnostics today). With the plumbing now proven end
+to end - geometry, fragment math, sampling, window-texture presentation - the next block of work is
+the manual translation of that trio, using the documented input/output maps.
