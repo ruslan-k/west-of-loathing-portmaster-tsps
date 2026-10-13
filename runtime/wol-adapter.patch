@@ -890,7 +890,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -509,6 +520,253 @@
+@@ -509,6 +520,270 @@
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
@@ -1128,6 +1128,23 @@
 +                glDrawArrays(GL_TRIANGLES,0,(GLsizei)count);
 +                nvn_replay.draws++;
 +                printf("WOL_PAIR_DRAW_ISSUED primitives=%"PRIu64" glerror=0x%x\n",count,(unsigned)glGetError());
++                /* Review 2026-10-13: prove the pair draw lands in its target - center-pixel readback plus
++                 * the render state that could swallow it (scissor/depth/viewport), right after the draw. */
++                if(nvn_render.target && (nvn_render.target->id==30||nvn_render.target->id==31||nvn_render.target->id==32)) {
++                    static unsigned pp_told;if(pp_told<24){pp_told++;
++                        GLint vp[4]={0,0,0,0};glGetIntegerv(GL_VIEWPORT,vp);
++                        GLint sc[4]={0,0,0,0};glGetIntegerv(GL_SCISSOR_BOX,sc);
++                        unsigned char sc_on=(unsigned char)glIsEnabled(GL_SCISSOR_TEST);
++                        unsigned char d_on=(unsigned char)glIsEnabled(GL_DEPTH_TEST);
++                        GLint df=0;glGetIntegerv(GL_DEPTH_FUNC,&df);
++                        GLint pre=0;glGetIntegerv(GL_FRAMEBUFFER_BINDING,&pre);
++                        uint8_t px[4]={0,0,0,0};
++                        glReadPixels(vp[0]+vp[2]/2,vp[1]+vp[3]/2,1,1,GL_RGBA,GL_UNSIGNED_BYTE,px);
++                        printf("WOL_PAIR_PIXELS target=%"PRIu64" vp=%d,%d,%d,%d scissor=%d/%d,%d,%d,%d depth=%d/func=0x%x fbo=%d center=%u,%u,%u,%u glerr=0x%x\n",
++                            nvn_render.target->id,vp[0],vp[1],vp[2],vp[3],(int)sc_on,sc[0],sc[1],sc[2],sc[3],
++                            (int)d_on,(unsigned)df,(int)pre,px[0],px[1],px[2],px[3],(unsigned)glGetError());
++                    }
++                }
 +                glDisableVertexAttribArray(0);glDisableVertexAttribArray(1);
 +            } else {
 +                printf("WOL_PAIR_DRAW_SKIPPED reason=precondition mode=%"PRIu64" count=%"PRIu64" stride=%llu stream=%llu\n",
@@ -1144,7 +1161,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1793,235 @@
+@@ -1535,6 +1810,235 @@
          begin=end+1;
      }
  }
@@ -1380,7 +1397,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2049,16 @@
+@@ -1562,7 +2066,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
