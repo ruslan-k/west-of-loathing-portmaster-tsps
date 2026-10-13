@@ -1191,7 +1191,7 @@
  static GLenum nvn_blend_equation(unsigned value) {
      if(value==1)return GL_FUNC_ADD;
      if(value==2)return GL_FUNC_SUBTRACT;
-@@ -210,6 +212,101 @@
+@@ -210,6 +212,104 @@
      }
  #endif
      stop("NVN_BLEND_EQUATION_REQUIRED",nvn_caller,value,20);return 0;
@@ -1230,6 +1230,9 @@
 +    if(!conf){pat=getenv("WOL_TRACE_PAIR");conf=1;}
 +    return pat&&*pat&&name&&strstr(name,pat);
 +}
++/* Review 2026-10-14: before/after must belong to the SAME draw - a single flag decided in the
++ * before-block and consumed by the after-block (the old separate counter could pair different draws). */
++static unsigned wol_trace_this;
 +static unsigned wol_trace_limit(void){static int v=-1;if(v<0){const char*o=getenv("WOL_TRACE_LIMIT");v=o?atoi(o):12;if(v<1||v>64)v=12;}return (unsigned)v;}
 +static void wol_trace_tex_state(void) {
 +    GLint name=0;glGetIntegerv(GL_TEXTURE_BINDING_2D,&name);
@@ -1293,7 +1296,7 @@
  }
  static GLenum nvn_stencil_operation(unsigned value) {
      static const GLenum operations[]={0,GL_KEEP,GL_ZERO,GL_REPLACE,GL_INCR,GL_DECR,GL_INVERT,GL_INCR_WRAP,GL_DECR_WRAP};
-@@ -312,8 +409,19 @@
+@@ -312,8 +412,19 @@
       * sampler2D shaders never evaluate; both are admitted once-logged. Reduction/anisotropy/bias stay closed. */
      {static unsigned aw_sampler_reported;
       if((b->compare || b->lod_min<0) && !aw_sampler_reported++)printf("AW_SAMPLER_ADMIT compare=%u lod-min=%g shaders=sampler2D-only\n",b->compare,b->lod_min);}
@@ -1313,7 +1316,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -507,8 +615,764 @@
+@@ -507,8 +618,767 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -1847,9 +1850,11 @@
 +                 * menu-UI draws come later in the run). */
 +                {   static unsigned traced,seen;static int sk;static unsigned skipn;
 +                    if(!sk){const char *o=getenv("WOL_TRACE_SKIP");skipn=o?(unsigned)atoi(o):0;sk=1;}
++                    wol_trace_this=0;
 +                    if(wol_trace_on(wol_cat_bindings[wol_cat_cur->f].name)) {
 +                        seen++;
 +                        if(seen>skipn && traced<wol_trace_limit()) {
++                        wol_trace_this=1;
 +                        traced++;
 +                        printf("WOL_TRACE draw#%u seen=%u f=%s v=%s target=%llu/%ux%u stride=%llu count=%llu first=%llu\n",
 +                            traced,seen,wol_cat_bindings[wol_cat_cur->f].name,wol_cat_bindings[wol_cat_cur->v].name,
@@ -1933,13 +1938,14 @@
 +                            if(p2_saved_scissor)glEnable(GL_SCISSOR_TEST);else glDisable(GL_SCISSOR_TEST);
 +                            if(p2_saved_depth)glEnable(GL_DEPTH_TEST);else glDisable(GL_DEPTH_TEST);
 +                            glColorMask((GLboolean)p2_saved_mask[0],(GLboolean)p2_saved_mask[1],(GLboolean)p2_saved_mask[2],(GLboolean)p2_saved_mask[3]);}
-+                /* WOL_TRACE_PAIR after-draw: prove the target changed (alpha included). */
-+                {   static unsigned traced_after;
-+                    if(wol_trace_on(wol_cat_bindings[wol_cat_cur->f].name) && traced_after<wol_trace_limit()) {
-+                        traced_after++;
++                /* WOL_TRACE_PAIR after-draw: prove the target changed (alpha included). Uses the flag set
++                 * by the before-block so both measurements belong to the same draw. */
++                {   if(wol_trace_this) {
++                        wol_trace_this=0;
 +                        unsigned an=0,rn=0,w0=0,h0=0;wol_trace_scan(&an,&rn,&w0,&h0);
 +                        printf("WOL_TRACE after target_alpha_nz=%u target_rgb_nz=%u %ux%u\n",an,rn,w0,h0);
-+                        if(traced_after<=3)wol_trace_save_pam("after");
++                        {   static unsigned after_saved;
++                            if(after_saved<3){after_saved++;wol_trace_save_pam("after");}}
 +                    }
 +                }
 +                {   /* WOL_DUMP=1: dump the CURRENT target right after the pair draw (max 6 across the run),
@@ -2078,7 +2084,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +1568,7 @@
+@@ -704,6 +1574,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -2086,7 +2092,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1535,6 +2400,279 @@
+@@ -1535,6 +2406,288 @@
          begin=end+1;
      }
  }
@@ -2345,18 +2351,27 @@
 +                size_t cbytes=(size_t)dst->b.width*dst->b.height*4;uint8_t *cpx=malloc(cbytes);
 +                if(cpx){glReadPixels(0,0,(GLsizei)dst->b.width,(GLsizei)dst->b.height,GL_RGBA,GL_UNSIGNED_BYTE,cpx);
 +                    unsigned b1=0,m1=0;for(size_t k=0;k+3<cbytes;k+=4*997){if(cpx[k]>7||cpx[k+1]>7||cpx[k+2]>7)b1++;if(cpx[k]>m1)m1=cpx[k];if(cpx[k+1]>m1)m1=cpx[k+1];if(cpx[k+2]>m1)m1=cpx[k+2];}
-+                    /* old behaviour: flag + refresh = stale CPU bytes over the GPU result */
-+                    __atomic_store_n(&dst->zero_cpu_dirty,1,__ATOMIC_RELEASE);
-+                    zero_texture_refresh(dst);
-+                    glReadPixels(0,0,(GLsizei)dst->b.width,(GLsizei)dst->b.height,GL_RGBA,GL_UNSIGNED_BYTE,cpx);
-+                    unsigned b2=0,m2=0;for(size_t k=0;k+3<cbytes;k+=4*997){if(cpx[k]>7||cpx[k+1]>7||cpx[k+2]>7)b2++;if(cpx[k]>m2)m2=cpx[k];if(cpx[k+1]>m2)m2=cpx[k+1];if(cpx[k+2]>m2)m2=cpx[k+2];}
-+                    printf("WOL_COHERENCE dst=%"PRIu64" before_nonblack=%u before_max=%u after_refresh_nonblack=%u after_max=%u verdict=%s\n",
-+                        dst->id,b1,m1,b2,m2,(b2!=b1||m2!=m1)?"STALE-OVERWRITE":"clean");
++                    /* Review 2026-10-14: the destructive simulation rewrote the GAME'S OWN texture
++                     * (STALE-OVERWRITE on a live render target) and the probe ran it by default. It is
++                     * now opt-in via WOL_COHERENCE_SIM=1; the default path only measures and reports. */
++                    static int cs_configured,cs_on;if(!cs_configured){const char *o=getenv("WOL_COHERENCE_SIM");cs_on=o&&!strcmp(o,"1");cs_configured=1;}
++                    if(cs_on){
++                        __atomic_store_n(&dst->zero_cpu_dirty,1,__ATOMIC_RELEASE);
++                        zero_texture_refresh(dst);
++                        glReadPixels(0,0,(GLsizei)dst->b.width,(GLsizei)dst->b.height,GL_RGBA,GL_UNSIGNED_BYTE,cpx);
++                        unsigned b2=0,m2=0;for(size_t k=0;k+3<cbytes;k+=4*997){if(cpx[k]>7||cpx[k+1]>7||cpx[k+2]>7)b2++;if(cpx[k]>m2)m2=cpx[k];if(cpx[k+1]>m2)m2=cpx[k+1];if(cpx[k+2]>m2)m2=cpx[k+2];}
++                        printf("WOL_COHERENCE dst=%"PRIu64" before_nonblack=%u before_max=%u after_refresh_nonblack=%u after_max=%u verdict=%s\n",
++                            dst->id,b1,m1,b2,m2,(b2!=b1||m2!=m1)?"STALE-OVERWRITE":"clean");
++                    } else {
++                        printf("WOL_COHERENCE dst=%"PRIu64" before_nonblack=%u before_max=%u sim=off note=report-only\n",
++                            dst->id,b1,m1);
++                    }
 +                    free(cpx);}
 +            }
 +            glBindFramebuffer(GL_FRAMEBUFFER,(GLuint)prev_ab);glDeleteFramebuffers(1,&cfb);
 +        }
-+        if(coerced==1)printf("WOL_COHERENCE_NOTE gpu-authoritative=1 cpu-dirty-cleared=1\n");
++        if(coerced==1)printf("WOL_COHERENCE_NOTE gpu-authoritative=1 cpu-dirty-cleared=1 sim=%s\n",
++            (getenv("WOL_COHERENCE_SIM")&&!strcmp(getenv("WOL_COHERENCE_SIM"),"1"))?"on":"off");
 +    }
 +    __atomic_store_n(&dst->zero_cpu_dirty,0,__ATOMIC_RELEASE);
 +    wol_probe_last_dst=dst;
@@ -2366,7 +2381,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2700,16 @@
+@@ -1562,7 +2715,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }

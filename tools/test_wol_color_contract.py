@@ -52,6 +52,12 @@ int main(void){
     assert(!enable);
     assert(m[0] && !m[1] && m[2] && !m[3]);
     puts("PASS disabled blend keeps the write mask contract");
+    /* Review 2026-10-14: mask-value contract for the four observed classes. */
+    wol_apply_color_state(0,0,0,15);
+    assert(m[0] && m[1] && m[2] && m[3]);
+    wol_apply_color_state(0,0,0,0);
+    assert(!m[0] && !m[1] && !m[2] && !m[3]);
+    puts("PASS write mask 0x0/0xf map to full off/on");
     return 0;
 }
 '''
@@ -61,5 +67,16 @@ with tempfile.TemporaryDirectory(prefix='wol-color-',dir=os.environ.get('TMPDIR'
     subprocess.run([str(exe)],check=True)
 hook=s.split('static void nvn_render_draw_inner(struct nvn_record *r)',1)[1].split('static void nvn_render_draw(struct nvn_record *r)',1)[0]
 call='wol_apply_color_state(nvn_render.color,nvn_render.blend[1],nvn_render.blend[0],nvn_render.mask&15U)'
-assert hook.count(call)>=2,'pair path and standard path must both apply the guest color contract'
+call2='wol_apply_color_state(nvn_render.color,nvn_render.blend[1],nvn_render.blend[0],wol_mask_bits)'
+assert hook.count(call)+hook.count(call2)>=2,'pair path and standard path must both apply the guest color contract'
 print('PASS pair-path and standard draw hooks apply the guest color contract')
+# Review 2026-10-14 regression guards:
+assert 'if(mih&&!wol_mask_bits&&nvn_render.mask)wol_mask_bits=(nvn_render.mask>>4)&15U;' in hook,\
+    'the high-nibble heuristic must only fire when configured, low nibble empty and value nonzero'
+assert 'nvn_vertex_format_decode(format)' in hook,\
+    'vertex attributes must bind from the guest descriptors (stride-60 color@24/uv@28 regression)'
+assert hook.count('glVertexAttribPointer(i,(GLint)vf.components,vf.type,vf.normalized')>=2,\
+    'both VBO and direct paths must use the descriptor-driven binding'
+assert 'wol_trace_this=0;' in hook and 'if(wol_trace_this) {' in hook,\
+    'before/after trace sections must share one per-draw flag'
+print('PASS regression guards: mask heuristic scope, descriptor binding, trace pairing')
