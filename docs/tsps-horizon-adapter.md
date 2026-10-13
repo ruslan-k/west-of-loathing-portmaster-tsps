@@ -979,3 +979,22 @@ seconds. The levers for the next block are therefore the review's memory list, m
 than guessed: which allocations dominate (guest Unity copies vs GL-side storage vs the 1080p
 targets), whether the zero-mip CPU writes can become GL-side clears, and the render-target
 downscale 1080p -> 720p (56% area cut) once the scene path renders.
+
+### Runs 125-127: the crawl measured - and a device-side swap misconfiguration found
+
+The present-path sampler caught three samples before the presents stopped (the title's first ~90 s):
+process utime burns ~21 s per minute and **majflt (swap-in) grows at ~390/s** - 15575 major faults
+inside the first 90 seconds. That is a swap-thrash signature, and the device's own configuration
+explains it: `/proc/swaps` on the TSPS had the SD card's cachefile at priority 40 (handled FIRST),
+the UDISK swapfile at -2, and the fast compressed zram device at -3 - **effectively unused**
+(`used=0`). The system was swapping to the slowest medium by configuration.
+
+Fix applied on the device (reversible, runtime-level): zram0 -> priority 100, the UDISK swapfile
+-> 40, the SD cachefile -> 5, verified via `/proc/swaps` (all three cleanly re-created, 0 used at
+idle). Persistence across reboots (a boot step) needs a decision - the current priorities come
+from the firmware's boot scripts.
+
+The sampler also gained a call on the command-record path (the phase after the presents stop keeps
+issuing NVN commands - that is where the remaining ~58 minutes went) and a `WOL_MEM_SPLIT` line
+from smaps_rollup (rss/pss/anonymous/swap/swap-pss), so run 127 measures the load loop itself on
+the reprioritised swap.
