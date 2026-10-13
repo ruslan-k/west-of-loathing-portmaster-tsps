@@ -731,6 +731,13 @@
       "note": "sampler landed only in the inactive frameskip path - no samples; same shape as 124"
     },
     {
+      "run": "device-104",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 169,
+      "textures_real": 44,
+      "note": "UDISK-first: majflt rate down (15575->6181) but less progress (169/44 vs 196/128). lsblk: both swap areas are partitions of the one 7.3GiB eMMC (mmcblk0p4 'sdcard', mmcblk0p6 UDISK) - configuration is a coin toss, baseline priorities restored. WOL_MEM_SPLIT: rss 636MB anon 627MB swap 462MB = ~1.1GiB anonymous guest heap on a 963MiB device - the hard reason for the crawl. Run 129 = 7200s endurance to see whether the load ever reaches the menu phase."
+    },
+    {
       "run": "device-103",
       "stop": "SIGKILL (OOM) mid-run at frame 31",
       "presents": 31,
