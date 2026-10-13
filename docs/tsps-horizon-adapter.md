@@ -496,3 +496,21 @@ with a different stack pointer. The next diagnostic axis is therefore the bridge
 switch inside a callback: does the guest stack pointer survive `cotm_nvn_call_original`, and what does the
 runtime do when the guest changes `sp` inside a nested call? That question is measured before anything is
 changed, as with every other blocker in this project.
+
+### A/B: the guest stack-switch stop is independent of the arena handling
+
+`WOL_ARENA_KEEP_OLD=1` accepts the new arena **without** trimming the old entry (the old range stays
+accounted, the new one is added beside it):
+
+```
+WOL_COMMAND_ARENA_DUP old=0x107595c000/2097152 kept=1 new=0x1075b5bfc0/2083008
+STOP status=NVN_GUEST_POINTER pc=main.text.seg+0xaf4684 detail=0x0
+```
+
+Same frames (146), same stop, same guest address as the retired-tail run. So the later fault has nothing to
+do with the arena fix; the arena acceptance is sound in both shapes and the default (retired tail, evidence
+logged) stays. The stack-switch fault is a guest-side path, and the next diagnostic axis is what the host
+environment makes of the guest's own stack switch - or, equally likely, the title's state machine reaching a
+guard path because its draws still produce nothing (the two untranslated pairs).
+
+Runs 71/72 end clean, no CPU_FAULT, device restored to the menu.
