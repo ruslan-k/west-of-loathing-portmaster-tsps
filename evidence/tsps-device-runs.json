@@ -725,6 +725,12 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-90",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 185,
+      "note": "bisection: with the matrix-free trivial vertex + green fragment all five readback points stay 0 -> the fault is the attribute plumbing, not c3; the guest-pointer attributes (vs the working fullscreen path's real GL buffer) are the prime suspect; run 115 uploads the vertices into a stream VBO (old path behind WOL_PAIR_DIRECT=1)"
+    },
+    {
       "run": "device-89",
       "stop": "none (governor SIGTERM, exit 143)",
       "presents": 210,
