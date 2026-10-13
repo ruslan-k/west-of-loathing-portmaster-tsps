@@ -2175,7 +2175,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,445 @@
+@@ -46,10 +46,499 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -2425,6 +2425,49 @@
 +"uniform sampler2D tex0;\n"
 +/* Variant C (2026-10-13): the uv pair in v8.xy. TEST-DRAFT. */
 +"void main(){ vec4 t=texture2D(tex0, vec2(v8.x, v8.y)); gl_FragColor=vec4(t.rgb*v8.rgb, t.a*v8.a); }\n";
++/* TOP pair draft (2026-10-13): the decoded workhorse pair of the missing world/scene -
++ * vertex f43463c5 (1024 B) + fragment 649ae12f (512 B), the ~87% of all skipped draws in run 174.
++ * Fragment decode (envydis gm107): ipa a[0x7c] (w), ipa a[0x90]/a[0x94] (uv), mufu rcp + fmuls ->
++ * texture2D at uv/w, then rgb/a scaled by the interpolated colour a[0x80..0x8c]; exit.
++ * Vertex decode: attributes a[0x80..0xa4] through the c3 matrix family, varyings exported at
++ * a[0x70..0x94] - exactly the fragment's reads. Same family as the translated f191/f268.
++ * Reversible: WOL_TOP_DRAFT=0 disables the pair and restores the skip behaviour. */
++static const char wol_top_vertex_glsl[] =
++"#version 100\n"
++"precision highp float;\n"
++"attribute vec4 a_pos;\n"
++"attribute vec4 a_col;\n"
++"attribute vec2 a_uv;\n"
++"uniform float c3[96];\n"
++"varying vec4 v7;\n"
++"varying vec4 v8;\n"
++"varying vec2 v9;\n"
++"varying vec4 v10;\n"
++"void main(){\n"
++"    vec4 p=vec4(a_pos.xyz,1.0);\n"
++"    vec4 q;\n"
++"    q.x = c3[0]*p.x + c3[4]*p.y + c3[8]  * p.z + c3[12] * p.w;\n"
++"    q.y = c3[1]*p.x + c3[5]*p.y + c3[9]  * p.z + c3[13] * p.w;\n"
++"    q.z = c3[2]*p.x + c3[6]*p.y + c3[10] * p.z + c3[14] * p.w;\n"
++"    q.w = c3[3]*p.x + c3[7]*p.y + c3[11] * p.z + c3[15] * p.w;\n"
++"    gl_Position.x = c3[16]*q.x + c3[20]*q.y + c3[24]*q.z + c3[28]*q.w;\n"
++"    gl_Position.y = c3[17]*q.x + c3[21]*q.y + c3[25]*q.z + c3[29]*q.w;\n"
++"    gl_Position.z = c3[18]*q.x + c3[22]*q.y + c3[26]*q.z + c3[30]*q.w;\n"
++"    gl_Position.w = c3[19]*q.x + c3[23]*q.y + c3[27]*q.z + c3[31]*q.w;\n"
++"    v7 = gl_Position;\n"
++"    v8 = a_col;\n"
++"    v9 = a_uv;\n"
++"    v10 = vec4(a_pos.xyz,1.0);\n"
++"}\n";
++static const char wol_top_fragment_glsl[] =
++"#version 100\n"
++"precision mediump float;\n"
++"varying vec4 v7;\n"
++"varying vec4 v8;\n"
++"varying vec2 v9;\n"
++"varying vec4 v10;\n"
++"uniform sampler2D tex0;\n"
++"void main(){ vec4 t=texture2D(tex0, v9 / v7.w); gl_FragColor=vec4(t.rgb*v8.rgb, t.a*v8.a); }\n";
 +static const char wol_diag_green_glsl[] =
 +"#version 100\n"
 +"precision mediump float;\n"
@@ -2439,7 +2482,7 @@
 +    const char *name,*glsl; /* glsl=NULL: not translated yet */
 +    unsigned char code_hash[32],control_hash[32];
 +};
-+#define WOL_CAT_COUNT 8
++#define WOL_CAT_COUNT 10
 +static const struct wol_shader_binding wol_cat_bindings[WOL_CAT_COUNT]={
 +    /*0*/ {1024,0x848,0,0,"v189(d88c64a6)",wol_pair2_vertex_glsl,
 +           {0xd8,0x8c,0x64,0xa6,0xae,0x67,0x55,0x4a,0xbf,0x48,0xae,0x0b,0xc3,0xd6,0xc1,0x5e,0x4c,0xb1,0x82,0x63,0xa7,0xfa,0xea,0x39,0x19,0xb7,0xe8,0x35,0x90,0xb3,0x47,0xb5},
@@ -2465,14 +2508,20 @@
 +    /*7*/ {1024,0x848,1,1,"f268-draft",wol_f268_draft_fragment_glsl,
 +           {0xc0,0x13,0x2f,0xb8,0xef,0xdf,0xed,0x26,0x92,0xda,0xb8,0xe7,0x6b,0xcc,0x2b,0x0f,0x99,0xee,0x1f,0x0f,0x0e,0x59,0xc9,0xc9,0xf4,0x1b,0xb8,0x16,0x9b,0x88,0x05,0xec},
 +           {0xed,0xc9,0xd5,0x40,0x6b,0x0e,0x95,0xcc,0x15,0x19,0xa0,0xb6,0x15,0xa3,0xce,0xac,0x1b,0x51,0x21,0x63,0x35,0xd3,0x40,0xf4,0x48,0xc9,0x5d,0x0d,0x23,0xc7,0x16,0x39}},
++    /*8*/ {1024,0x848,0,0,"top-v-draft",wol_top_vertex_glsl,
++           {0xf4,0x34,0x63,0xc5,0x7a,0x81,0xc5,0xde,0x72,0x51,0x56,0x7f,0xae,0x1f,0x5d,0x15,0xd9,0x62,0x5a,0xc4,0x12,0x1c,0x67,0xeb,0x33,0xb6,0x15,0xb8,0xca,0x0a,0xdd,0x17},
++           {0x94,0xf3,0x06,0xda,0xf1,0x1a,0xca,0x2a,0x82,0x90,0xdb,0x6d,0xaf,0xab,0x5d,0xf5,0x27,0x81,0x5d,0xf6,0x40,0x01,0xa6,0xf9,0x82,0xb3,0x39,0x3e,0x31,0x23,0x11,0x60}},
++    /*9*/ { 512,0x848,1,0,"top-f-draft",wol_top_fragment_glsl,
++           {0x64,0x9a,0xe1,0x2f,0x51,0xfe,0x66,0x89,0x08,0xb9,0x0d,0x40,0x9a,0xf9,0xff,0xda,0x4d,0x04,0x57,0x1a,0x3b,0x47,0xbd,0x9f,0xfd,0x25,0x50,0xdd,0x73,0x39,0x1e,0xab},
++           {0x3e,0xe2,0xf2,0x10,0x6c,0x88,0x97,0xf6,0xa1,0xb6,0x80,0x8d,0x49,0xc5,0xdd,0xf7,0xcc,0x87,0xc6,0xb1,0xdd,0x29,0xa6,0x25,0x15,0x4a,0xfb,0x77,0x34,0x84,0x57,0xf3}},
 +};
 +static int wol_last_cat=-1;
 +static int wol_active_cat[2]={-1,-1};
 +struct wol_cat_program { uint64_t object; int cat[2]; };
-+static struct wol_cat_program wol_cat_programs[128];static unsigned wol_cat_programs_used;
++static struct wol_cat_program wol_cat_programs[1024];static unsigned wol_cat_programs_used;
 +static struct wol_cat_program *wol_cat_program_find(uint64_t object,int create) {
 +    for(unsigned i=0;i<wol_cat_programs_used;i++)if(wol_cat_programs[i].object==object)return &wol_cat_programs[i];
-+    if(!create||wol_cat_programs_used>=128)return NULL;
++    if(!create||wol_cat_programs_used>=1024)return NULL;
 +    struct wol_cat_program *cp=&wol_cat_programs[wol_cat_programs_used++];
 +    cp->object=object;cp->cat[0]=cp->cat[1]=-1;return cp;
 +}
@@ -2496,7 +2545,7 @@
 +    static int v=-1;if(v<0){const char *o=getenv("WOL_QUIET");v=(o&&!strcmp(o,"1"));}return (unsigned)v;
 +}
 +struct wol_cat_linked { int v,f; GLuint name; GLint c3,c3f,tex,tex1; unsigned fullscreen; };
-+static struct wol_cat_linked wol_cat_linked_cache[4];static unsigned wol_cat_linked_used;
++static struct wol_cat_linked wol_cat_linked_cache[16];static unsigned wol_cat_linked_used;
 +static GLuint wol_cat_fullscreen_buffer_gl;
 +static GLuint wol_cat_fullscreen_buffer(void) {
 +    if(!wol_cat_fullscreen_buffer_gl) {
@@ -2512,6 +2561,11 @@
 +"void main(){gl_Position=vec4(p,0.0,1.0);}\n";
 +static struct wol_cat_linked *wol_cat_link(int v,int f) {
 +    if(v<0||f<0||v>=WOL_CAT_COUNT||f>=WOL_CAT_COUNT)return NULL;
++    /* WOL_TOP_DRAFT=0 (default on): reversible gate for the decoded world-pair drafts, so one
++     * env flip restores the previous skip behaviour for a clean A/B. */
++    {static int tc;static unsigned on;
++     if(!tc){const char *o=getenv("WOL_TOP_DRAFT");on=!o||strcmp(o,"0");tc=1;}
++     if(!on&&(!strncmp(wol_cat_bindings[v].name,"top-",4)||!strncmp(wol_cat_bindings[f].name,"top-",4)))return NULL;}
 +    for(unsigned i=0;i<wol_cat_linked_used;i++)
 +        if(wol_cat_linked_cache[i].v==v&&wol_cat_linked_cache[i].f==f)return &wol_cat_linked_cache[i];
 +    const struct wol_shader_binding *bv=&wol_cat_bindings[v],*bf=&wol_cat_bindings[f];
@@ -2544,7 +2598,7 @@
 +        static int tv_configured,tv_on;if(!tv_configured){const char *o=getenv("WOL_VS_TRIVIAL");tv_on=o&&!strcmp(o,"1");tv_configured=1;}
 +        if(tv_on)vsrc=wol_trivial_vertex_glsl;
 +    }
-+    if(wol_cat_linked_used>=4)return NULL;
++    if(wol_cat_linked_used>=16)return NULL;
 +    GLint ok=0;char log[1024];
 +    GLuint vs=glCreateShader(GL_VERTEX_SHADER),fs=glCreateShader(GL_FRAGMENT_SHADER);
 +    const char *src=fullscreen?wol_diag_fullscreen_vs:(vsrc?vsrc:bv->glsl);
@@ -2622,7 +2676,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +942,29 @@
+@@ -507,12 +996,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -2653,7 +2707,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +1065,28 @@
+@@ -613,6 +1119,28 @@
              }
          }
  #endif
@@ -2665,7 +2719,7 @@
 +            nvn_capture_slot=i;
 +            nvn_megaman_shader_match(inputs[i*2],inputs[i*2+1]);
 +            struct wol_cat_program *cp=wol_cat_program_find(p->object,1);
-+            if(wol_last_cat>=0)cp->cat[wol_cat_bindings[wol_last_cat].stage]=wol_last_cat;
++            if(wol_last_cat>=0&&cp)cp->cat[wol_cat_bindings[wol_last_cat].stage]=wol_last_cat;
 +            if(wol_last_cat<0)nvn_capture_untranslated=1;
 +        }
 +        p->stage_mask=0;p->sources[0]=p->sources[1]=0;p->compute_only=1;
