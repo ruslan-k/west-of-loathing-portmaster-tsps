@@ -685,6 +685,21 @@
       "stop": "NVN_GUEST_POINTER",
       "presents": 146,
       "arena_events": 1
+    },
+    {
+      "run": "device-73",
+      "stop": "NVN_GUEST_POINTER",
+      "stop_pc": "main.text.seg+0xaf4684",
+      "presents": 146,
+      "probe_rejected": 1,
+      "note": "instrumented: the stop is the runtime's own callback-vtable probe"
+    },
+    {
+      "run": "device-74",
+      "stop": "T2_MEMORY_FLOOR",
+      "presents": 600,
+      "rss_kib": 712316,
+      "note": "probe guarded: 600 frames (was 146), all black, diagnostic 32 MiB floor reached"
     }
   ]
 }
