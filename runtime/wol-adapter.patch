@@ -535,10 +535,10 @@
          if(a[0]>1 || a[1]>16 || a[2]>16-a[1])stop("NVN_UNIFORM_BUFFER_COUNT",nvn_caller,a[2],24);
          *payload=a[2]*16;break;
 +    case NI_nvnCommandBufferDownsample:
-+        /* Both arguments are guest view structs whose first word is the texture object (36-byte old-SDK
-+         * view). Only the two objects are recorded; the replay resolves the extents from them and picks
-+         * the larger one as the source, so neither order of the arguments has to be assumed. */
-+        *payload=2*sizeof(uint64_t);break;
++        /* Both arguments are 36-byte guest view structs, copied into the record at recording time (see
++         * the record switch); the replay scans the recorded words for registered texture objects, so
++         * neither order of the arguments has to be assumed. */
++        *payload=72;break;
      case NI_nvnCommandBufferBindUniformBuffersDeferred:
          /* Terminator 2D: same (stage, first, count, ranges) shape as BindUniformBuffers, but the ranges
           * are read when the command executes, so the record keeps only the guest pointer (a[3]). */
@@ -558,24 +558,25 @@
              uint64_t used=p->used;unsigned dropped=t2_command_arena_release(o,i,0);
              t2_command_arena_remove(o,i);t2_command_transfers++;
              if(t2_command_transfers<=8 || !(t2_command_transfers&(t2_command_transfers-1)))
-@@ -461,6 +476,16 @@
+@@ -461,6 +476,17 @@
          source=f->args[3];break;
      case NI_nvnCommandBufferBindUniformBuffers:
          source=f->args[4];break;
 +    case NI_nvnCommandBufferDownsample: {
-+        /* The two arguments are 36-byte guest view structs. They are recorded raw; the replay decodes
-+         * the texture object inside each view and resolves it against the live texture table. Measured
-+         * (review 2026-10-13): the generic payload overwrite below used to clobber these two words with
-+         * the first 16 bytes of view A, so the replay probed view bytes as if they were texture objects
-+         * and the operation fell back to the size heuristic (which is how target=269 ended unresolved). */
-+        uint64_t values[2]={f->args[1],f->args[2]};
-+        memcpy(snapshot.payload,values,sizeof values);
++        /* The two arguments are 36-byte guest view structs. The views are live right now (the guest
++         * command arena is recycled by replay time, measured in run 107 where replay-side reads found
++         * nothing), so both views are copied into the record here; the replay scans the recorded bytes
++         * for a word that resolves to a registered texture object. The earlier version recorded raw
++         * pointers that the generic payload overwrite below clobbered with view bytes, which is how
++         * target=269 stayed unresolved. */
++        if(f->args[1])memcpy(snapshot.payload,nvn_pointer(f->args[1],36,PROT_READ),36);
++        if(f->args[2])memcpy(snapshot.payload+36,nvn_pointer(f->args[2],36,PROT_READ),36);
 +        break;
 +    }
      case NI_nvnCommandBufferSetRenderTargets: {
  #if !ZERO_ZX_GAME
          if(f->args[1] && f->args[3] && *(uint64_t *)nvn_pointer(f->args[3],8,PROT_READ))
-@@ -483,7 +508,7 @@
+@@ -483,7 +509,7 @@
      }
      default:break;
      }
@@ -584,7 +585,7 @@
          memcpy(snapshot.payload,nvn_pointer(source,bytes,PROT_READ),bytes);
      }
      nvn_command_emit(c,id,&snapshot,size,vectors,bytes,f);
-@@ -583,7 +608,7 @@
+@@ -583,7 +609,7 @@
      case NI_nvnCommandBufferSetShaderScratchMemory:case NI_nvnCommandBufferSetPrimitiveRestart:
      case NI_nvnCommandBufferSaveZCullData:case NI_nvnCommandBufferRestoreZCullData:
      case NI_nvnCommandBufferSetDepthClamp:case NI_nvnCommandBufferSetConservativeRasterEnable:
@@ -593,7 +594,7 @@
      case NI_nvnCommandBufferSetDepthBounds:
          nvn_command_record(nvn_command_find(a[0]),id,f);return 1;
      /* Animal Well (NVN 17.x array forms): a single viewport/scissor/depth range at index 0 is the singular command;
-@@ -678,7 +703,63 @@
+@@ -678,7 +704,63 @@
                  if((i<c->command_count)!=command)stop("NVN_COMMAND_ARENA_TYPE",nvn_caller,address,24);
                  nvn_command_reuse_arena(c,p);if(command)c->current=i;return 1;
              }
@@ -803,7 +804,7 @@
 +    /* WOL_PRESENT_TEST=1 (review 2026-10-13 P0 route test): write a known magenta marker directly
 +     * into the presenting texture. If it shows in the on-screen image or in the present readback,
 +     * the render-target -> window texture -> present chain is proven end to end. TEST-ONLY. */
-+    {   static int pt_configured,pt_enabled;if(!pt_configured){pt_enabled=getenv("WOL_PRESENT_TEST")!=NULL;pt_configured=1;}
++    {   static int pt_configured,pt_enabled;if(!pt_configured){const char *o=getenv("WOL_PRESENT_TEST");pt_enabled=o&&!strcmp(o,"1");pt_configured=1;}
 +        if(pt_enabled&&t->b.width>=64&&t->b.height>=64) {
 +            static uint8_t marker[64*64*4];static int ready;
 +            if(!ready){for(unsigned i=0;i<64*64;i++){marker[i*4+0]=255;marker[i*4+1]=0;marker[i*4+2]=255;marker[i*4+3]=255;}ready=1;}
@@ -1092,7 +1093,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1742,228 @@
+@@ -1535,6 +1742,225 @@
          begin=end+1;
      }
  }
@@ -1200,10 +1201,11 @@
 +    return 1;
 +}
 +
-+static struct nvn_texture *wol_view_texture(uint64_t view,unsigned *offset_out) {
-+    /* Old-SDK downsample views (36 bytes): scan the words for one that is a registered texture object. */
-+    if(!view || !accessible(view,36,PROT_READ))return NULL;
-+    const uint64_t *words=(const uint64_t *)(uintptr_t)view;
++static struct nvn_texture *wol_view_texture(const uint8_t *view,unsigned *offset_out) {
++    /* Old-SDK downsample views (36 bytes) as copied into the record at recording time: scan the words
++     * for one that is a registered texture object. Pure registry lookup - no guest reads. */
++    if(!view)return NULL;
++    const uint64_t *words=(const uint64_t *)view;
 +    for(unsigned i=0;i<4;i++) {
 +        struct nvn_texture *t=wol_texture_probe(words[i]);
 +        if(t){if(offset_out)*offset_out=i;return t;}
@@ -1211,15 +1213,14 @@
 +    return NULL;
 +}
 +static unsigned wol_downsample_copy(const struct nvn_record *r) {
-+    uint64_t objects[2];memcpy(objects,r->payload,sizeof objects);
 +    struct nvn_texture *a=NULL,*b=NULL;unsigned ao=99,bo=99;
-+    a=wol_view_texture(objects[0],&ao);b=wol_view_texture(objects[1],&bo);
++    a=wol_view_texture(r->payload,&ao);b=wol_view_texture(r->payload+36,&bo);
 +    if(a||b) {
 +        /* Review 2026-10-13: record exactly which view word resolved, so the dst/src convention is
 +         * measured instead of assumed. */
 +        static unsigned told;if(told<12){told++;
-+            printf("WOL_DOWNSAMPLE_VIEW a=0x%llx->%s b=0x%llx->%s offsets=%u/%u\n",
-+                (unsigned long long)objects[0],a?"texture":"none",(unsigned long long)objects[1],b?"texture":"none",ao,bo);}
++            printf("WOL_DOWNSAMPLE_VIEW a=%s(id=%llu off=%u) b=%s(id=%llu off=%u)\n",
++                a?"texture":"none",(unsigned long long)(a?a->id:0),ao,b?"texture":"none",(unsigned long long)(b?b->id:0),bo);}
 +    }
 +    if((!a||!b||a==b)) {
 +        /* The recorded arguments are not texture objects on this title (measured: a guest read through
@@ -1237,7 +1238,6 @@
 +            }
 +        }
 +        if(!src||!dst) {
-+        if(!src||!dst) {
 +            /* Review 2026-10-13: trace the one unresolved operation per frame instead of only its id. */
 +            unsigned live_n=0,cand_n=0,larger_n=0;
 +            if(dst&&dst->live){for(unsigned i=0;i<nvn_textures_high&&i<4096;i++){struct nvn_texture *c=&nvn_textures[i];
@@ -1250,11 +1250,9 @@
 +                if((uint64_t)c->b.width*c->b.height<=(uint64_t)dst->b.width*dst->b.height){continue;}
 +                larger_n++;}}
 +            printf("WOL_DOWNSAMPLE_UNRESOLVED a=0x%"PRIx64" b=0x%"PRIx64" target=%"PRIu64" dst=%s %ux%u f=0x%x live=%u same-format=%u larger-ok=%u\n",
-+                objects[0],objects[1],nvn_render.target?nvn_render.target->id:0,
++                ((const uint64_t *)r->payload)[0],((const uint64_t *)(r->payload+36))[0],nvn_render.target?nvn_render.target->id:0,
 +                dst?(dst->live?"live":"dead"):"none",dst?dst->b.width:0,dst?dst->b.height:0,dst?dst->b.format:0,
 +                live_n,cand_n,larger_n);
-+            return 1;
-+        }
 +            return 1;
 +        }
 +        a=src;b=dst;
@@ -1321,7 +1319,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +1991,16 @@
+@@ -1562,7 +1988,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }

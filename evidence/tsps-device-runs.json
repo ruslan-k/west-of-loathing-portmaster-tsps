@@ -725,6 +725,13 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-83",
+      "stop": "none (governor SIGTERM, exit 143; floor 20 MiB)",
+      "presents": 420,
+      "textures_real": 144,
+      "note": "endurance run survived the full 1800s with no runtime stop; load advanced to 144 textures (2048x1024 sprite atlases with 12 mips); marker value-check bug found (readbacks again showed the 4096 marker) and fixed; downsample views now recorded at record time (arena recycling defeats replay-side reads)"
+    },
+    {
       "run": "device-82",
       "stop": "T2_MEMORY_FLOOR (available 25 MiB vs floor 26)",
       "presents": 163,
