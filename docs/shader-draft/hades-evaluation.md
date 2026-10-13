@@ -52,6 +52,48 @@ re-running gives the blocked-instruction census per shader:
 - f191: after 3 NOPs (0xb0/0xd0/0xf0) still stopped at LOP3 (cbuf) CC.
 - f268 / f309b86a / v189: same families (AL2P sizes, FFMA32I CC).
 
+## Follow-up (same day): the "AL2P" matches are an artifact of the decode table
+
+Instrumenting `Decode()` in the vendored frontend (patch kept in the private workspace
+copy) shows exactly what happens to the words neither `envydis` nor Hades can render:
+
+    DECODE_DUMP insn=003fb400f3e007b1 WLB=13 MS=51 idx=7 hm=0000 hv=0000 opcode=AL2P
+
+`WIDEST_LEFT_BITS=13`, `MASK_SHIFT=51`. The matched table entry has `high_mask=0`,
+`high_value=0` and `opcode=AL2P` — but that entry is not the AL2P pattern. The
+`FAST_LOOKUP_TABLE` buckets hold `std::array<InstInfo, 2>` slots that stay
+default-initialized when a bucket has fewer than two encodings, and the match test
+`(insn & info.Mask()) == info.Value()` is trivially true for a zero mask/value slot.
+`Opcode(0)` is the first entry of `maxwell.inc`, which is AL2P. In other words:
+
+**any instruction absent from this frontend's `maxwell.inc` decode table silently
+decodes as AL2P.**
+
+Consequences:
+
+- The earlier "AL2P BitSize 2/3" aborts on the `???` words were this artifact, not a
+  real instruction family; the words are simply not in this table revision (the
+  reviewer's caution was correct: implementing AL2P bit sizes from those matches would
+  have implemented semantics for a mis-decoded opcode).
+- Any user of this frontend needs the one-line fix (reject zero-mask slots in
+  `Decode()`) to get honest "unknown instruction" errors instead of silent AL2P.
+
+## Partial implementations used for the smoke test (all in the private copy)
+
+For the experiment the following were implemented in the vendored source (see the
+`tools/hades-eval` copy; the exact changes are listed in the private notes):
+`FFMA`/`FADD`/`FMUL` with CC (Z/S from the result, C/O cleared), `LOP3` with CC,
+`IMAD32I` (dst = src_a * imm32 + dst), and AL2P bit sizes 1/2/3 accepted with the B32
+address math (this acceptance is only a smoke-test escape hatch — see the artifact
+above). With these:
+
+- f08bad2f and f191 produce GLSL (44 and 69 lines), but **semantically void**: empty
+  `if` bodies and undefined condition variables; only one real expression survives in
+  f191 (`attr2.x * c3[?] <= c3[6]`). "Produces GLSL" is thus not a translation — the
+  branch logic of these shaders runs through instructions the table does not know.
+- v189 / f268 / f309b86a stop at FADD32I CC (stub implemented after the last matrix
+  run; a rebuild + rerun is pending and does not change the conclusion).
+
 ## Reading / conclusions
 
 1. The automated path is real but **not usable out of the box** for WoL: the

@@ -94,10 +94,10 @@ This repository is GPL-3.0. Third-party reference packages remain local; the rep
 | Mali-G57 / EGL context | created and used |
 | NVN command record + replay | works; 146-147 consecutive presents |
 | Command arenas | **unused-tail overlap solved with evidence** (see below) |
-| GLSL ES translation | 1 of 3 frame pairs; compiles, links and draws with zero GL errors |
+| GLSL ES translation | 1 of 3 pairs translated + draw hook now keyed by code/control SHA-256 identity (review 2026-10-13); the other 2 pairs draw a clearly-marked TEST diagnostic colour; all draws execute with zero GL errors |
 | Render targets | real GPU blit 1920x1080 -> 1280x720 |
-| Present | 600 frames, all still black (run 91) |
-| Current stop | diagnostic `T2_MEMORY_FLOOR` stop (31 MiB available vs the 32 MiB floor) after 600 frames; the previous `NVN_GUEST_POINTER` stop was this runtime's own callback-vtable probe (measured and fixed in runs 90-91) |
+| Present | still black in the measured scene phase (run 97: 213/213 samples); 639 translated + 852 TEST diagnostic draws execute |
+| Current stop | `NVN_TEXTURE_SWIZZLE_REQUIRED` (format 0x39) in the scene phase of run 97; the swizzle gate now logs the full format/swizzle for the next iteration. Previous stops: `T2_MEMORY_FLOOR` (diagnostic; run 91/95) and `NVN_GUEST_POINTER` (this runtime's own callback probe; fixed in runs 90-91) |
 
 ### Command arena: what was measured
 

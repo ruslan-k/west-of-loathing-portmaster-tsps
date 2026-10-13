@@ -586,3 +586,40 @@ statement, is now known well enough to author the GLSL:
 What is still missing before the GLSL can be written is the exact varying offset of each `ipa` operand (the
 disassembler's operand text is not readable for those lines yet); that is the next mechanical decode step,
 after which the pair is wired through the same hook as the first one.
+
+### Runs 93-97: shader identity catalogue + diagnostic draws (2026-10-13 review, iteration 1)
+
+The draw hook no longer matches fixed guest addresses: draws substitute translated GLSL by measured
+**code SHA-256 + control SHA-256 identity** (`WOL_SHADER_MATCH` / `WOL_CAT_LINK` / `WOL_CAT_DRAW`),
+and untranslated pairs draw an explicitly-marked TEST diagnostic output. What was measured:
+
+- **Identity catalogue works on the device.** All six captured stage identities are recognised from the
+  live bound objects: `f309b86a#0184`, `f08bad2f#a9b0` (and the `c3200708` variant), `v189(d88c64a6)`,
+  `v266(d88c64a6)`, `f191-diag`, `f268-diag`. The measured **drawing pair is `f309b86a + f08bad2f`**
+  (objects 0x100103f168 / 0x100103f298); `d88c64a6` belongs to the second pair. Same code with a
+  different control section is a separate catalogue entry with its own measured hashes.
+- **Draws execute.** `f309b86a#0184 + f08bad2f#a9b0` link as a real translation: 639
+  `WOL_PAIR_DRAW_ISSUED`, glerror 0x0, target 32/1920x1080. `f191` and `f268` link as TEST fullscreen
+  diagnostics (vertex `d88c64a6` is not translated yet): 852 `WOL_CAT_FULLSCREEN_DRAW`, glerror 0x0,
+  target 280/1280x720 - every line marked `note=TEST-ONLY / not-a-translation`.
+- **Presentation is still black** (run 97: 213/213 samples `nonblack=0`) and the run stops at a new
+  gate: `NVN_TEXTURE_SWIZZLE_REQUIRED` (format 0x39) in the scene phase
+  (`pc=main.text.seg+0xaf64a0`). The gate now logs `WOL_SWIZZLE_GATE format=... swizzle=... dims` for
+  the next iteration.
+- **Boot heartbeat** (`WOL_BOOT_TICK`, every 60 frames): after the initial load (25 RomFS reads /
+  216 MB, 33 real textures) reads, textures, draws and thread count all freeze - the title is not
+  progressing on its own after the bundles; longer runs need memory work, not more frames.
+- **Downsample trace** (`WOL_DOWNSAMPLE_UNRESOLVED`, target=269): the destination is the live
+  1920x1080 target (format 0x25); 33 live textures, 21 same-format, none "larger" - the current
+  larger-source heuristic cannot resolve this operation; it needs its own decode.
+- Diagnostic runs may raise the harness floor override (`WOL_TEST_FLOOR=26`) so the replay survives
+  into the scene phase; the launcher default stays conservative (140 MiB).
+
+Hades (the review's variant B) is parked with a precise answer: the earlier "suspicious AL2P"
+classifications are an artifact of the vendored decode table - empty lookup slots return
+`Opcode(0)=AL2P` for any instruction missing from the table, so four "missing opcodes" were being
+counted on top of a mis-decode. Details and the partial smoke-test results are in
+`docs/shader-draft/hades-evaluation.md`.
+
+Next gates: implement the swizzle mapping the SDK requests (the new stop), keep the TEST diagnostic
+pairs until f191/f268 are transcribed (variant A), and decode the target=269 operation.
