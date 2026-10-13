@@ -725,6 +725,12 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-100",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 196,
+      "note": "glBindTexture fix verified (real GL names 26/29/21 bound); f268-draft links clean; screen black because the composite samples the empty 1080p scene; re-reading run 123: the loading phase is SWAP-BOUND (available 49-66 MiB, vmswap ~650-790 MiB, vmrss ~580-736 MiB; object counter past 466, small 256x256 re-creations in a loop) - next block = measured memory work per the review's list"
+    },
+    {
       "run": "device-99",
       "stop": "none (governor SIGTERM, exit 143; 3600s budget)",
       "presents": 191,
