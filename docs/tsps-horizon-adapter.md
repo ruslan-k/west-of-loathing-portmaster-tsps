@@ -897,3 +897,14 @@ atlas (they carry 11-12 mip levels - measured on the 1024x256 / 2048x512 atlases
 loading), so the composite kept sampling a 4x4 fallback texel and overpainting everything
 near-black. Run 120 drops the filter; the pick can now reach the atlases and the composite's real
 texture content can finally appear.
+
+### Run 120: the pick was over-filtered twice - sample what the game actually bound
+
+Dropping the levels filter changed nothing (`quiet-pick id=0 0x0` again): the ONE texture the
+game bound for the composite's unit resolves to id=275 - a 1920x1080 render target - and the
+screen-size filter (added when the review saw the pick choose "another 1920x1080 target instead of
+the atlas") rejects exactly that. The measured answer: for the composite pass, the 1920x1080 scene
+target is precisely what its sampler should read; "the atlas" was a conclusion from a different
+draw. Run 121 therefore binds what the game bound: the first recorded texture unit that resolves to
+a live texture, with no size or level filtering at all - the handle array is already indexed by
+unit, so this is the faithful binding, not a heuristic.
