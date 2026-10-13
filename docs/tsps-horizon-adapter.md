@@ -998,3 +998,13 @@ The sampler also gained a call on the command-record path (the phase after the p
 issuing NVN commands - that is where the remaining ~58 minutes went) and a `WOL_MEM_SPLIT` line
 from smaps_rollup (rss/pss/anonymous/swap/swap-pss), so run 127 measures the load loop itself on
 the reprioritised swap.
+
+### Run 127: the swap A/B speaks - zram-first is worse on this device
+
+With zram0 first the run died at frame 31 by SIGKILL: available fell to 25 MiB (vs 49-66 in the
+SD-first baseline) and the margin broke. The reason is mechanical: zram's compressed pages still
+live in RAM - a page swapped to zram does not free its share, it only shrinks it 2-3x - so putting
+zram first eats the free-RAM margin on a 963 MiB device, while a file swap on UDISK or SD actually
+frees pages. The measured ordering for this device is therefore: **UDISK swapfile first (internal
+storage, frees RAM, faster than SD), SD second, zram last**. Reprioritised and verified (UDISK 100
+/ SD 40 / zram -2); run 128 measures that configuration.
