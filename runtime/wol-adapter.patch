@@ -773,7 +773,7 @@
      uint64_t started=nvn_nanoseconds();
      char json[640];const char *run=getenv("COTM_RUN_ID");
      int size=snprintf(json,sizeof(json),"{\"port\":\"legacy_runtime-switch-study\",\"run\":\"%s\",\"generation_pid\":%ld,\"frame\":%u,\"status\":\"%s\",\"nonblack_pixels\":%u,\"maximum_rgb\":%u,\"game_draws\":%u,\"black_streak\":%u,\"sampled_pixels\":%u,\"full_readback\":%s,\"sample_y\":%u,\"sample_rows\":%u,\"boundary\":\"%s\"}\n",
-@@ -145,6 +146,41 @@
+@@ -145,7 +146,43 @@
      if(nvn_present.image_scale<0 || nvn_present.image_offset<0)stop("NVN_PRESENT_IMAGE_SCALE",nvn_caller,nvn_present.program,21);
      glDisable(GL_DEPTH_TEST);glDisable(GL_STENCIL_TEST);glDisable(GL_BLEND);glDisable(GL_CULL_FACE);glDisable(GL_SCISSOR_TEST);
  }
@@ -813,9 +813,11 @@
 +        printf("WOL_THREAD_TOP rank=%u comm=%s utime=%llu stime=%llu\n",k,top[k].comm,top[k].ut,top[k].st);
 +}
  static unsigned nvn_present_dispatch(unsigned id,struct nvn_frame *f,uint64_t *result) {
++    wol_host_sample(); /* every present; the sampler gates itself to one print per ~30 s */
      if(id!=NI_nvnQueuePresentTexture)return 0;
      unsigned timing=nvn_frame_timing_enabled(),timing_sampled=0,timing_capture=0,cadence_pixel_proof=0;
-@@ -165,6 +201,7 @@
+     uint64_t timing_readback_ns=0,timing_dump_ns=0;
+@@ -165,6 +202,7 @@
          if(np){nvn_present.frames++;nvn_replay.last_frame=nvn_present.frames;nvn_window.acquired[index]=0;return 1;}
      }
  #endif
@@ -823,7 +825,7 @@
      if(nvn_skip.active) {
          /* Skipped frame: no GL, no swap; keep ownership, counters and the
           * per-60-logic-frame profile line consumed by the automation. */
-@@ -172,6 +209,7 @@
+@@ -172,6 +210,7 @@
          uint64_t now=nvn_nanoseconds();nvn_profile.present_ns+=now-started;nvn_profile.frames++;
          if(nvn_profile.start && nvn_profile.frames>=60) {
              double ms=1e-6/nvn_profile.frames;
@@ -831,7 +833,7 @@
              printf("NVN_PROFILE frame=%u count=%u elapsed-ms=%.3f replay-ms=%.3f present-ms=%.3f readback-ms=%.3f replay-cpu-ms=%.3f scope=wall-time-per-frame frameskip=%u rendered=%"PRIu64" skipped=%"PRIu64"\n",nvn_present.frames,nvn_profile.frames,
                  (now-nvn_profile.start)*ms,nvn_profile.replay_ns*ms,nvn_profile.present_ns*ms,nvn_profile.readback_ns*ms,nvn_profile.replay_cpu_ns*ms,nvn_skip.every,nvn_skip.rendered,nvn_skip.skipped);
              nvn_phase_report(nvn_present.frames,nvn_profile.frames);
-@@ -186,7 +224,12 @@
+@@ -186,7 +225,12 @@
      if(!nvn_async_frame_enabled())nvn_async_present_wait_locked(q,single);
      if(!single)nvn_egl_present_reader_wait();
      if(single) {
@@ -845,7 +847,7 @@
          /* This is a logical context use even though its physical binding is
           * retained. Do not reuse a completion proof from before the quad. */
          if(!++nvn_gl_completion.use_serial)stop("NVN_GL_SERIAL_WRAP",nvn_caller,0,24);
-@@ -199,10 +242,16 @@
+@@ -199,10 +243,16 @@
      }
      nvn_present_setup();
      momo_stencil_selftest();
@@ -863,7 +865,7 @@
  #ifdef ANIMAL_WELL_SHADERS
      if(aw_fbcopy_enabled()){aw_fbcopy_open(width,height);glBindFramebuffer(GL_FRAMEBUFFER,aw_fbcopy.fbo);}
      else glBindFramebuffer(GL_FRAMEBUFFER,0);
-@@ -225,6 +274,17 @@
+@@ -225,6 +275,17 @@
      }
      glViewport(rect->x,(int)height-rect->y-rect->h,rect->w,rect->h);
      glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,t->name);
@@ -881,7 +883,7 @@
      nvn_texture_parameters(t,GL_NEAREST,GL_NEAREST,GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE);
      GLfloat scale=(t->host_half||t->host_scaled)?1.0f:nvn_low_present_scale(t),scale_y=(t->host_half||t->host_scaled)?1.0f:nvn_low_present_scale_y(t);
      nvn_rt_storage_require(t);
-@@ -270,6 +330,14 @@
+@@ -270,6 +331,14 @@
      cadence_pixel_proof=proof;
      const char *status=proof?"PIXELS":nonblack?"INCONCLUSIVE":"BLACK-SAMPLE";
      printf("NVN_PRESENT_PIXELS frame=%u nonblack=%u max=%u white=%u texture-draws=%u status=%s\n",nvn_present.frames,nonblack,maximum,readback.measure.white,t->draws,status);
@@ -896,6 +898,14 @@
      /* Native54 frame381 proves a black atlas background, RGB0 glyph vertices
       * and a transparent final overlay in the color layer; the normal target
       * still renders. Twelve samples were insufficient to observe this native
+@@ -342,6 +411,7 @@
+     if(!nvn_present_from_job)nvn_window.acquired[index]=0;
+     uint64_t now=nvn_nanoseconds();nvn_profile.present_ns+=now-started;nvn_profile.frames++;
+     if(nvn_profile.start && nvn_profile.frames>=60) {
++        wol_host_sample();
+         nvn_single_report(nvn_present.frames);
+         nvn_gpu_frame_gate_report(nvn_present.frames,nvn_profile.frames);
+         double ms=1e-6/nvn_profile.frames;
 --- a/native/nvn_queue.h
 +++ b/native/nvn_queue.h
 @@ -57,7 +57,11 @@
