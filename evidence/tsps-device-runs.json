@@ -731,6 +731,12 @@
       "note": "sampler landed only in the inactive frameskip path - no samples; same shape as 124"
     },
     {
+      "run": "device-103",
+      "stop": "SIGKILL (OOM) mid-run at frame 31",
+      "presents": 31,
+      "note": "zram-first swap A/B is worse on this 963 MiB device: zram's compressed pages still live in RAM, available fell to 25 MiB (vs 49-66 SD-first) and the run was killed early; final ordering chosen: UDISK swapfile first (frees RAM, faster than SD), SD second, zram last - run 128 tests it"
+    },
+    {
       "run": "device-102",
       "stop": "none (governor SIGTERM, exit 143)",
       "presents": 196,
