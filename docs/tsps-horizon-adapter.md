@@ -657,3 +657,30 @@ texture creation interleaved - the title is waiting/polling on a service, not cr
 Next: identify what the `0x42e/0x3f` wait expects; slim the readback diagnostics out of the hot
 path (review P1) so an hour-scale observation runs at real speed; continue the f191/f268
 transcription (variant A).
+
+### Runs 103-105: quiet hot path, the dump-file leak, and the HID stop (2026-10-13 second review)
+
+Working the second review (P0: pixel route target->window texture->present; P0: hot-path
+diagnostics; P0: downsample; P1: shaders):
+
+- **Quiet hot path (`WOL_QUIET=1`, review P1)**: the per-draw texture content probes (full
+  GPU->CPU readbacks while selecting sprite candidates and the periodic live-texture scan) are now
+  env-gated. Measured effect: the same 1800 s budget presented **924 frames vs 279** in run 102 -
+  the diagnostics were throttling the title as the review suspected.
+- **Port hygiene: the diagnostic captures leaked.** Runs had accumulated **14 736 files** in the
+  port directory; one quiet run then died at `NVN_CAPTURE_OPEN` with errno 28 (ENOSPC). Device
+  cleaned (files + 49 per-run receipt directories; only the 18 real port files remain, 4.9 GB free).
+  Every capture path (shader dumps, frame images, the per-frame receipt journal) now requires an
+  explicit `WOL_DUMP=1`; normal runs write nothing.
+- **New frontier: HID command 128.** With the quiet run the title reached frame ~900+ and stopped
+  at `UNIMPLEMENTED_IPC_COMMAND` on `endpoint=0x2d (HID) command=0x80`. Per libnx, 128 =
+  `SetNpadHandheldActivationMode` (u64 ARUID@0, u64 mode@8); commands 123/125/126/127/128/129
+  (assignment single/merge, LR assignment, handheld mode set/get) are now implemented in
+  `input.h`; the getter returns the stored 0-2 mode the SDK requires.
+- **Pixel-route instrumentation (review P0 #1)**: `WOL_WINDOW_TEXTURE` names every swapchain window
+  texture at creation; `WOL_PRESENT_SOURCE` names the texture actually presented each frame (guest
+  address, GL name, id, dims); `WOL_PRESENT_TEST=1` writes a magenta 64x64 marker directly into the
+  presenting texture (TEST-ONLY) so one run proves or breaks the whole target->window-texture->
+  present->screen chain; `WOL_BLIT_CENSUS` already reports per-frame pixel counts at the blit.
+- **Boot heartbeat fix**: the catalogue draw paths now increment `nvn_replay.draws`, so
+  `WOL_BOOT_TICK draws=` reflects real draw calls (was always 0 on the experimental hook).
