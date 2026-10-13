@@ -725,6 +725,12 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-92",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 193,
+      "note": "real hand vertex (WOL_VS_TRIVIAL=0) drives the same green pixels as the trivial pass-through: center+3 corners of every window texture, all 193 present readbacks nonblack=460800 (half of 1280x720); quiet texture pick finds no atlas among recorded slots (id=0 0x0 -> 4x4 fallback) - the sampler binding fidelity work the review asked for"
+    },
+    {
       "run": "device-91",
       "stop": "none (governor SIGTERM, exit 143)",
       "presents": 193,

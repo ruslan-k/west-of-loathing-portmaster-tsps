@@ -841,3 +841,17 @@ stream-VBO upload (plus the explicit unbind) removes the stale-binding trap enti
 Next, per the agreed order: real vertex shader with the green fragment (run 116), then the real
 fragment with verified texture bindings; the quiet texture pick no longer considers screen-sized
 render targets (it kept selecting id=275, another 1920x1080 target, instead of the atlas).
+
+### Run 116: the real vertex transform drives the same pixels
+
+With `WOL_VS_TRIVIAL=0` the hand two-matrix vertex (identity M1, measured M2) produces the same
+result as the trivial pass-through: green at the center and three corners of every window texture,
+and all 193 present readbacks at nonblack=460800 (half of 1280x720, the quad's upper-left
+triangle). The real transform now demonstrably drives the pipeline end to end.
+
+Run 117 moves one step down that pipeline per the review's order: green OFF (the real f08bad2f
+fragment) with a **known 256x256 UV-gradient texture** bound as tex0 (`WOL_FS_TESTTEX=1`) - if the
+gradient appears, the fragment's sampling path is correct and only the game's texture/binding
+choice remains; the quiet pick now often finds no atlas among the recorded slots (it reported
+`id=0 0x0`, falling back to a 4x4 fill), which is exactly the binding-fidelity problem the review
+asked to solve by decoding the sampler binding from NVN state instead of the heuristic.

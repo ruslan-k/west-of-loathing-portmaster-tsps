@@ -890,7 +890,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -509,6 +520,300 @@
+@@ -509,6 +520,314 @@
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
@@ -1080,7 +1080,21 @@
 +                        if(handle)printf("WOL_PAIR_TEX quiet-pick slot=%u id=%llu %ux%u\n",tslot,(unsigned long long)best_id,best_w,best_h);
 +                        else printf("WOL_PAIR_TEX quiet-pick=none candidates-empty\n");}
 +                }
-+                if(handle&&wol_pair_tex_loc>=0) {
++                if(wol_fs_testtex()&&wol_pair_tex_loc>=0) {
++                    /* Known-texture check (review 2026-10-13): a 256x256 UV gradient bound as tex0.
++                     * If the real fragment shows the gradient, its sampling path is correct and only
++                     * the game texture/binding choice remains. */
++                    static GLuint tt_grad;static int tt_made;
++                    if(!tt_made){tt_made=1;glGenTextures(1,&tt_grad);glBindTexture(GL_TEXTURE_2D,tt_grad);
++                        static uint8_t grad[256*256*4];
++                        for(unsigned y=0;y<256;y++)for(unsigned x=0;x<256;x++){uint8_t *c=&grad[(y*256+x)*4];c[0]=(uint8_t)x;c[1]=(uint8_t)y;c[2]=128;c[3]=255;}
++                        glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,256,256,0,GL_RGBA,GL_UNSIGNED_BYTE,grad);
++                        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
++                        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);}
++                    else glBindTexture(GL_TEXTURE_2D,tt_grad);
++                    glActiveTexture(GL_TEXTURE0);glUniform1i(wol_pair_tex_loc,0);
++                    static unsigned tt_told;if(tt_told<4){tt_told++;printf("WOL_FS_TESTTEX gradient-uv bound=1 note=TEST-ONLY\n");}
++                } else if(handle&&wol_pair_tex_loc>=0) {
 +                    GLint minf=0;GLenum wrap[2]={GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE};
 +                    struct nvn_texture *t=nvn_render_sampler(handle,0,0,0,&minf,wrap);
 +                    if(t){glActiveTexture(GL_TEXTURE0);glUniform1i(wol_pair_tex_loc,0);
@@ -1191,7 +1205,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1840,235 @@
+@@ -1535,6 +1854,235 @@
          begin=end+1;
      }
  }
@@ -1427,7 +1441,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2096,16 @@
+@@ -1562,7 +2110,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -1573,7 +1587,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,296 @@
+@@ -46,10 +46,301 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -1758,6 +1772,11 @@
 +static unsigned wol_diag_enabled(void) {
 +    static int v=-1;if(v<0){const char *o=getenv("WOL_DIAG");v=(o&&!strcmp(o,"0"))?0:1;}return (unsigned)v;
 +}
++static unsigned wol_fs_testtex(void) {
++    /* Review 2026-10-13: verify the real fragment shader against a known texture (UV gradient)
++     * before trusting game textures. TEST-ONLY. */
++    static int v=-1;if(v<0){const char *o=getenv("WOL_FS_TESTTEX");v=o&&!strcmp(o,"1");}return (unsigned)v;
++}
 +static unsigned wol_quiet(void) {
 +    /* Review 2026-10-13 P1: WOL_QUIET=1 removes the per-draw texture content probing
 +     * (full-texture GPU->CPU readbacks) from the hot path for speed runs; the draw
@@ -1871,7 +1890,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +793,29 @@
+@@ -507,12 +798,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -1902,7 +1921,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +916,28 @@
+@@ -613,6 +921,28 @@
              }
          }
  #endif
