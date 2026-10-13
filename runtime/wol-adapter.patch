@@ -1241,7 +1241,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -507,8 +543,629 @@
+@@ -507,8 +543,631 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -1596,10 +1596,10 @@
 +            }
 +            struct wol_draw_geometry geometry;
 +            /* Late texture dump (independent of the once-per-fragment slot report above): at draws>6000
-+             * the dynamic 1920x1080 t0 should hold real content - dump it for the first draws that see
-+             * it. Bounded to 3 files across the run. */
++             * dump the COMPOSITE's t0 (the RT it reads - should contain the menu layer) plus the target,
++             * so "wrong RT" is distinguishable from "wrong uv/format". Bounded to 3 files. */
 +            {static unsigned late_tdumped;
-+             if(late_tdumped<3 && nvn_replay.draws>6000) {
++             if(late_tdumped<3 && nvn_replay.draws>6000 && strstr(wol_cat_bindings[wol_cat_cur->f].name,"f08bad2f")) {
 +                uint64_t h=nvn_render.texture_handles[1][0];
 +                GLint minf=0;GLenum wrap[2]={GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE};
 +                struct nvn_texture *t=nvn_render_sampler(h,0,0,0,&minf,wrap);
@@ -1612,12 +1612,14 @@
 +                    if(glCheckFramebufferStatus(GL_FRAMEBUFFER)==GL_FRAMEBUFFER_COMPLETE) {
 +                        uint8_t *px=malloc((size_t)tw*th*4);
 +                        if(px){glReadPixels(0,0,(GLsizei)tw,(GLsizei)th,GL_RGBA,GL_UNSIGNED_BYTE,px);
-+                            char path[96];snprintf(path,sizeof path,"wol-texlate-%llu-%ux%u-%u.ppm",(unsigned long long)t->id,tw,th,late_tdumped);
++                            char path[96];snprintf(path,sizeof path,"wol-comp-rt-%llu-%ux%u-%u.ppm",(unsigned long long)t->id,tw,th,late_tdumped);
 +                            FILE *fp=fopen(path,"wb");
 +                            if(fp){char hd[64];int hn=snprintf(hd,sizeof hd,"P6\n%u %u\n255\n",tw,th);
 +                                fwrite(hd,1,hn,fp);
 +                                for(unsigned y=0;y<th;y++)for(unsigned x=0;x<tw;x++)fwrite(px+((size_t)(th-1-y)*tw+x)*4,1,3,fp);
-+                                fclose(fp);printf("WOL_TEXLATE file=%s draws=%u\n",path,(unsigned)nvn_replay.draws);}
++                                fclose(fp);printf("WOL_COMP_RT file=%s draws=%u t0id=%llu target=%llu/%ux%u\n",path,(unsigned)nvn_replay.draws,
++                                    (unsigned long long)t->id,(unsigned long long)(nvn_render.target?nvn_render.target->id:0),
++                                    nvn_render.target?nvn_render.target->b.width:0,nvn_render.target?nvn_render.target->b.height:0);}
 +                            free(px);}
 +                    }
 +                    glBindFramebuffer(GL_FRAMEBUFFER,(GLuint)prev);glDeleteFramebuffers(1,&fb);
@@ -1871,7 +1873,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +1361,7 @@
+@@ -704,6 +1363,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -1879,7 +1881,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1535,6 +2193,279 @@
+@@ -1535,6 +2195,279 @@
          begin=end+1;
      }
  }
@@ -2159,7 +2161,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2493,16 @@
+@@ -1562,7 +2495,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -2369,10 +2371,10 @@
 +"                       c3[19]*q.x+c3[23]*q.y+c3[27]*q.z+c3[31]*q.w);}\n"
 +"void main() {\n"
 +"    v10 = a_pos;\n"
-+/* f309b86a EXACT (2026-10-13 late): the vertex transforms the uv before exporting it -
-+ * u' = u*c3[0x80] + c3[0x88], v' = v*c3[0x84] + c3[0x8c] (the atlas/screen rect). The composite
-+ * fragment reads exactly these two components, so the transform must live here. */
-+"    v9 = a_uv * vec2(c3[32], c3[33]) + vec2(c3[34], c3[35]);\n"
++/* NOTE 2026-10-13 late: the f309b86a SASS transforms this uv (u'=u*c3[0x80]+c3[0x88]), but the
++ * composite fragment on this runtime reads the CLIP-derived uv (v7) instead - enabling the
++ * attribute-transform here blanked the screen (gfx198-200 white, measured), so it stays off. */
++"    v9 = a_uv;\n"
 +"    v8 = vec4(a_col.rgb, a_col.a * c3[35]);\n"
 +"    gl_Position = m2(m1(a_pos));\n"
 +"    v7 = gl_Position;\n"
@@ -2418,7 +2420,7 @@
 + * of the old body is REMOVED (it turned red menu content green) and the c3f[0..3] scale added. */
 +"void main() {\n"
 +"    vec4 t = texture2D(tex0, v7.xy*0.5+0.5);\n"
-+"    gl_FragColor = vec4(t.r, t.g, t.b, t.a) * vec4(c3f[0], c3f[1], c3f[2], c3f[3]);\n"
++"    gl_FragColor = vec4(t.y, t.x, t.z, t.w);\n"
 +"}\n";
 +
 +/* Compile-and-link check for the hand-translated first pair. It runs once, at the first placeholder bind
