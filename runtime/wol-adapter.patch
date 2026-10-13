@@ -1611,7 +1611,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,333 @@
+@@ -46,10 +46,346 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -1769,6 +1769,19 @@
 +"precision mediump float;\n"
 +"uniform mediump sampler2D tex0;\n"
 +"void main(){gl_FragColor=vec4(1.0,0.0,1.0,1.0);}\n";
++static const char wol_f191_draft_fragment_glsl[] =
++"#version 100\n"
++"precision mediump float;\n"
++"varying vec4 v7;\n"
++"varying vec4 v8;\n"
++"varying vec2 v9;\n"
++"varying vec4 v10;\n"
++"uniform sampler2D tex0;\n"
++/* DRAFT (review 2026-10-13 variant A): f191 is a tinted-sprite fragment; its decoded structure reads
++ * v9 (uv) and v8 (colour) and samples tex0 once, but two ALU lines in its chain are still part of
++ * the undecoded instruction family. This draft keeps only the decoded, certain parts: sample at the
++ * real per-vertex uv, multiply by the real vertex colour. Marked TEST-DRAFT - not a translation. */
++"void main(){ vec4 t=texture2D(tex0,v9); gl_FragColor=vec4(t.rgb*v8.rgb, t.a*v8.a); }\n";
 +static const char wol_diag_green_glsl[] =
 +"#version 100\n"
 +"precision mediump float;\n"
@@ -1803,7 +1816,7 @@
 +    /*5*/ { 512,0x848,1,0,"f08bad2f#c320",wol_pair_fragment_glsl,
 +           {0xf0,0x8b,0xad,0x2f,0x44,0xa0,0x2b,0xae,0x70,0x83,0x85,0x47,0x69,0x75,0x5e,0x05,0xbe,0x1a,0x69,0x2c,0x35,0xf6,0xe1,0x7d,0xbc,0x88,0xf8,0x06,0x25,0xb8,0x3d,0x0e},
 +           {0xc3,0x20,0x07,0x08,0xdd,0xde,0xc3,0x52,0x68,0x8d,0x6f,0x76,0x83,0x11,0xa3,0x95,0x1d,0x44,0x84,0x75,0x56,0xe4,0x45,0x44,0xcc,0xa2,0x84,0x84,0xb5,0x8a,0x14,0xbb}},
-+    /*6*/ { 512,0x848,1,1,"f191-diag",wol_diag_magenta_glsl,
++    /*6*/ { 512,0x848,1,1,"f191-draft",wol_f191_draft_fragment_glsl,
 +           {0x08,0x1c,0xff,0x28,0x29,0xd8,0x37,0xf0,0x99,0x78,0x20,0x22,0x23,0x7a,0x0b,0xfa,0xd9,0xe9,0x06,0x2f,0x41,0x81,0x18,0xa7,0x93,0xa2,0x83,0x70,0x18,0x87,0x5f,0x0d},
 +           {0x3e,0x3b,0x38,0x7a,0x20,0x57,0xb9,0x28,0xc7,0x21,0x5c,0xfa,0xf3,0x99,0x07,0xa3,0xbd,0x65,0x6d,0x1d,0xe4,0x24,0x0b,0x33,0xcf,0x26,0x05,0x79,0x41,0xa6,0x0d,0x78}},
 +    /*7*/ {1024,0x848,1,1,"f268-diag",wol_diag_cyan_glsl,
@@ -1946,7 +1959,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +830,29 @@
+@@ -507,12 +843,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -1977,7 +1990,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +953,28 @@
+@@ -613,6 +966,28 @@
              }
          }
  #endif
