@@ -886,3 +886,14 @@ painting near-black into the window textures - the texture-binding fidelity stil
 therefore extends the probes where the data ran out: the CPU transform probe gets its own budget
 for the stride-24 sprite layout, and sprite draws scan their whole target once for non-black
 pixels (`WOL_SPRITE_SCAN`) - the direct answer to "does the d88c64a6 geometry land anywhere".
+
+### Run 119: the sprite geometry paints; the composite starves on its texture
+
+`WOL_SPRITE_SCAN` answers the geometry question directly: sprite draws (stride 24, diag colours)
+leave **nonblack=10840, max=255 in target 280** - the authored d88c64a6 transform lands on-screen
+pixels. The presented windows stay black because the pair-1 composite (which paints into 30/31/32)
+samples the wrong texture: the quiet pick's `levels==1` filter silently excluded every BC sprite
+atlas (they carry 11-12 mip levels - measured on the 1024x256 / 2048x512 atlases created during
+loading), so the composite kept sampling a 4x4 fallback texel and overpainting everything
+near-black. Run 120 drops the filter; the pick can now reach the atlases and the composite's real
+texture content can finally appear.
