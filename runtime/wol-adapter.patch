@@ -397,7 +397,7 @@
      case NI_nvnCommandBufferSetDepthBounds:
          nvn_command_record(nvn_command_find(a[0]),id,f);return 1;
      /* Animal Well (NVN 17.x array forms): a single viewport/scissor/depth range at index 0 is the singular command;
-@@ -678,7 +700,55 @@
+@@ -678,7 +700,63 @@
                  if((i<c->command_count)!=command)stop("NVN_COMMAND_ARENA_TYPE",nvn_caller,address,24);
                  nvn_command_reuse_arena(c,p);if(command)c->current=i;return 1;
              }
@@ -430,6 +430,14 @@
 +                            c->object,(void *)p->pool,old_start,old_end-old_start,p->used,p->limit,new_start,size,hi-lo,
 +                            c->current,c->recording,c->memory_generation,safe_end,new_start>=safe_end?"UNUSED_TAIL":"LIVE_DATA");
 +                        if(new_start>=safe_end) {
++                            /* A/B (WOL_ARENA_KEEP_OLD=1): accept the new arena without trimming the old
++                             * entry, to measure whether the trim itself matters for what the guest does
++                             * next. Default keeps the retired-tail behavior. */
++                            if(getenv("WOL_ARENA_KEEP_OLD")) {
++                                printf("WOL_COMMAND_ARENA_DUP old=0x%"PRIx64"/%"PRIu64" kept=1 new=0x%"PRIx64"/%"PRIu64"\n",
++                                    old_start,old_end-old_start,new_start,size);
++                                continue;
++                            }
 +                            p->size=new_start-old_start;
 +                            printf("WOL_COMMAND_ARENA_RETIRE old=0x%"PRIx64"/%"PRIu64" trimmed_to=0x%"PRIx64" overlap=0x%"PRIx64"..0x%"PRIx64" action=RETIRED_TAIL\n",
 +                                old_start,old_end-old_start,new_start-old_start,new_start,old_end);

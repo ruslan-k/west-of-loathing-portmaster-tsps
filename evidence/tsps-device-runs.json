@@ -679,6 +679,12 @@
       "stop": "NVN_GUEST_POINTER",
       "presents": 146,
       "arena_retired": 1
+    },
+    {
+      "run": "device-72",
+      "stop": "NVN_GUEST_POINTER",
+      "presents": 146,
+      "arena_events": 1
     }
   ]
 }
