@@ -890,7 +890,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -509,6 +520,338 @@
+@@ -509,6 +520,351 @@
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
@@ -1092,8 +1092,21 @@
 +                } else if(handle&&wol_pair_tex_loc>=0) {
 +                    GLint minf=0;GLenum wrap[2]={GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE};
 +                    struct nvn_texture *t=nvn_render_sampler(handle,0,0,0,&minf,wrap);
-+                    if(t){glActiveTexture(GL_TEXTURE0);glUniform1i(wol_pair_tex_loc,0);
++                    if(t){glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,t->name);glUniform1i(wol_pair_tex_loc,0);
 +                        printf("WOL_PAIR_TEX slot=%u handle=0x%llx name=%u %ux%u\n",tslot,(unsigned long long)handle,(unsigned)t->name,t->b.width,t->b.height);}
++                    /* Second sampler (f268 draft): bind the next resolvable recorded handle to unit 1. */
++                    if(wol_pair_tex1_loc>=0) {
++                        uint64_t h2=0;struct nvn_texture *t2=0;
++                        for(unsigned s=0;s<128;s++) {
++                            uint64_t candidate=nvn_render.texture_handles[1][s];
++                            if(!candidate||candidate==handle)continue;
++                            GLint minf2=0;GLenum wrap2[2]={GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE};
++                            struct nvn_texture *ct2=nvn_render_sampler(candidate,0,0,0,&minf2,wrap2);
++                            if(ct2&&ct2->live&&ct2->b.width&&ct2->b.height){h2=candidate;t2=ct2;break;}
++                        }
++                        if(h2&&t2){glActiveTexture(GL_TEXTURE1);glBindTexture(GL_TEXTURE_2D,t2->name);glUniform1i(wol_pair_tex1_loc,1);
++                            glActiveTexture(GL_TEXTURE0);}
++                    }
 +                } else printf("WOL_PAIR_TEX none=1\n");
 +            }
 +            uint64_t mode=r->args[0],count=r->args[2];
@@ -1229,7 +1242,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1878,235 @@
+@@ -1535,6 +1891,235 @@
          begin=end+1;
      }
  }
@@ -1465,7 +1478,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2134,16 @@
+@@ -1562,7 +2147,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -1611,7 +1624,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,346 @@
+@@ -46,10 +46,364 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -1723,7 +1736,7 @@
 +    glDeleteProgram(p);glDeleteShader(vs);glDeleteShader(fs);
 +}
 +/* Realization of the translated pair: compile and link once, keep the program, cache the c3 location. */
-+static GLuint wol_pair_program;static GLint wol_pair_c3_loc=-1,wol_pair_c3f_loc=-1,wol_pair_tex_loc=-1;
++static GLuint wol_pair_program;static GLint wol_pair_c3_loc=-1,wol_pair_c3f_loc=-1,wol_pair_tex_loc=-1,wol_pair_tex1_loc=-1;
 +static unsigned wol_pair_realize(void) {
 +    if(wol_pair_program)return 1;
 +    GLint ok=0;char log[1024];
@@ -1769,6 +1782,24 @@
 +"precision mediump float;\n"
 +"uniform mediump sampler2D tex0;\n"
 +"void main(){gl_FragColor=vec4(1.0,0.0,1.0,1.0);}\n";
++static const char wol_f268_draft_fragment_glsl[] =
++"#version 100\n"
++"precision mediump float;\n"
++"varying vec4 v7;\n"
++"varying vec4 v8;\n"
++"varying vec2 v9;\n"
++"varying vec4 v10;\n"
++"uniform sampler2D tex0;\n"
++"uniform sampler2D tex1;\n"
++/* DRAFT (review 2026-10-13 variant A): f268 is the text/UI fragment (two samples + alpha kill).
++ * The decoded ipa reads give two coordinate pairs - v9.xy (uv) and v10.xy (raw position) - so the
++ * draft samples tex0 at v9 and tex1 at v10.xy, multiplies by the vertex colour and kills on the
++ * blended alpha. The real kill threshold comes from constants in the undecoded chain; 0.5 is a
++ * declared placeholder here, not a decode. Marked TEST-DRAFT - not a translation. */
++"void main(){ vec4 a=texture2D(tex0,v9); vec4 b=texture2D(tex1,v10.xy);\n"
++"    vec4 c=vec4(b.rgb*a.rgb, a.a*b.a)*v8;\n"
++"    if(c.a < 0.5) discard;\n"
++"    gl_FragColor=c; }\n";
 +static const char wol_f191_draft_fragment_glsl[] =
 +"#version 100\n"
 +"precision mediump float;\n"
@@ -1819,7 +1850,7 @@
 +    /*6*/ { 512,0x848,1,1,"f191-draft",wol_f191_draft_fragment_glsl,
 +           {0x08,0x1c,0xff,0x28,0x29,0xd8,0x37,0xf0,0x99,0x78,0x20,0x22,0x23,0x7a,0x0b,0xfa,0xd9,0xe9,0x06,0x2f,0x41,0x81,0x18,0xa7,0x93,0xa2,0x83,0x70,0x18,0x87,0x5f,0x0d},
 +           {0x3e,0x3b,0x38,0x7a,0x20,0x57,0xb9,0x28,0xc7,0x21,0x5c,0xfa,0xf3,0x99,0x07,0xa3,0xbd,0x65,0x6d,0x1d,0xe4,0x24,0x0b,0x33,0xcf,0x26,0x05,0x79,0x41,0xa6,0x0d,0x78}},
-+    /*7*/ {1024,0x848,1,1,"f268-diag",wol_diag_cyan_glsl,
++    /*7*/ {1024,0x848,1,1,"f268-draft",wol_f268_draft_fragment_glsl,
 +           {0xc0,0x13,0x2f,0xb8,0xef,0xdf,0xed,0x26,0x92,0xda,0xb8,0xe7,0x6b,0xcc,0x2b,0x0f,0x99,0xee,0x1f,0x0f,0x0e,0x59,0xc9,0xc9,0xf4,0x1b,0xb8,0x16,0x9b,0x88,0x05,0xec},
 +           {0xed,0xc9,0xd5,0x40,0x6b,0x0e,0x95,0xcc,0x15,0x19,0xa0,0xb6,0x15,0xa3,0xce,0xac,0x1b,0x51,0x21,0x63,0x35,0xd3,0x40,0xf4,0x48,0xc9,0x5d,0x0d,0x23,0xc7,0x16,0x39}},
 +};
@@ -1852,7 +1883,7 @@
 +     * substitution, banks and counters are untouched. */
 +    static int v=-1;if(v<0){const char *o=getenv("WOL_QUIET");v=(o&&!strcmp(o,"1"));}return (unsigned)v;
 +}
-+struct wol_cat_linked { int v,f; GLuint name; GLint c3,c3f,tex; unsigned fullscreen; };
++struct wol_cat_linked { int v,f; GLuint name; GLint c3,c3f,tex,tex1; unsigned fullscreen; };
 +static struct wol_cat_linked wol_cat_linked_cache[4];static unsigned wol_cat_linked_used;
 +static GLuint wol_cat_fullscreen_buffer_gl;
 +static GLuint wol_cat_fullscreen_buffer(void) {
@@ -1903,7 +1934,7 @@
 +    if(!ok){log[0]=0;glGetProgramInfoLog(pr,sizeof log,NULL,log);printf("WOL_CAT_LINK stage=link ok=0 log=%s\n",log);glDeleteProgram(pr);return NULL;}
 +    struct wol_cat_linked *lk=&wol_cat_linked_cache[wol_cat_linked_used++];
 +    lk->v=v;lk->f=f;lk->name=pr;lk->fullscreen=fullscreen;
-+    lk->c3=glGetUniformLocation(pr,"c3");lk->c3f=glGetUniformLocation(pr,"c3f");lk->tex=glGetUniformLocation(pr,"tex0");
++    lk->c3=glGetUniformLocation(pr,"c3");lk->c3f=glGetUniformLocation(pr,"c3f");lk->tex=glGetUniformLocation(pr,"tex0");lk->tex1=glGetUniformLocation(pr,"tex1");
 +    printf("WOL_CAT_LINK ok=1 vertex=%s fragment=%s mode=%s program=%u c3=%d c3f=%d tex=%d%s\n",
 +        fullscreen?"TEST-FULLSCREEN-DIAG":vsrc?"TEST-TRIVIAL-VS":bv->name,bf->name,
 +        fullscreen?"TEST-DIAGNOSTIC-FULLSCREEN":testfrag?"TEST-GREEN-SOLID":(bf->diag?"TEST-DIAGNOSTIC-COLOR":"translated"),
@@ -1959,7 +1990,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +843,29 @@
+@@ -507,12 +861,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -1990,7 +2021,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +966,28 @@
+@@ -613,6 +984,28 @@
              }
          }
  #endif

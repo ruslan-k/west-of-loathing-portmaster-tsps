@@ -938,3 +938,14 @@ running - the SASS line `0x68 ipa $r0 a[0x84]` (v8.y) is decoded ground truth, a
 guesses do not replace decoded reads. Run 123 doubles the diagnostic budget to 3600 s (loader cap
 raised to 7200): the loading pipeline keeps advancing (134+ real textures, BC atlases), and the
 longer window is the honest way to see how far it gets and whether the menu phase starts drawing.
+
+### Prepared during run 123: the missing glBindTexture, and the f268 draft
+
+Reviewing the texture branch against the working fullscreen path found a real defect: the
+"translated" texture bind set the sampler uniform to unit 0 but **never called glBindTexture** - so
+tex0 sampled whatever texture happened to be left on unit 0 by earlier passes, not the resolved
+one. The branch now binds `t->name` explicitly. At the same time, `f268-draft` joins the
+catalogue (two samples per the decoded ipa reads - tex0 at v9 (uv), tex1 at v10.xy (raw position) -
+tinted by v8 and discarded below a declared placeholder alpha of 0.5; the real threshold lives in
+the undecoded chain). A second sampler unit is wired for it (next resolvable recorded handle to
+unit 1). Both changes are built and await the cycle after run 123.
