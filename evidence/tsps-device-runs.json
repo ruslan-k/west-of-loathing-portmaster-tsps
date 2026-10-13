@@ -725,6 +725,12 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-86",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 210,
+      "note": "WOL_PAIR_MATH CPU probe: the translated pair's quad comes out with clip.w=-0.98 on every vertex - negative w, so the triangle is clipped off-screen (explains the green test); fed c3 bank is not the real matrix; run 111 dumps the full c3/fragment banks and all bound slots"
+    },
+    {
       "run": "device-85",
       "stop": "none (governor SIGTERM, exit 143)",
       "presents": 977,
