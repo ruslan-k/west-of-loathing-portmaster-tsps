@@ -35,3 +35,9 @@
 - Remaining known gap (user report "some assets don't display"): draws whose shader pairs are not yet in the translation catalogue are skipped - 245760 skips in the gfx173 run (objects 0x10602259a8/0x1008cb2888 etc. in the gameplay phase). Scene/world art depends on those pairs; f191/f268 fragments are still TEST-DRAFT.
 - [ ] Inspect physical KMS captures after correction; do not substitute frame counts for image correctness.
 - [ ] Correct prior unsupported splash/loading claims in maintained docs and skills.
+
+## Skip census (run gfx174, build-170) — which pairs make the missing assets
+Draw-site per-pair skip counter (WOL_SKIP_TOP/WOL_SKIP_PAIR_NEW): 173797 + 38094 + 24653 + 1024 skipped draws over one 700 s run. Program-object inventory correlation (object -> code/control address -> captured SHA-256) reduces the first three pairs to ONE shader pair:
+- vertex 1024 B code-sha256 f43463c57a81c5de... (control 94f306daf11a...) + fragment 512 B code-sha256 649ae12f51fe6689... (control 3ee2f2106c88...) - THE workhorse pair of the missing world/scene (about 87% of all skipped draws).
+- second (small) pair: vertex d88c64a6ae67554a... (third d88c64a6 variant) + fragment f8e1b018f588f274... - that fragment is the one blob not yet captured (needs one WOL_DUMP=1 run in the gameplay phase).
+envydis decode (gm107) of the top pair: fragment = tinted sprite with explicit perspective divide - ipa a[0x7c] (w), ipa a[0x90]/a[0x94] (uv), mufu rcp + fmul -> texture2D(tex0, uv/w), then rgb/a multiplied by the interpolated colour a[0x80..0x8c]; exit. Vertex = 9-10 attribute words (a[0x80..0xa4]) transformed through the c3 matrix family with c3 constant adds, varyings exported at a[0x70..0x94] matching the fragment's reads exactly. Same family as the already-translated f191/f268; blobs and disasm in the spike library (wol-shaders-private/untranslated, index.json).
