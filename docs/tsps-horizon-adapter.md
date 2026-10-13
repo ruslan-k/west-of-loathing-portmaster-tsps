@@ -497,6 +497,12 @@ switch inside a callback: does the guest stack pointer survive `cotm_nvn_call_or
 runtime do when the guest changes `sp` inside a nested call? That question is measured before anything is
 changed, as with every other blocker in this project.
 
+**Correction (runs 90-91, measured):** the reading above is wrong. `NVN_GUEST_POINTER` reports
+`nvn_caller = f->lr` - the *return address* of the NVN call - as its `pc`, and the rejected pointer as its
+`detail` (here 0x0). The instrumented run 90 resolved the rejection to this runtime's own diagnostic vtable
+probe inside the command-memory callback path (see "Runs 90-91" below). The game's stack switching is not
+involved and no guest signal or frame corruption exists at that address.
+
 ### A/B: the guest stack-switch stop is independent of the arena handling
 
 `WOL_ARENA_KEEP_OLD=1` accepts the new arena **without** trimming the old entry (the old range stays
@@ -513,7 +519,55 @@ logged) stays. The stack-switch fault is a guest-side path, and the next diagnos
 environment makes of the guest's own stack switch - or, equally likely, the title's state machine reaching a
 guard path because its draws still produce nothing (the two untranslated pairs).
 
+**Correction (runs 90-91, measured):** neither candidate axis was the cause. The stop was produced by this
+runtime's own diagnostic vtable probe inside the command-memory callback path; it is fixed and the run now
+proceeds past it (600 frames, see "Runs 90-91").
+
 Runs 71/72 end clean, no CPU_FAULT, device restored to the menu.
+
+### Runs 90-91: the stop named by measurement - and it was the runtime's own probe
+
+Review-driven instrumentation (P0), behaviour-preserving:
+
+- `nvn_bridge.h` keeps the innermost NVN id, its eight arguments, the guest frame LR and SP per thread and
+  threads them through nested dispatches;
+- `nvn_pointer.h` prints `NVN_POINTER_REJECT` (address, size, permissions, current NVN function, all eight
+  arguments, caller, thread, depth) plus a frame-pointer host backtrace before the stop;
+- `nvn_command_callback.h` marks the callback boundary (`T2P_CB_CALL_BEGIN/END`).
+
+Run 90 reproduced the identical stop and named its exact cause:
+
+```
+NVN_POINTER_REJECT address=0x0 size=0x30 perm=0x1 nvn=nvnCommandBufferSetRenderTargets id=0xa1
+  caller=main.text.seg+0xaf4684 frame-lr=main.text.seg+0xaf4684 frame-sp=0x6cfa68d0
+  a0x0=0x1000a7f010 a0x1=0x1 a0x2=0x6cfa68d0 a0x3=0x0 a0x4=0x1000a2cab8 a0x5=0x0 a0x6=0x0 a0x7=0x0
+  thread=0x5 depth=0x1 context=-
+  host-frame 1 from-stop=0x2a2c raw=0x55613dc8e4
+```
+
+Resolved with `addr2line` against the exact build, the host backtrace reads: `nvn_pointer <-
+nvn_command_request_memory <- nvn_command_emit <- nvn_command_record_inner <- nvn_command_record <-
+nvn_command_dispatch_locked <- cotm_nvn_dispatch <- cotm_nvn_entry`. The rejected read (`size=0x30`,
+read) is the `T2P_CMDMEM_CALLBACK_TARGET` probe dereferencing word 0 of the title's callback object as a
+vtable pointer; for West of Loathing that word is zero (the callback data equals the command-buffer object
+address), so the probe - a diagnostic kept from the Terminator lineage - fail-closed the run. The recorder
+itself was healthy: the callback refilled memory (`generation 2 -> 3`) and the retired-tail arena acceptance
+had already passed.
+
+The fix guards the probe only: the second read runs only when word 0 is non-zero (a zero prints as
+`vtable=0x0 slot4=none`). No pointer validation was weakened; every other rejection stays fail-closed.
+
+Run 91 with the guard in place:
+
+- presents **600 frames** (up from 146) and passes the previous stop region with no guest fault and no GL error;
+- the title reads its asset bundles through RomFS, including the **191.088 MiB core** (`offset=0x4630d0
+  size=0xbf15cfc`) and an 11.6 MiB companion, and creates **33 real textures** (1920x1080 / 1280x720 targets
+  and small engine fills); no further texture is created in the measured log after the early frames;
+- all 600 frames are still black; the run ends on the diagnostic memory floor
+  (`T2_MEMORY_FLOOR available-MiB=31 floor-MiB=32`, VmRSS 712 MiB, swap ~462 MiB used), not on a game stop.
+
+The next gates are unchanged: translate the two remaining program pairs (v189/v266 share vertex code
+`d88c64a6`; fragments `f191`, `f268`) and explain the black state the title stays in after its initial reads.
 
 ### Decode progress on the two remaining pairs (private workspace evidence)
 

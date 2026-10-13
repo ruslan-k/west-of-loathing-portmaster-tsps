@@ -96,8 +96,8 @@ This repository is GPL-3.0. Third-party reference packages remain local; the rep
 | Command arenas | **unused-tail overlap solved with evidence** (see below) |
 | GLSL ES translation | 1 of 3 frame pairs; compiles, links and draws with zero GL errors |
 | Render targets | real GPU blit 1920x1080 -> 1280x720 |
-| Present | 146-147 frames, all still black |
-| Current stop | `NVN_GUEST_POINTER` in the game's own code (`main.text.seg+0xaf4684`, detail 0x0) |
+| Present | 600 frames, all still black (run 91) |
+| Current stop | diagnostic `T2_MEMORY_FLOOR` stop (31 MiB available vs the 32 MiB floor) after 600 frames; the previous `NVN_GUEST_POINTER` stop was this runtime's own callback-vtable probe (measured and fixed in runs 90-91) |
 
 ### Command arena: what was measured
 
