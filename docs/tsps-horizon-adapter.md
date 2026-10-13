@@ -684,3 +684,24 @@ diagnostics; P0: downsample; P1: shaders):
   present->screen chain; `WOL_BLIT_CENSUS` already reports per-frame pixel counts at the blit.
 - **Boot heartbeat fix**: the catalogue draw paths now increment `nvn_replay.draws`, so
   `WOL_BOOT_TICK draws=` reflects real draw calls (was always 0 on the experimental hook).
+
+### Run 106: the pixel route is proven, and two quiet-mode faults found
+
+- **HID unlocked**: with 123-129 implemented the title no longer stops at command 128; the run's
+  only end was the diagnostic memory floor (`available 25 MiB vs floor 26`) at frame ~163.
+- **Route proven end to end (review P0)**: `WOL_WINDOW_TEXTURE` shows the swapchain is textures
+  1/2/3 = ids 30/31/32, all 1920x1080; `WOL_PRESENT_SOURCE` shows the present quad samples exactly
+  those textures (rotating per frame). With `WOL_PRESENT_TEST=1` the magenta 64x64 marker written
+  directly into each presenting texture appeared as **nonblack=4096 in all 163 present readback
+  samples** - the render-target -> window-texture -> present -> readback chain works.
+- **Fault 1 (fixed)**: under `WOL_QUIET=1` the translated pair drew with NO texture bound
+  (`WOL_PAIR_TEX none=1`), so it painted black by design into the scene targets; quiet mode now
+  binds the first non-null candidate handle without content readbacks.
+- **Fault 2 (fixed)**: the Downsample record was clobbered by the generic payload overwrite (the
+  payload became the first 16 bytes of view A instead of the two object words), which is why the
+  replay probed view bytes as texture objects and the target=269 operation stayed unresolved. The
+  record now keeps the two raw view pointers and the replay decodes the texture object inside each
+  36-byte view (word scan against the live registry, offsets logged).
+- **Memory is the endurance blocker** (review section 5): the run died at the floor with RSS
+  ~742 MiB while the load was still advancing. The next diagnostic run lowers the harness floor to
+  20 MiB (bounded, self-guarding) to observe how far the loading gets past frame 163.

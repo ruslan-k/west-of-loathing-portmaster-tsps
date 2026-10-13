@@ -725,6 +725,12 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-82",
+      "stop": "T2_MEMORY_FLOOR (available 25 MiB vs floor 26)",
+      "presents": 163,
+      "note": "HID 123-129 unlocked (no IPC stops); pixel route PROVEN: window textures = ids 30/31/32 (1920x1080), WOL_PRESENT_TEST magenta marker visible as nonblack=4096 in all 163 present readbacks; quiet-mode unbound-texture fault and the Downsample payload overwrite found and fixed; draws counter now reports 420/840"
+    },
+    {
       "run": "device-81",
       "stop": "UNIMPLEMENTED_IPC_COMMAND (HID cmd 128, endpoint 0x2d)",
       "stop_pc": "sdk.text.seg+0xa9d94",
