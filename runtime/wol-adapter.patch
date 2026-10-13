@@ -1191,7 +1191,7 @@
  static GLenum nvn_blend_equation(unsigned value) {
      if(value==1)return GL_FUNC_ADD;
      if(value==2)return GL_FUNC_SUBTRACT;
-@@ -210,6 +212,104 @@
+@@ -210,6 +212,121 @@
      }
  #endif
      stop("NVN_BLEND_EQUATION_REQUIRED",nvn_caller,value,20);return 0;
@@ -1229,6 +1229,23 @@
 +    static int conf;static const char *pat;
 +    if(!conf){pat=getenv("WOL_TRACE_PAIR");conf=1;}
 +    return pat&&*pat&&name&&strstr(name,pat);
++}
++/* Review 2026-10-14: trace by the SAMPLED TEXTURE id as well - the menu atlas (1024x1024 signs /
++ * fence) passes through the TOP pair among thousands of world draws, so a pair-name filter alone
++ * cannot catch it. WOL_TRACE_TEXID=<id> arms the trace when the currently bound unit-0 texture
++ * resolves to that id. */
++static int wol_trace_texid_hit(void) {
++    static int conf;static long want;
++    if(!conf){const char *o=getenv("WOL_TRACE_TEXID");want=o?atol(o):0;conf=1;}
++    if(want<=0)return 0;
++    GLint name=0;glGetIntegerv(GL_TEXTURE_BINDING_2D,&name);
++    if(!name)return 0;
++    for(unsigned i=0;i<4096;i++)if(nvn_textures[i].live&&nvn_textures[i].name==(GLuint)name)
++        return nvn_textures[i].id==(uint64_t)want;
++    return 0;
++}
++static int wol_trace_match(const char *name) {
++    return wol_trace_on(name)||wol_trace_texid_hit();
 +}
 +/* Review 2026-10-14: before/after must belong to the SAME draw - a single flag decided in the
 + * before-block and consumed by the after-block (the old separate counter could pair different draws). */
@@ -1296,7 +1313,7 @@
  }
  static GLenum nvn_stencil_operation(unsigned value) {
      static const GLenum operations[]={0,GL_KEEP,GL_ZERO,GL_REPLACE,GL_INCR,GL_DECR,GL_INVERT,GL_INCR_WRAP,GL_DECR_WRAP};
-@@ -312,8 +412,19 @@
+@@ -312,8 +429,19 @@
       * sampler2D shaders never evaluate; both are admitted once-logged. Reduction/anisotropy/bias stay closed. */
      {static unsigned aw_sampler_reported;
       if((b->compare || b->lod_min<0) && !aw_sampler_reported++)printf("AW_SAMPLER_ADMIT compare=%u lod-min=%g shaders=sampler2D-only\n",b->compare,b->lod_min);}
@@ -1316,7 +1333,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -507,8 +618,767 @@
+@@ -507,8 +635,767 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -1851,7 +1868,7 @@
 +                {   static unsigned traced,seen;static int sk;static unsigned skipn;
 +                    if(!sk){const char *o=getenv("WOL_TRACE_SKIP");skipn=o?(unsigned)atoi(o):0;sk=1;}
 +                    wol_trace_this=0;
-+                    if(wol_trace_on(wol_cat_bindings[wol_cat_cur->f].name)) {
++                    if(wol_trace_match(wol_cat_bindings[wol_cat_cur->f].name)) {
 +                        seen++;
 +                        if(seen>skipn && traced<wol_trace_limit()) {
 +                        wol_trace_this=1;
@@ -2084,7 +2101,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +1574,7 @@
+@@ -704,6 +1591,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -2092,7 +2109,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1535,6 +2406,288 @@
+@@ -1535,6 +2423,288 @@
          begin=end+1;
      }
  }
@@ -2381,7 +2398,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2715,16 @@
+@@ -1562,7 +2732,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
