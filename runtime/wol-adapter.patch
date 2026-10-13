@@ -619,7 +619,7 @@
      case NI_nvnCommandBufferSetDepthBounds:
          nvn_command_record(nvn_command_find(a[0]),id,f);return 1;
      /* Animal Well (NVN 17.x array forms): a single viewport/scissor/depth range at index 0 is the singular command;
-@@ -678,7 +707,63 @@
+@@ -678,7 +707,86 @@
                  if((i<c->command_count)!=command)stop("NVN_COMMAND_ARENA_TYPE",nvn_caller,address,24);
                  nvn_command_reuse_arena(c,p);if(command)c->current=i;return 1;
              }
@@ -663,6 +663,29 @@
 +                            p->size=new_start-old_start;
 +                            printf("WOL_COMMAND_ARENA_RETIRE old=0x%"PRIx64"/%"PRIu64" trimmed_to=0x%"PRIx64" overlap=0x%"PRIx64"..0x%"PRIx64" action=RETIRED_TAIL\n",
 +                                old_start,old_end-old_start,new_start-old_start,new_start,old_end);
++                            continue;
++                        }
++                    }
++                }
++                /* Run-147: the title re-registers the same arena with a SMALLER size while a list and
++                 * the recording are live (a routine command-buffer shrink). The discarded tail is safe to
++                 * drop only when no live data sits in it, computed exactly like the unused-tail path above:
++                 * the used cursor, the retained range and every live list's recorded ranges. */
++                {   uint64_t old_start=p->address,old_end=p->address+p->size,new_start=address,new_end=address+size;
++                    if(new_start>=old_start && new_end<=old_end && new_end>old_start) {
++                        /* Run-148: the arena's used cursor reads full-size (2097136 = the whole old arena)
++                         * at this site, so it cannot gate the shrink - the live references are the
++                         * retained range and the live lists' recorded ranges. */
++                        uint64_t safe_end=old_start;
++                        if(command && (int)i<16 && c->command_retained[i].last>safe_end)safe_end=c->command_retained[i].last;
++                        NVN_FOR_EACH_COMMAND_LIST(l)if(l->live && l->owner==c->object)
++                            for(unsigned r=0;r<l->t2_ranges && r<8;r++)
++                                if(l->t2_range_first[r]<old_end && old_start<l->t2_range_end[r] && l->t2_range_end[r]>safe_end)
++                                    safe_end=l->t2_range_end[r];
++                        if(new_end>=safe_end) {
++                            printf("WOL_COMMAND_ARENA_SHRINK old=0x%"PRIx64"/%"PRIu64" new=0x%"PRIx64"/%"PRIu64" limit=0x%"PRIx64" used=%u list=%d recording=%d action=accepted\n",
++                                old_start,old_end-old_start,new_start,size,safe_end,(unsigned)p->used,(int)(c->list!=NULL),(int)c->recording);
++                            p->size=size;if(command && (int)i<16 && c->command_retained[i].last>new_end)c->command_retained[i].last=new_end;
 +                            continue;
 +                        }
 +                    }
