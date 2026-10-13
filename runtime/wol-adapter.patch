@@ -1093,7 +1093,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1742,225 @@
+@@ -1535,6 +1742,235 @@
          begin=end+1;
      }
  }
@@ -1201,13 +1201,23 @@
 +    return 1;
 +}
 +
++static struct nvn_texture *wol_texture_by_id(uint64_t id) {
++    if(!id||id>=4096)return NULL;
++    for(unsigned i=0;i<nvn_textures_high&&i<4096;i++) {
++        struct nvn_texture *t=&nvn_textures[i];
++        if(t->live&&t->id==id)return t;
++    }
++    return NULL;
++}
 +static struct nvn_texture *wol_view_texture(const uint8_t *view,unsigned *offset_out) {
-+    /* Old-SDK downsample views (36 bytes) as copied into the record at recording time: scan the words
-+     * for one that is a registered texture object. Pure registry lookup - no guest reads. */
++    /* Old-SDK downsample views (36 bytes) as copied into the record at recording time. A word may be a
++     * guest texture object address (old view flavour) or pack the texture id in its high half (measured
++     * run 108: 0x0000010d_d4f5544d = id 269). Pure registry lookups - no guest reads. */
 +    if(!view)return NULL;
 +    const uint64_t *words=(const uint64_t *)view;
 +    for(unsigned i=0;i<4;i++) {
 +        struct nvn_texture *t=wol_texture_probe(words[i]);
++        if(!t)t=wol_texture_by_id(words[i]>>32);
 +        if(t){if(offset_out)*offset_out=i;return t;}
 +    }
 +    return NULL;
@@ -1319,7 +1329,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +1988,16 @@
+@@ -1562,7 +1998,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -1465,7 +1475,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,288 @@
+@@ -46,10 +46,299 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -1599,6 +1609,10 @@
 +"precision mediump float;\n"
 +"uniform mediump sampler2D tex0;\n"
 +"void main(){gl_FragColor=vec4(1.0,0.0,1.0,1.0);}\n";
++static const char wol_diag_green_glsl[] =
++"#version 100\n"
++"precision mediump float;\n"
++"void main(){gl_FragColor=vec4(0.0,1.0,0.0,1.0);}\n";
 +static const char wol_diag_cyan_glsl[] =
 +"#version 100\n"
 +"precision mediump float;\n"
@@ -1684,13 +1698,20 @@
 +    unsigned fullscreen=0;
 +    if(!bv->glsl) { if(bf->diag)fullscreen=1; else return NULL; }
 +    if(bf->diag&&!wol_diag_enabled())return NULL;
++    /* WOL_PAIR_TEST=1 (review 2026-10-13): keep the translated vertex but paint solid green, to tell a
++     * geometry/target problem from a texture/sampling problem. TEST-ONLY. */
++    const char *frag=bf->glsl;unsigned testfrag=0;
++    if(!bf->diag) {
++        static int pt_configured,pt_on;if(!pt_configured){const char *o=getenv("WOL_PAIR_TEST");pt_on=o&&!strcmp(o,"1");pt_configured=1;}
++        if(pt_on){frag=wol_diag_green_glsl;testfrag=1;}
++    }
 +    if(wol_cat_linked_used>=4)return NULL;
 +    GLint ok=0;char log[1024];
 +    GLuint vs=glCreateShader(GL_VERTEX_SHADER),fs=glCreateShader(GL_FRAGMENT_SHADER);
 +    const char *src=fullscreen?wol_diag_fullscreen_vs:bv->glsl;
 +    glShaderSource(vs,1,&src,NULL);glCompileShader(vs);glGetShaderiv(vs,GL_COMPILE_STATUS,&ok);
 +    if(!ok){log[0]=0;glGetShaderInfoLog(vs,sizeof log,NULL,log);printf("WOL_CAT_LINK stage=vertex shader=%s ok=0 log=%s\n",fullscreen?"fullscreen-diag":bv->name,log);return NULL;}
-+    src=bf->glsl;glShaderSource(fs,1,&src,NULL);glCompileShader(fs);glGetShaderiv(fs,GL_COMPILE_STATUS,&ok);
++    src=frag;glShaderSource(fs,1,&src,NULL);glCompileShader(fs);glGetShaderiv(fs,GL_COMPILE_STATUS,&ok);
 +    if(!ok){log[0]=0;glGetShaderInfoLog(fs,sizeof log,NULL,log);printf("WOL_CAT_LINK stage=fragment shader=%s ok=0 log=%s\n",bf->name,log);return NULL;}
 +    GLuint pr=glCreateProgram();glAttachShader(pr,vs);glAttachShader(pr,fs);
 +    if(fullscreen)glBindAttribLocation(pr,0,"p");
@@ -1702,8 +1723,8 @@
 +    lk->c3=glGetUniformLocation(pr,"c3");lk->c3f=glGetUniformLocation(pr,"c3f");lk->tex=glGetUniformLocation(pr,"tex0");
 +    printf("WOL_CAT_LINK ok=1 vertex=%s fragment=%s mode=%s program=%u c3=%d c3f=%d tex=%d%s\n",
 +        fullscreen?"TEST-FULLSCREEN-DIAG":bv->name,bf->name,
-+        fullscreen?"TEST-DIAGNOSTIC-FULLSCREEN":(bf->diag?"TEST-DIAGNOSTIC-COLOR":"translated"),
-+        (unsigned)pr,(int)lk->c3,(int)lk->c3f,(int)lk->tex,bf->diag?" note=not-a-translation":"");
++        fullscreen?"TEST-DIAGNOSTIC-FULLSCREEN":testfrag?"TEST-GREEN-SOLID":(bf->diag?"TEST-DIAGNOSTIC-COLOR":"translated"),
++        (unsigned)pr,(int)lk->c3,(int)lk->c3f,(int)lk->tex,(bf->diag||testfrag)?" note=not-a-translation":"");
 +    return lk;
 +}
 +
@@ -1755,7 +1776,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +785,29 @@
+@@ -507,12 +796,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -1786,7 +1807,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +908,28 @@
+@@ -613,6 +919,28 @@
              }
          }
  #endif
