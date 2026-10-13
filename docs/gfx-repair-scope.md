@@ -28,5 +28,10 @@
 - [x] Guest colour contract: wol_apply_color_state applies blend enable (0x100 bit), separate factors/equations and the write mask for every substituted draw, sharing the standard path's state-cache slots. Definition lives outside all game-conditional blocks (build-167 first attempt failed exactly there: ANIMAL_WELL_SHADERS guard compiled it out).
 - [x] build-167 compiled, unit-tested, deployed; runtime sha 4a99a1dd740b1b14739ea3178b1b582ff4ea09895980c94b0f09eaa4e80e3e09; previous binary backed up on device.
 - [ ] Run 167 (240 s): verify via kmsgrab that the wipe is gone and target 280 keeps its content.
+
+## Update 2026-10-13 evening (input + late-phase unblock)
+- Input: `COTM_INPUT_DIAGNOSTIC=1` opens a unix socket (`HID_DIAGNOSTIC_SOCKET path=/tmp/cotm-input-*/buttons.sock`); 16-byte datagrams `{u64 buttons; u32 ms; u32 reserved}` enter the SAME Npad ring as physical input (logged `HID_DIAGNOSTIC_PRESS`/`HID_SAMPLE`). Verified with an autopilot: the control card is a GATE - without presses it held 10 min (gfx169), with presses the screen advanced within ~20-40 s (gfx171/172/173).
+- Late-phase rendering: the game's later phases use texture ids from a session-wide counter (8394+). `wol_texture_by_id` rejected ids >= 4096, so the downsample views never resolved (6415 unresolved/run in gfx172) and the chain stayed black. Fix: drop the id cap (build-169, sha 9e1a6f1f...). After: unresolved = 0, and the post-card phases render - kmsgrab shows the game's own examine text "It's Mom's pie safe. It keeps all her pies safe." on the physical screen (gfx173, during-620/680).
+- Remaining known gap (user report "some assets don't display"): draws whose shader pairs are not yet in the translation catalogue are skipped - 245760 skips in the gfx173 run (objects 0x10602259a8/0x1008cb2888 etc. in the gameplay phase). Scene/world art depends on those pairs; f191/f268 fragments are still TEST-DRAFT.
 - [ ] Inspect physical KMS captures after correction; do not substitute frame counts for image correctness.
 - [ ] Correct prior unsupported splash/loading claims in maintained docs and skills.

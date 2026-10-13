@@ -1715,7 +1715,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1535,6 +2040,275 @@
+@@ -1535,6 +2040,279 @@
          begin=end+1;
      }
  }
@@ -1824,7 +1824,11 @@
 +}
 +
 +static struct nvn_texture *wol_texture_by_id(uint64_t id) {
-+    if(!id||id>=4096)return NULL;
++    /* Ids come from a session-wide monotonic counter (textures, buffers, samplers, programs all
++     * draw from it), so later phases carry ids well past 4096 - measured: the black-phase views
++     * pack id 8394/8395 in their high halves and the old id>=4096 rejection sent every one of
++     * them to the unresolved fallback. The 4096 bound belongs to the SLOT array, never to ids. */
++    if(!id)return NULL;
 +    for(unsigned i=0;i<nvn_textures_high&&i<4096;i++) {
 +        struct nvn_texture *t=&nvn_textures[i];
 +        if(t->live&&t->id==id)return t;
@@ -1991,7 +1995,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2336,16 @@
+@@ -1562,7 +2340,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
