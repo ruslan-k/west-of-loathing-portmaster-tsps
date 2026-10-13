@@ -790,7 +790,7 @@
      uint64_t started=nvn_nanoseconds();
      char json[640];const char *run=getenv("COTM_RUN_ID");
      int size=snprintf(json,sizeof(json),"{\"port\":\"legacy_runtime-switch-study\",\"run\":\"%s\",\"generation_pid\":%ld,\"frame\":%u,\"status\":\"%s\",\"nonblack_pixels\":%u,\"maximum_rgb\":%u,\"game_draws\":%u,\"black_streak\":%u,\"sampled_pixels\":%u,\"full_readback\":%s,\"sample_y\":%u,\"sample_rows\":%u,\"boundary\":\"%s\"}\n",
-@@ -145,7 +146,57 @@
+@@ -145,7 +146,80 @@
      if(nvn_present.image_scale<0 || nvn_present.image_offset<0)stop("NVN_PRESENT_IMAGE_SCALE",nvn_caller,nvn_present.program,21);
      glDisable(GL_DEPTH_TEST);glDisable(GL_STENCIL_TEST);glDisable(GL_BLEND);glDisable(GL_CULL_FACE);glDisable(GL_SCISSOR_TEST);
  }
@@ -820,15 +820,38 @@
 +        char path[300];snprintf(path,sizeof path,"/proc/self/task/%.64s/stat",e->d_name);
 +        FILE *tf=fopen(path,"r");if(!tf)continue;
 +        char buf[1024];size_t n=fread(buf,1,sizeof buf-1,tf);buf[n]=0;fclose(tf);
-+        char *lp=strrchr(buf,')');char comm[17]={0};if(lp){size_t cl=(size_t)(lp-buf);if(cl>1&&cl<17)memcpy(comm,buf+1,cl-1);} else continue;
-+        unsigned long long ut=0,st=0;if(lp&&lp[1]==' '){unsigned long long vals[24]={0};char *save=0;char *tok=strtok_r(lp+2," ",&save);unsigned idx=0;
++        char *lp=strrchr(buf,')');char *op=strchr(buf,'(');char comm[17]={0};
++        if(!lp||!op||lp<=op+1)continue;
++        size_t clen=(size_t)(lp-op-1);if(clen>16)clen=16;memcpy(comm,op+1,clen);
++        unsigned long long ut=0,st=0;if(lp[1]==' '){unsigned long long vals[24]={0};char *save=0;char *tok=strtok_r(lp+2," ",&save);unsigned idx=0;
++            /* after ')': idx0=state(field 3) -> utime is field 14 overall = idx 11, stime idx 12 (review fix) */
 +            while(tok&&idx<24){if(idx>=1){char *end=0;unsigned long long v=strtoull(tok,&end,10);if(end!=tok)vals[idx]=v;}idx++;tok=strtok_r(0," ",&save);}
-+            ut=vals[13];st=vals[14];}
++            ut=vals[11];st=vals[12];}
 +        for(unsigned k=0;k<5;k++) if(ut>top[k].ut){for(int m=4;m>(int)k;m--)top[m]=top[m-1];top[k].ut=ut;top[k].st=st;snprintf(top[k].comm,17,"%s",comm);break;}
 +    }closedir(d);}
 +    for(unsigned k=0;k<5;k++) if(top[k].ut||top[k].st)
 +        printf("WOL_THREAD_TOP rank=%u comm=%s utime=%llu stime=%llu\n",k,top[k].comm,top[k].ut,top[k].st);
 +    /* memory split: anonymous vs file-backed vs swapped, from smaps_rollup */
++    /* VMA attribution (review P0): top mappings by RSS, to classify the anonymous gigabytes. */
++    {
++        static unsigned vma_told;if(vma_told<6){vma_told++;
++            FILE *mf=fopen("/proc/self/smaps","r");if(mf){
++                char line[512];unsigned long long start=0,end=0,rss=0,swp=0;char name[128]=""; int have=0;
++                struct {unsigned long long rss,swp,size;char name[96];} top[8]={{0}};
++                while(fgets(line,sizeof line,mf)){
++                    unsigned long long a,b;
++                    if(sscanf(line,"%llx-%llx",&a,&b)==2){ if(have){ for(int k=0;k<8;k++) if(rss+swp>top[k].rss+top[k].swp){ for(int m=7;m>k;m--)top[m]=top[m-1]; top[k].rss=rss;top[k].swp=swp;top[k].size=end-start;snprintf(top[k].name,96,"%.80s",name);break;} } start=a;end=b;rss=0;swp=0;name[0]=0;have=1;
++                        char *p=strchr(line,' '); if(p){p++;size_t n=strcspn(p,"\n");if(n>95)n=95;memcpy(name,p,n);name[n]=0;} }
++                    else if(sscanf(line,"Rss: %llu",&a)==1)rss=a;
++                    else if(sscanf(line,"Swap: %llu",&a)==1)swp=a;
++                }
++                if(have){ for(int k=0;k<8;k++) if(rss+swp>top[k].rss+top[k].swp){ for(int m=7;m>k;m--)top[m]=top[m-1]; top[k].rss=rss;top[k].swp=swp;top[k].size=end-start;snprintf(top[k].name,96,"%.80s",name);break;} }
++                fclose(mf);
++                for(int k=0;k<8;k++) if(top[k].rss||top[k].swp)
++                    printf("WOL_VMA_TOP rank=%d rss_kb=%llu swap_kb=%llu size_kb=%llu name=%s\n",k,top[k].rss,top[k].swp,top[k].size/1024,top[k].name);
++            }
++        }
++    }
 +    f=fopen("/proc/self/smaps_rollup","r");
 +    if(f) {
 +        char line[256];unsigned long long rss=0,anon=0,swp=0,swppss=0,pss=0;
@@ -848,7 +871,7 @@
      if(id!=NI_nvnQueuePresentTexture)return 0;
      unsigned timing=nvn_frame_timing_enabled(),timing_sampled=0,timing_capture=0,cadence_pixel_proof=0;
      uint64_t timing_readback_ns=0,timing_dump_ns=0;
-@@ -165,6 +216,7 @@
+@@ -165,6 +239,7 @@
          if(np){nvn_present.frames++;nvn_replay.last_frame=nvn_present.frames;nvn_window.acquired[index]=0;return 1;}
      }
  #endif
@@ -856,7 +879,7 @@
      if(nvn_skip.active) {
          /* Skipped frame: no GL, no swap; keep ownership, counters and the
           * per-60-logic-frame profile line consumed by the automation. */
-@@ -172,6 +224,7 @@
+@@ -172,6 +247,7 @@
          uint64_t now=nvn_nanoseconds();nvn_profile.present_ns+=now-started;nvn_profile.frames++;
          if(nvn_profile.start && nvn_profile.frames>=60) {
              double ms=1e-6/nvn_profile.frames;
@@ -864,7 +887,7 @@
              printf("NVN_PROFILE frame=%u count=%u elapsed-ms=%.3f replay-ms=%.3f present-ms=%.3f readback-ms=%.3f replay-cpu-ms=%.3f scope=wall-time-per-frame frameskip=%u rendered=%"PRIu64" skipped=%"PRIu64"\n",nvn_present.frames,nvn_profile.frames,
                  (now-nvn_profile.start)*ms,nvn_profile.replay_ns*ms,nvn_profile.present_ns*ms,nvn_profile.readback_ns*ms,nvn_profile.replay_cpu_ns*ms,nvn_skip.every,nvn_skip.rendered,nvn_skip.skipped);
              nvn_phase_report(nvn_present.frames,nvn_profile.frames);
-@@ -186,7 +239,12 @@
+@@ -186,7 +262,12 @@
      if(!nvn_async_frame_enabled())nvn_async_present_wait_locked(q,single);
      if(!single)nvn_egl_present_reader_wait();
      if(single) {
@@ -878,7 +901,7 @@
          /* This is a logical context use even though its physical binding is
           * retained. Do not reuse a completion proof from before the quad. */
          if(!++nvn_gl_completion.use_serial)stop("NVN_GL_SERIAL_WRAP",nvn_caller,0,24);
-@@ -199,10 +257,16 @@
+@@ -199,10 +280,16 @@
      }
      nvn_present_setup();
      momo_stencil_selftest();
@@ -896,7 +919,7 @@
  #ifdef ANIMAL_WELL_SHADERS
      if(aw_fbcopy_enabled()){aw_fbcopy_open(width,height);glBindFramebuffer(GL_FRAMEBUFFER,aw_fbcopy.fbo);}
      else glBindFramebuffer(GL_FRAMEBUFFER,0);
-@@ -225,6 +289,17 @@
+@@ -225,6 +312,17 @@
      }
      glViewport(rect->x,(int)height-rect->y-rect->h,rect->w,rect->h);
      glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,t->name);
@@ -914,7 +937,7 @@
      nvn_texture_parameters(t,GL_NEAREST,GL_NEAREST,GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE);
      GLfloat scale=(t->host_half||t->host_scaled)?1.0f:nvn_low_present_scale(t),scale_y=(t->host_half||t->host_scaled)?1.0f:nvn_low_present_scale_y(t);
      nvn_rt_storage_require(t);
-@@ -270,6 +345,14 @@
+@@ -270,6 +368,14 @@
      cadence_pixel_proof=proof;
      const char *status=proof?"PIXELS":nonblack?"INCONCLUSIVE":"BLACK-SAMPLE";
      printf("NVN_PRESENT_PIXELS frame=%u nonblack=%u max=%u white=%u texture-draws=%u status=%s\n",nvn_present.frames,nonblack,maximum,readback.measure.white,t->draws,status);
@@ -929,7 +952,7 @@
      /* Native54 frame381 proves a black atlas background, RGB0 glyph vertices
       * and a transparent final overlay in the color layer; the normal target
       * still renders. Twelve samples were insufficient to observe this native
-@@ -342,6 +425,7 @@
+@@ -342,6 +448,7 @@
      if(!nvn_present_from_job)nvn_window.acquired[index]=0;
      uint64_t now=nvn_nanoseconds();nvn_profile.present_ns+=now-started;nvn_profile.frames++;
      if(nvn_profile.start && nvn_profile.frames>=60) {
@@ -1349,7 +1372,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1891,235 @@
+@@ -1535,6 +1891,262 @@
          begin=end+1;
      }
  }
@@ -1578,14 +1601,41 @@
 +        glBindFramebuffer(GL_FRAMEBUFFER,(GLuint)previous);
 +        glDeleteFramebuffers(1,&fb);
 +    }
-+    dst->zero_cpu_dirty=1;
++    /* Review 2026-10-13: after a GPU blit the GPU copy is authoritative; marking the texture
++     * CPU-dirty made zero_texture_refresh() re-upload the STALE CPU mirror over the fresh GPU
++     * pixels right before the final sampler ran ("native-cpu-bytes=preserved before-sampler" in
++     * every run). The flag stays cleared here; the A/B below proves the overwrite on device. */
++    {   static unsigned coerced;coerced++;
++        static int co_configured,co_on;if(!co_configured){const char *o=getenv("WOL_COHERENCE");co_on=o&&!strcmp(o,"1");co_configured=1;}
++        if(co_on && coerced<=8) {
++            GLint prev_ab=0;glGetIntegerv(GL_FRAMEBUFFER_BINDING,&prev_ab);
++            GLuint cfb=0;glGenFramebuffers(1,&cfb);glBindFramebuffer(GL_FRAMEBUFFER,cfb);
++            glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,dst->name,0);
++            if(glCheckFramebufferStatus(GL_FRAMEBUFFER)==GL_FRAMEBUFFER_COMPLETE) {
++                size_t cbytes=(size_t)dst->b.width*dst->b.height*4;uint8_t *cpx=malloc(cbytes);
++                if(cpx){glReadPixels(0,0,(GLsizei)dst->b.width,(GLsizei)dst->b.height,GL_RGBA,GL_UNSIGNED_BYTE,cpx);
++                    unsigned b1=0,m1=0;for(size_t k=0;k+3<cbytes;k+=4*997){if(cpx[k]>7||cpx[k+1]>7||cpx[k+2]>7)b1++;if(cpx[k]>m1)m1=cpx[k];if(cpx[k+1]>m1)m1=cpx[k+1];if(cpx[k+2]>m1)m1=cpx[k+2];}
++                    /* old behaviour: flag + refresh = stale CPU bytes over the GPU result */
++                    __atomic_store_n(&dst->zero_cpu_dirty,1,__ATOMIC_RELEASE);
++                    zero_texture_refresh(dst);
++                    glReadPixels(0,0,(GLsizei)dst->b.width,(GLsizei)dst->b.height,GL_RGBA,GL_UNSIGNED_BYTE,cpx);
++                    unsigned b2=0,m2=0;for(size_t k=0;k+3<cbytes;k+=4*997){if(cpx[k]>7||cpx[k+1]>7||cpx[k+2]>7)b2++;if(cpx[k]>m2)m2=cpx[k];if(cpx[k+1]>m2)m2=cpx[k+1];if(cpx[k+2]>m2)m2=cpx[k+2];}
++                    printf("WOL_COHERENCE dst=%"PRIu64" before_nonblack=%u before_max=%u after_refresh_nonblack=%u after_max=%u verdict=%s\n",
++                        dst->id,b1,m1,b2,m2,(b2!=b1||m2!=m1)?"STALE-OVERWRITE":"clean");
++                    free(cpx);}
++            }
++            glBindFramebuffer(GL_FRAMEBUFFER,(GLuint)prev_ab);glDeleteFramebuffers(1,&cfb);
++        }
++        if(coerced==1)printf("WOL_COHERENCE_NOTE gpu-authoritative=1 cpu-dirty-cleared=1\n");
++    }
++    __atomic_store_n(&dst->zero_cpu_dirty,0,__ATOMIC_RELEASE);
 +    return 1;
 +}
 +
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2147,16 @@
+@@ -1562,7 +2174,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }

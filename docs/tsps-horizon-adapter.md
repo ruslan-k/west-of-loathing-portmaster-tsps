@@ -1049,3 +1049,35 @@ The remaining levers are data/architecture work, not tweaks:
 2. Render targets 1080p -> 720p (the guest allocates them; would need guest-config patching or a
    runtime lie - both with tradeoffs).
 3. Constant factors (zero-mip via GL clears, BC decode) - tens of MB against 1.1 GiB, marginal.
+
+### Run 130: the bundle repack lands - more than twice the load, real audio
+
+Per the user's direction (fit everything in RAM, no swap), the Texture2D payload was repacked with
+the mip-promotion method (`tools/wol_memory_repack.py`): 1450 textures >= 512 got their mip level 1
+promoted to level 0 - **zero re-encoding, the bytes already existed in the bundle**. Measured:
+payload 1899.7 -> 603.2 MB, container 155.5 MB (padded back to the original 200,367,356 bytes;
+the UnityFS bundle starts at section offset 0x4DB0D0 and the runtime verifies the section by SIZE
+only, so an in-place device patch is legal). The device section was patched at that offset
+(region-verify true, backup kept as backups/wol-romfs.section.orig-20261013, manifest updated).
+
+Run 130 result: **textures created 247 (was 128), object ids past 740, and the audio came alive -
+nonzero-total 916868 against 0 in every previous run.** The user confirmed hearing sound with a
+black screen.
+
+### Run 131: THE COHERENCE BUG IS PROVEN AND FIXED - the screen carries content
+
+The review's suspected defect was real and is now measured on device: `WOL_COHERENCE dst=281
+before_nonblack=659 before_max=255 after_refresh_nonblack=0 after_max=0 verdict=STALE-OVERWRITE`.
+After a GPU blit, `zero_cpu_dirty=1` made `zero_texture_refresh()` re-upload the STALE CPU mirror
+over the fresh GPU pixels right before the final sampler ran (the `native-cpu-bytes=preserved
+before-sampler` line in every earlier log). The blit path now leaves the GPU copy authoritative;
+the embedded A/B stays available behind WOL_COHERENCE=1.
+
+With the fix: **308 of 310 present readbacks carry content (nonblack=460800), frame count 310 -
+the highest ever** (was 148-196 with all-black samples). The presented frame is no longer black.
+
+Also fixed per the review: the `WOL_THREAD_TOP` parser (comm between '(' and ')', utime/stime at
+post-state indices 11/12) - thread rankings now print; `WOL_VMA_TOP` attributes the big mappings:
+the dominant one is the 1.76 GB Unity allocator arena (rss 358 MB + swap 502 MB of it committed).
+An external watchdog (device-side, 30 s cadence: VmRSS/VmSwap/MemAvailable/utime_stime/wchan) runs
+alongside the port as the review requested (`/mnt/UDISK/wol_watch.sh` -> `wol_watch.log`).
