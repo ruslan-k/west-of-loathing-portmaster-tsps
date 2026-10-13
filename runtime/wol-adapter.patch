@@ -12,7 +12,7 @@
      -I"$COTM_NXINPUT_DIR/engine-glue" -I"$COTM_NXCOMPAT_DIR/include" -I"$shaders" \
 --- a/native/diagnostic_dump.h
 +++ b/native/diagnostic_dump.h
-@@ -2,7 +2,14 @@
+@@ -2,10 +2,24 @@
   * rendering, pixel measurements and receipts remain unchanged. */
  #include <zlib.h>
  #include "aw_release.h"
@@ -22,11 +22,22 @@
 +static unsigned wol_dump_enabled(void) {
 +    static int v=-1;if(v<0){const char *o=getenv("WOL_DUMP");v=(o&&!strcmp(o,"1"));}return (unsigned)v;
 +}
++static unsigned wol_shader_dump_enabled(void) {
++    /* Review 2026-10-13: separate the tiny once-per-stage shader blobs from the heavy per-frame
++     * captures - WOL_SHADER_DUMP=1 admits ONLY the wol-shader-* kinds, so a targeted blob capture
++     * needs no frame dumps or receipt journal. */
++    static int v=-1;if(v<0){const char *o=getenv("WOL_SHADER_DUMP");v=(o&&!strcmp(o,"1"));}return (unsigned)v;
++}
  static void nvn_private_dump(const char *kind,unsigned sequence,const void *data,size_t size) {
-+    if(!wol_dump_enabled())return;
++    unsigned shader_kind=!strncmp(kind,"wol-shader-",11);
++    if(!wol_dump_enabled()&&!(shader_kind&&wol_shader_dump_enabled()))return;
      /* FRENTE-C: T2_RELEASE_CAPTURE=1 keeps the release profile (AW_RELEASE=1) for timing runs and admits
       * only the explicitly requested frame image, so a measured optimisation can be checked by eye. */
-     if(aw_release_mode()) {
+-    if(aw_release_mode()) {
++    if(aw_release_mode()&&!shader_kind) {
+         static int allow=-1;if(allow<0){const char *o=getenv("T2_RELEASE_CAPTURE");allow=o&&!strcmp(o,"1");}
+         if(!allow||strcmp(kind,"frame-ppm"))return;
+     }
 --- a/native/filesystem.h
 +++ b/native/filesystem.h
 @@ -34,6 +34,12 @@
@@ -2175,7 +2186,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,499 @@
+@@ -46,10 +46,504 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -2593,6 +2604,11 @@
 +            else if(uv_mode==3)frag=wol_f191_draft_xy_fragment_glsl;
 +        }
 +    }
++    /* WOL_TOP_GEOM=1 (review 2026-10-13): the REAL world vertex with a solid colour fragment - proves
++     * the geometry/transform lands in the right target before the texture path is trusted. TEST-ONLY. */
++    {static int tg;static unsigned tgon;
++     if(!tg){const char *o=getenv("WOL_TOP_GEOM");tgon=o&&!strcmp(o,"1");tg=1;}
++     if(tgon&&!strncmp(bf->name,"top-",4)){frag=wol_diag_green_glsl;testfrag=1;}}
 +    const char *vsrc=NULL;
 +    if(testfrag) {
 +        static int tv_configured,tv_on;if(!tv_configured){const char *o=getenv("WOL_VS_TRIVIAL");tv_on=o&&!strcmp(o,"1");tv_configured=1;}
@@ -2676,7 +2692,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +996,29 @@
+@@ -507,12 +1001,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -2707,7 +2723,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +1119,28 @@
+@@ -613,6 +1124,28 @@
              }
          }
  #endif
