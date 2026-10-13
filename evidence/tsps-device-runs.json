@@ -731,6 +731,19 @@
       "note": "sampler landed only in the inactive frameskip path - no samples; same shape as 124"
     },
     {
+      "run": "device-106",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 148,
+      "textures_real": 247,
+      "note": "repacked bundle (payload 603.2MB, padded to original size, patched in place at section+0x4DB0D0): textures 247 (was 128), object ids past 740, AUDIO ALIVE (nonzero-total 916868 vs 0 always before) - the user heard sound with a black screen"
+    },
+    {
+      "run": "device-107",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 310,
+      "note": "COHERENCE FIX: A/B measured STALE-OVERWRITE (before 659/max255 -> after refresh 0/0) - the CPU mirror was overwriting the GPU blit result before the sampler; fix leaves GPU authoritative; result: 308/310 present readbacks carry content (nonblack=460800), frame 310 = highest ever; WOL_THREAD_TOP parser fixed (prints now); WOL_VMA_TOP: dominant mapping = 1.76GB Unity arena (rss 358MB + swap 502MB); external watchdog running"
+    },
+    {
       "run": "device-105",
       "stop": "none (governor SIGTERM, exit 143; 7200s budget)",
       "presents": 172,
