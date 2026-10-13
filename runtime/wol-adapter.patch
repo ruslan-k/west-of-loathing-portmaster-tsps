@@ -890,7 +890,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -509,6 +520,270 @@
+@@ -509,6 +520,275 @@
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
@@ -1138,11 +1138,16 @@
 +                        unsigned char d_on=(unsigned char)glIsEnabled(GL_DEPTH_TEST);
 +                        GLint df=0;glGetIntegerv(GL_DEPTH_FUNC,&df);
 +                        GLint pre=0;glGetIntegerv(GL_FRAMEBUFFER_BINDING,&pre);
-+                        uint8_t px[4]={0,0,0,0};
-+                        glReadPixels(vp[0]+vp[2]/2,vp[1]+vp[3]/2,1,1,GL_RGBA,GL_UNSIGNED_BYTE,px);
-+                        printf("WOL_PAIR_PIXELS target=%"PRIu64" vp=%d,%d,%d,%d scissor=%d/%d,%d,%d,%d depth=%d/func=0x%x fbo=%d center=%u,%u,%u,%u glerr=0x%x\n",
-+                            nvn_render.target->id,vp[0],vp[1],vp[2],vp[3],(int)sc_on,sc[0],sc[1],sc[2],sc[3],
-+                            (int)d_on,(unsigned)df,(int)pre,px[0],px[1],px[2],px[3],(unsigned)glGetError());
++                        uint8_t px[5][4]={{0}};
++                        glReadPixels(vp[0]+vp[2]/2,vp[1]+vp[3]/2,1,1,GL_RGBA,GL_UNSIGNED_BYTE,px[0]);
++                        glReadPixels(vp[0]+vp[2]/8,vp[1]+vp[3]/8,1,1,GL_RGBA,GL_UNSIGNED_BYTE,px[1]);
++                        glReadPixels(vp[0]+vp[2]*7/8,vp[1]+vp[3]/8,1,1,GL_RGBA,GL_UNSIGNED_BYTE,px[2]);
++                        glReadPixels(vp[0]+vp[2]/8,vp[1]+vp[3]*7/8,1,1,GL_RGBA,GL_UNSIGNED_BYTE,px[3]);
++                        glReadPixels(vp[0]+vp[2]*7/8,vp[1]+vp[3]*7/8,1,1,GL_RGBA,GL_UNSIGNED_BYTE,px[4]);
++                        printf("WOL_PAIR_PIXELS target=%"PRIu64" vp=%d,%d,%d,%d scissor=%d depth=%d fbo=%d c=%u,%u,%u,%u p1=%u,%u,%u p2=%u,%u,%u p3=%u,%u,%u p4=%u,%u,%u glerr=0x%x\n",
++                            nvn_render.target->id,vp[0],vp[1],vp[2],vp[3],(int)sc_on,(int)d_on,(int)pre,
++                            px[0][0],px[0][1],px[0][2],px[0][3],px[1][0],px[1][1],px[1][2],px[2][0],px[2][1],px[2][2],
++                            px[3][0],px[3][1],px[3][2],px[4][0],px[4][1],px[4][2],(unsigned)glGetError());
 +                    }
 +                }
 +                glDisableVertexAttribArray(0);glDisableVertexAttribArray(1);
@@ -1161,7 +1166,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1810,235 @@
+@@ -1535,6 +1815,235 @@
          begin=end+1;
      }
  }
@@ -1397,7 +1402,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2066,16 @@
+@@ -1562,7 +2071,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -1543,7 +1548,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,281 @@
+@@ -46,10 +46,296 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -1654,6 +1659,16 @@
 + * the GPU work is never faked. Variants (same code, different control section) are separate
 + * entries with measured hashes. The binding is chosen from the live bound objects' identities,
 + * never from fixed guest addresses. */
++static const char wol_trivial_vertex_glsl[] =
++"#version 100\n"
++"precision highp float;\n"
++"attribute vec3 a_pos;\n"
++"attribute vec2 a_extra;\n"
++"varying vec4 v7;\n"
++"varying vec2 v8;\n"
++/* WOL_VS_TRIVIAL=1 (review 2026-10-13): a matrix-free pass-through vertex for one diagnostic run -
++ * maps the unit quad to full NDC directly. Separates a draw-plumbing fault from a c3-data fault. */
++"void main(){gl_Position=vec4(a_pos.x*2.0-1.0,a_pos.y*2.0-1.0,0.0,1.0);v7=gl_Position;v8=vec2(0.0,0.0);}\n";
 +static const char wol_diag_magenta_glsl[] =
 +"#version 100\n"
 +"precision mediump float;\n"
@@ -1755,10 +1770,15 @@
 +        static int pt_configured,pt_on;if(!pt_configured){const char *o=getenv("WOL_PAIR_TEST");pt_on=o&&!strcmp(o,"1");pt_configured=1;}
 +        if(pt_on){frag=wol_diag_green_glsl;testfrag=1;}
 +    }
++    const char *vsrc=NULL;
++    if(testfrag) {
++        static int tv_configured,tv_on;if(!tv_configured){const char *o=getenv("WOL_VS_TRIVIAL");tv_on=o&&!strcmp(o,"1");tv_configured=1;}
++        if(tv_on)vsrc=wol_trivial_vertex_glsl;
++    }
 +    if(wol_cat_linked_used>=4)return NULL;
 +    GLint ok=0;char log[1024];
 +    GLuint vs=glCreateShader(GL_VERTEX_SHADER),fs=glCreateShader(GL_FRAGMENT_SHADER);
-+    const char *src=fullscreen?wol_diag_fullscreen_vs:bv->glsl;
++    const char *src=fullscreen?wol_diag_fullscreen_vs:(vsrc?vsrc:bv->glsl);
 +    glShaderSource(vs,1,&src,NULL);glCompileShader(vs);glGetShaderiv(vs,GL_COMPILE_STATUS,&ok);
 +    if(!ok){log[0]=0;glGetShaderInfoLog(vs,sizeof log,NULL,log);printf("WOL_CAT_LINK stage=vertex shader=%s ok=0 log=%s\n",fullscreen?"fullscreen-diag":bv->name,log);return NULL;}
 +    src=frag;glShaderSource(fs,1,&src,NULL);glCompileShader(fs);glGetShaderiv(fs,GL_COMPILE_STATUS,&ok);
@@ -1772,7 +1792,7 @@
 +    lk->v=v;lk->f=f;lk->name=pr;lk->fullscreen=fullscreen;
 +    lk->c3=glGetUniformLocation(pr,"c3");lk->c3f=glGetUniformLocation(pr,"c3f");lk->tex=glGetUniformLocation(pr,"tex0");
 +    printf("WOL_CAT_LINK ok=1 vertex=%s fragment=%s mode=%s program=%u c3=%d c3f=%d tex=%d%s\n",
-+        fullscreen?"TEST-FULLSCREEN-DIAG":bv->name,bf->name,
++        fullscreen?"TEST-FULLSCREEN-DIAG":vsrc?"TEST-TRIVIAL-VS":bv->name,bf->name,
 +        fullscreen?"TEST-DIAGNOSTIC-FULLSCREEN":testfrag?"TEST-GREEN-SOLID":(bf->diag?"TEST-DIAGNOSTIC-COLOR":"translated"),
 +        (unsigned)pr,(int)lk->c3,(int)lk->c3f,(int)lk->tex,(bf->diag||testfrag)?" note=not-a-translation":"");
 +    return lk;
@@ -1826,7 +1846,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +778,29 @@
+@@ -507,12 +793,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -1857,7 +1877,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +901,28 @@
+@@ -613,6 +916,28 @@
              }
          }
  #endif

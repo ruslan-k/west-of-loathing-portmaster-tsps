@@ -795,3 +795,14 @@ immediately after each pair draw into a window texture, a center-pixel readback 
 target plus the render state that could swallow it (scissor box + enable, depth test + func,
 viewport, FBO binding). If the center pixel is green at draw time, the loss is between the target
 and the present (clear/ordering/binding); if it is black, the draw itself is being discarded.
+
+### Run 113: the draw executes but its own target stays black
+
+`WOL_PAIR_PIXELS` on every window-texture draw: `vp=0,0,1280,720 scissor=0 depth=0 fbo bound,
+center = 0,0,0,0` - with the draw executing (glerror 0) and no scissor/depth interference, the
+center pixel of the draw's own bound target is black immediately afterwards. So the primitives
+produce no fragments at all, despite the verified clip coordinates. Run 114 bisects this with
+`WOL_VS_TRIVIAL=1`: a matrix-free pass-through vertex (`gl_Position=(2x-1, 2y-1, 0, 1)`, no c3
+uniform read at all) with the same green fragment and a five-point readback (center + four
+corners). Green with the trivial vertex = the c3 data path at draw time is the fault; still black
+= the draw plumbing itself (attributes/FBO attachment/program realization).
