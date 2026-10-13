@@ -725,6 +725,18 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-101",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 196,
+      "note": "sampler landed only in the inactive frameskip path - no samples; same shape as 124"
+    },
+    {
+      "run": "device-102",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 196,
+      "note": "first 3 samples of the present path: utime ~21s/min, majflt ~390/s (15575 in 90s) = swap-thrash; device /proc/swaps had SD cachefile priority 40 > UDISK -2 > zram -3 with zram effectively unused; reprioritised on device (zram 100 / UDISK 40 / SD 5, reversible); sampler extended to the command path + smaps_rollup for run 127"
+    },
+    {
       "run": "device-100",
       "stop": "none (governor SIGTERM, exit 143)",
       "presents": 196,
