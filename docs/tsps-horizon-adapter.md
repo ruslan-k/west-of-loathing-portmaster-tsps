@@ -870,3 +870,19 @@ sample), while the sprite/UI pairs are `d88c64a6 + f191/f268` (their fragments r
 the access map; both draw as fullscreen TEST diagnostics today). With the plumbing now proven end
 to end - geometry, fragment math, sampling, window-texture presentation - the next block of work is
 the manual translation of that trio, using the documented input/output maps.
+
+### Runs 118-119: the sprite vertex (d88c64a6) is authored and wired
+
+`wol_pair2_vertex_glsl` implements d88c64a6 exactly as the access map records it: inputs slot0 =
+position xyzw, slot1 = colour (RGBA8), slot2 = uv; outputs v10 = raw position, v9 = uv, v8 =
+(colour.rgb, pos.w*c3[0x8c]), v7 = the two-matrix column-major transform (the same c3 layout family
+the f309b86a bank dump established; the CPU probe verifies it on-device before any visual claim).
+The v189/v266 catalogue entries now carry it, so the f191/f268 TEST diagnostics draw on the REAL
+sprite geometry instead of fullscreen quads (run 118: `WOL_CAT_FULLSCREEN_DRAW` = 0 - the magenta
+and cyan fragments now attach to the sprite draws' own targets, 280/269/457).
+
+Run 118 also showed the pair-1 draws' real fragment (its single-texel sample of a fallback texture)
+painting near-black into the window textures - the texture-binding fidelity still owed. Run 119
+therefore extends the probes where the data ran out: the CPU transform probe gets its own budget
+for the stride-24 sprite layout, and sprite draws scan their whole target once for non-black
+pixels (`WOL_SPRITE_SCAN`) - the direct answer to "does the d88c64a6 geometry land anywhere".
