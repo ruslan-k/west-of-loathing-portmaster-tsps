@@ -334,6 +334,64 @@
  #endif
  #endif
 +#endif
+--- a/native/nvn_bridge.h
++++ b/native/nvn_bridge.h
+@@ -25,6 +25,11 @@
+ static uint64_t nvn_original[NI_COUNT],nvn_calls[NI_COUNT];
+ static _Thread_local unsigned nvn_bridge_depth;
+ static _Thread_local uint64_t nvn_caller;
++/* NVN_POINTER_REJECT diagnostic (review P0): the innermost NVN operation this
++ * thread is executing. nvn_caller alone is only a return address; these carry
++ * the exact API id, arguments and guest frame LR/SP of a rejected pointer. */
++static _Thread_local unsigned nvn_current_id;
++static _Thread_local uint64_t nvn_current_args[8],nvn_current_lr,nvn_current_sp;
+ extern uint64_t cotm_nvn_original_lookup(uint64_t,const char *,uint64_t);
+ extern uint64_t cotm_nvn_call_original(uint64_t,struct nvn_frame *);
+ static struct {uint64_t address;uint32_t flags;EGLDisplay display;EGLConfig config;EGLContext context;EGLSurface surface;
+@@ -294,6 +299,9 @@
+     if(t2p_in_cmdmem_callback){struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);printf("T2P_CB_NVN name=%s caller=0x%"PRIx64" ns=%"PRIu64"\n",nvn_functions[id].name,f->lr,(uint64_t)t.tv_sec*UINT64_C(1000000000)+(uint64_t)t.tv_nsec);} /* FRENTE-P diag */
+     nvn_async_api_enter();
+     nvn_bridge_depth++;uint64_t previous=nvn_caller;nvn_caller=f->lr;
++    unsigned previous_id=nvn_current_id;uint64_t previous_args[8],previous_lr=nvn_current_lr,previous_sp=nvn_current_sp;
++    memcpy(previous_args,nvn_current_args,sizeof(previous_args));
++    nvn_current_id=id;memcpy(nvn_current_args,f->args,sizeof(nvn_current_args));nvn_current_lr=f->lr;nvn_current_sp=f->sp;
+     uint64_t count=++nvn_calls[id];nvn_bridge_calls++;
+     if(id!=NI_nvnDeviceGetProcAddress && (count<=4 || !(count&(count-1)))) {
+         struct line log={0};text(&log,"NVN_CALL name=");text(&log,nvn_functions[id].name);text(&log," caller=");location(&log,f->lr);
+@@ -380,5 +388,7 @@
+        id==NI_nvnMemoryPoolBuilderGetSize || id==NI_nvnMemoryPoolGetSize)
+         printf("NVN_RESULT name=%s result=0x%"PRIx64"\n",nvn_functions[id].name,result);
+     if(id==NI_nvnQueueSubmitCommands)nvn_pointer_report(nvn_replay.last_frame);
+-    nvn_caller=previous;nvn_bridge_depth--;nvn_async_api_exit();return result;
+-}
++    nvn_caller=previous;nvn_bridge_depth--;
++    nvn_current_id=previous_id;memcpy(nvn_current_args,previous_args,sizeof(nvn_current_args));nvn_current_lr=previous_lr;nvn_current_sp=previous_sp;
++    nvn_async_api_exit();return result;
++}
+--- a/native/nvn_command_callback.h
++++ b/native/nvn_command_callback.h
+@@ -21,11 +21,19 @@
+      * this mutex). Only this thread touches `c` meanwhile: the buffer is the callback's own. */
+     unsigned held=nvn_command_recorder_held;nvn_command_recorder_held=0;pthread_mutex_unlock(&nvn_command_recorder_mutex);
+     struct timespec t2p_ts;clock_gettime(CLOCK_MONOTONIC,&t2p_ts);uint64_t t2p_cb0=(uint64_t)t2p_ts.tv_sec*1000000000ULL+t2p_ts.tv_nsec; /* FRENTE-P: callback wall time (diagnostic line only) */
++    printf("T2P_CB_CALL_BEGIN event=%u callback=0x%"PRIx64" records=%"PRIu64" bytes=%"PRIu64" args=%"PRIx64"/%"PRIx64"/%"PRIx64"/%"PRIx64" thread=%u\n",
++        event,c->callback,active?active->count:0,active?active->recorded_bytes:0,call.args[0],call.args[1],call.args[2],call.args[3],guest_thread_index);
+     t2p_in_cmdmem_callback=1;cotm_nvn_call_original(c->callback,&call);t2p_in_cmdmem_callback=0;
++    printf("T2P_CB_CALL_END event=%u callback=0x%"PRIx64" thread=%u generation=%"PRIu64"\n",event,c->callback,guest_thread_index,c->memory_generation);
+     clock_gettime(CLOCK_MONOTONIC,&t2p_ts);uint64_t t2p_cb1=(uint64_t)t2p_ts.tv_sec*1000000000ULL+t2p_ts.tv_nsec;
+     pthread_mutex_lock(&nvn_command_recorder_mutex);nvn_command_recorder_held=held;
+-    {static unsigned t2p_vt_logged;if(!event&&!t2p_vt_logged++&&c->callback_data){const uint64_t *o=nvn_pointer(c->callback_data,8,PROT_READ);const uint64_t *vt=nvn_pointer(o[0],48,PROT_READ);
+-        printf("T2P_CMDMEM_CALLBACK_TARGET data=0x%"PRIx64" vtable=0x%"PRIx64" slot4=0x%"PRIx64"\n",c->callback_data,o[0],vt[4]);}}
++    {static unsigned t2p_vt_logged;if(!event&&!t2p_vt_logged++&&c->callback_data){const uint64_t *o=nvn_pointer(c->callback_data,8,PROT_READ);
++        /* WoL's callback object carries no vtable word (measured run 90: word0 = 0, probe rejected
++         * address 0x0 size 48 and stopped the run). A diagnostic read must never fail-close the
++         * recorder; the second read runs only when the word is actually present. */
++        if(o[0]){const uint64_t *vt=nvn_pointer(o[0],48,PROT_READ);
++            printf("T2P_CMDMEM_CALLBACK_TARGET data=0x%"PRIx64" vtable=0x%"PRIx64" slot4=0x%"PRIx64"\n",c->callback_data,o[0],vt[4]);}
++        else printf("T2P_CMDMEM_CALLBACK_TARGET data=0x%"PRIx64" vtable=0x0 slot4=none\n",c->callback_data);}}
+     printf("T2P_CMDMEM_CALLBACK_TIME event=%u guest-ms=%.3f relock-ms=%.3f thread=%u\n",event,(t2p_cb1-t2p_cb0)*1e-6,(clock_gettime(CLOCK_MONOTONIC,&t2p_ts),(double)((uint64_t)t2p_ts.tv_sec*1000000000ULL+t2p_ts.tv_nsec-t2p_cb1))*1e-6,guest_thread_index);
+     c->callback_active=0;
+     if(!c->live || !c->recording || c->list!=active || (active&&memcmp(active,&active_before,sizeof(active_before))))
 --- a/native/nvn_commands.h
 +++ b/native/nvn_commands.h
 @@ -73,6 +73,9 @@
@@ -462,6 +520,17 @@
          }
          if(command && *count==16 && !t2_command_arena_legacy()) {
              /* Full table: forget the oldest non-current chunk whose lists all ran (NVN keeps no older chunks). */
+--- a/native/nvn_gl_worker.h
++++ b/native/nvn_gl_worker.h
+@@ -23,6 +23,8 @@
+         if(job->type==NGJ_FRAME)job->snapshot->started=1;
+         pthread_mutex_unlock(&nvn_gl_worker.mutex);
+         nvn_caller=job->caller;nvn_bridge_depth=1;
++        nvn_current_id=job->type==NGJ_SYNC?job->id:0;memset(nvn_current_args,0,sizeof(nvn_current_args));
++        nvn_current_lr=job->caller;nvn_current_sp=0;
+         if(job->type==NGJ_SYNC) {
+             if(job->id==NI_nvnQueueFinalize||job->id==NI_nvnWindowFinalize||job->id==NI_nvnDeviceFinalize)
+                 nvn_gpu_frame_gate_wait(NVN_GFG_TEARDOWN);
 --- a/native/nvn_memory.h
 +++ b/native/nvn_memory.h
 @@ -89,10 +89,13 @@
@@ -516,6 +585,37 @@
  static EGLBoolean nvn_platform_swap(EGLDisplay display,EGLSurface surface) {
      if(!nvn_platform_sdl_window || surface!=nvn_platform_sdl_surface)
          return eglSwapBuffers(display,surface);
+--- a/native/nvn_pointer.h
++++ b/native/nvn_pointer.h
+@@ -75,7 +75,27 @@
+         } else nvn_pointer_profile.clock_failures++;
+     }
+     pthread_mutex_unlock(&regions_mutex);
+-    if(!valid)stop("NVN_GUEST_POINTER",nvn_caller,address,24);
++    if(!valid) {
++        /* Review P0: name the exact operation and argument that produced the
++         * rejected address before stopping. nvn_caller is only a return
++         * address; the frame fields carry the innermost API id/args/LR/SP. */
++        struct line log={0};
++        text(&log,"NVN_POINTER_REJECT address=");hex(&log,address);
++        text(&log," size=");hex(&log,size);text(&log," perm=");hex(&log,perm);
++        text(&log," nvn=");text(&log,(nvn_current_id&&nvn_current_id<NI_COUNT)?nvn_functions[nvn_current_id].name:"(none)");
++        text(&log," id=");hex(&log,nvn_current_id);
++        text(&log," caller=");location(&log,nvn_caller);
++        text(&log," frame-lr=");location(&log,nvn_current_lr);
++        text(&log," frame-sp=");hex(&log,nvn_current_sp);
++        for(unsigned i=0;i<8;i++){text(&log," a");hex(&log,i);text(&log,"=");hex(&log,nvn_current_args[i]);}
++        text(&log," thread=");hex(&log,guest_thread_index);
++        text(&log," depth=");hex(&log,nvn_bridge_depth);
++        text(&log," context=");text(&log,aw_trace_context?aw_trace_context:"-");
++        emit(&log);
++        {void *frames[24];int n=backtrace(frames,24),printed=n<24?n:24;
++         for(int i=0;i<printed;i++)printf("  host-frame %d from-stop=0x%"PRIx64" raw=0x%"PRIx64"\n",i,(uint64_t)((char *)frames[i]-(char *)&stop),(uint64_t)(uintptr_t)frames[i]);}
++        stop("NVN_GUEST_POINTER",nvn_caller,address,24);
++    }
+     return (void *)(uintptr_t)address;
+ }
+ /* Called after Submit, outside the producer/regions locks. A quick atomic
 --- a/native/nvn_present.h
 +++ b/native/nvn_present.h
 @@ -186,7 +186,12 @@
