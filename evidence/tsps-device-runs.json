@@ -716,6 +716,22 @@
       "pair_draws_issued": 639,
       "diag_fullscreen_draws": 852,
       "note": "scene draws execute: translated pair f309b86a#0184+f08bad2f#a9b0 on target 32/1920x1080 (glerror 0), f191/f268 TEST fullscreen on 280/1280x720; present still black (213/213 nonblack=0); new swizzle gate (format 0x39)"
+    },
+    {
+      "run": "device-77",
+      "stop": "NVN_TEXTURE_SWIZZLE_REQUIRED",
+      "stop_pc": "main.text.seg+0xaf64a0",
+      "presents": 260,
+      "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
+    },
+    {
+      "run": "device-78",
+      "stop": "none (harness time governor, exit 143)",
+      "presents": 254,
+      "textures_real": 108,
+      "pair_draws_issued": 763,
+      "diag_fullscreen_draws": 1016,
+      "note": "swizzle fix unlocked further loading: textures 33 -> 108 (boot heartbeat shows the load advancing), draws into targets 30/31/269/280, no swizzle rejections, no stop; present still black while loading is unfinished"
     }
   ]
 }
