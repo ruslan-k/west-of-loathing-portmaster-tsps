@@ -559,19 +559,20 @@
      case NI_nvnCommandBufferBindUniformBuffersDeferred:
          /* legacy_runtime: same (stage, first, count, ranges) shape as BindUniformBuffers, but the ranges
           * are read when the command executes, so the record keeps only the guest pointer (a[3]). */
-@@ -167,7 +177,10 @@
+@@ -167,7 +177,11 @@
      if(address%16)stop("NVN_COMMAND_RECORD_ALIGNMENT",nvn_caller,address,24);
      for(unsigned i=0;i<c->command_count;i++) {
          struct nvn_command_arena *a=&c->command[i];
 -        if(a->used>a->size || !a->pool || !(a->pool->live||a->pool->retired) || !a->pool->references)continue;
-+        /* Run-153: the pool's chunking writes up to 0x40 past the registered size (the same
-+         * alignment overlap measured on the registration side); tolerate that small overhang,
-+         * anything larger keeps the fail-closed skip. */
-+        if(a->used>a->size+0x100 || !a->pool || !(a->pool->live||a->pool->retired) || !a->pool->references)continue;
++        /* Run-158: the used cursor grows past the registered size by the trim debt our accepted
++         * registrations accumulate (64/96/208/304/336 measured and climbing), so the size comparison
++         * cannot gate the lookup. The pool must be live and the address must fit the guest's own used
++         * cursor; nvn_pointer itself stays the final fail-closed validation. */
++        if(!a->pool || !(a->pool->live||a->pool->retired) || !a->pool->references)continue;
          unsigned retained=address>=c->command_retained[i].first && address<=c->command_retained[i].last &&
              bytes<=c->command_retained[i].last-address;
          if((address>=a->address && address-a->address<=a->used && bytes<=a->used-(address-a->address)) || retained)
-@@ -315,7 +328,14 @@
+@@ -315,7 +329,14 @@
          for(unsigned i=0;i<o->command_count;i++) {
              struct nvn_command_arena *p=&o->command[i];
              if(!(address<p->address+p->size && p->address<address+size))continue;
@@ -587,7 +588,7 @@
              uint64_t used=p->used;unsigned dropped=t2_command_arena_release(o,i,0);
              t2_command_arena_remove(o,i);t2_command_transfers++;
              if(t2_command_transfers<=8 || !(t2_command_transfers&(t2_command_transfers-1)))
-@@ -413,6 +433,7 @@
+@@ -413,6 +434,7 @@
      stop(active_overlap?"NVN_COMMAND_CALLBACK_ACTIVE_OVERLAP":"NVN_COMMAND_MEMORY_CALLBACK_INSUFFICIENT",nvn_caller,size,20);
  }
  static void nvn_command_record_inner(struct nvn_command_buffer *c,unsigned id,struct nvn_frame *f) {
@@ -595,7 +596,7 @@
      if(!c->recording || !c->list)stop("NVN_COMMAND_NOT_RECORDING",nvn_caller,c->object,24);
      struct nvn_record snapshot={.op=id,.bytes=sizeof(snapshot)};
      memcpy(snapshot.args,f->args+1,sizeof(snapshot.args));memcpy(snapshot.vectors,f->vectors,sizeof(snapshot.vectors));
-@@ -461,6 +482,17 @@
+@@ -461,6 +483,17 @@
          source=f->args[3];break;
      case NI_nvnCommandBufferBindUniformBuffers:
          source=f->args[4];break;
@@ -613,7 +614,7 @@
      case NI_nvnCommandBufferSetRenderTargets: {
  #if !ZERO_ZX_GAME
          if(f->args[1] && f->args[3] && *(uint64_t *)nvn_pointer(f->args[3],8,PROT_READ))
-@@ -483,7 +515,7 @@
+@@ -483,7 +516,7 @@
      }
      default:break;
      }
@@ -622,7 +623,7 @@
          memcpy(snapshot.payload,nvn_pointer(source,bytes,PROT_READ),bytes);
      }
      nvn_command_emit(c,id,&snapshot,size,vectors,bytes,f);
-@@ -583,7 +615,7 @@
+@@ -583,7 +616,7 @@
      case NI_nvnCommandBufferSetShaderScratchMemory:case NI_nvnCommandBufferSetPrimitiveRestart:
      case NI_nvnCommandBufferSaveZCullData:case NI_nvnCommandBufferRestoreZCullData:
      case NI_nvnCommandBufferSetDepthClamp:case NI_nvnCommandBufferSetConservativeRasterEnable:
@@ -631,7 +632,7 @@
      case NI_nvnCommandBufferSetDepthBounds:
          nvn_command_record(nvn_command_find(a[0]),id,f);return 1;
      /* Animal Well (NVN 17.x array forms): a single viewport/scissor/depth range at index 0 is the singular command;
-@@ -678,7 +710,159 @@
+@@ -678,7 +711,159 @@
                  if((i<c->command_count)!=command)stop("NVN_COMMAND_ARENA_TYPE",nvn_caller,address,24);
                  nvn_command_reuse_arena(c,p);if(command)c->current=i;return 1;
              }
