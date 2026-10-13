@@ -731,6 +731,13 @@
       "note": "sampler landed only in the inactive frameskip path - no samples; same shape as 124"
     },
     {
+      "run": "device-105",
+      "stop": "none (governor SIGTERM, exit 143; 7200s budget)",
+      "presents": 172,
+      "textures_real": 128,
+      "note": "TWO-HOUR VERDICT: 172 presents (LESS than the 196 of 3600s runs), same 128 textures, same 3 pairs, no menu phase; swap grew 538->686MB while anon 522MB - the load self-strangles with time; the wall is the ~1.1GiB guest heap (Unity decompressed assets) on a 963MiB device; next levers are data/architecture (bundle repack / RT downscale), not tweaks"
+    },
+    {
       "run": "device-104",
       "stop": "none (governor SIGTERM, exit 143)",
       "presents": 169,
