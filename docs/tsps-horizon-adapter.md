@@ -756,3 +756,15 @@ render-target attachment is the break.
   an attachment problem.
 - Quiet texture pick upgraded from "first non-null" to metadata-based (largest level-1 texture
   that is not the current target) - no readbacks, closer to the probe-selected atlas.
+
+### Run 110: the pair is clipped off-screen - the constant bank question sharpens
+
+`WOL_PAIR_MATH` (CPU replication of the translated vertex transform, per vertex) answered run 109's
+open question precisely: every vertex of the pair's quad comes out with **clip.w = -0.98 - a
+negative homogeneous coordinate - so the hardware clips the whole triangle** (which is why a
+solid-green fragment produced no pixels). The clip results are constant across the quad
+(x = 0.98 + 1.0*px, y = 0, z ~ 0.98, w = -0.98), so the fed c3 bank is not the matrix the original
+code multiplies with. The 144-byte bound range matches c3's read extent, so run 111 dumps the
+actual floats: the full 36-word c3 bank (and the fragment bank) on the first draws, plus every
+bound stage-0 slot with its first words - then the matrix can be identified offline by arithmetic
+and the hand GLSL (or the bank choice) corrected 1:1. 210 presents, no stop, 144 textures.
