@@ -949,3 +949,16 @@ catalogue (two samples per the decoded ipa reads - tex0 at v9 (uv), tex1 at v10.
 tinted by v8 and discarded below a declared placeholder alpha of 0.5; the real threshold lives in
 the undecoded chain). A second sampler unit is wired for it (next resolvable recorded handle to
 unit 1). Both changes are built and await the cycle after run 123.
+
+### Run 123: 3600 seconds change nothing - the load is stalled, not slow
+
+The doubled budget (3600 s, loader cap 7200) produced the same ~191 presented frames, the same
+texture set (~128 real textures, the last ones the 1280x720 scene targets and their depth), the
+same 573 composite draws, the same sprite scans (10840/10750/5751). Twice the time bought exactly
+nothing: **the title is not loading slowly - it reaches ~frame 180-190 and parks in a loop** (the
+earlier reading "the load keeps advancing" was only true up to that point; textures 33 -> 124 all
+arrive by frame 180). The next diagnostic block therefore changes subject: find what the guest's
+main thread and its workers wait on after frame ~190 (IPC service traffic, an NVN fence/semaphore
+that the replay never signals, or an unscheduled job). More budget is not the lever.
+
+Run 124 (launched alongside this analysis) carries the glBindTexture fix and f268-draft.
