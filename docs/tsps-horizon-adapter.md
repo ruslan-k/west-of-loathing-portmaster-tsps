@@ -908,3 +908,19 @@ target is precisely what its sampler should read; "the atlas" was a conclusion f
 draw. Run 121 therefore binds what the game bound: the first recorded texture unit that resolves to
 a live texture, with no size or level filtering at all - the handle array is already indexed by
 unit, so this is the faithful binding, not a heuristic.
+
+### Runs 121-122: the faithful binding (the scene target) and the first textured sprite draft
+
+Run 121: the pick now binds what the game bound - the composite's unit resolves to id=275, a
+1920x1080 scene target (the two earlier filters had starved exactly this). The composite's real
+fragment paints the sampled texel; those frames' scene texel is black (loading), so the screen
+stays black - faithfully. The pair-1 pipeline itself is now: real vertex, real fragment, real
+binding.
+
+Run 122 takes the review's variant A first step for the sprite pairs: f191's structure (v9 = uv,
+v8 = colour, one tex0 sample) is decoded and certain; only two ALU lines of its chain remain in the
+undecoded instruction family. The new `f191-draft` fragment keeps the decoded parts only -
+`texture2D(tex0, v9) * v8` - and replaces the magenta diagnostic for the v189/f191 pair, so the
+sprite draws now show real per-vertex UVs sampling the game's bound texture, with the real vertex
+colour as tint. Marked TEST-DRAFT; the two undecoded ALU lines are the remaining gap to a full
+translation.
