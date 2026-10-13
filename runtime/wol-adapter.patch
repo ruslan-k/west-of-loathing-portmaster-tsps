@@ -25,7 +25,17 @@
  static int laboratory_save_fd=-1;
  static void save_open(uint64_t pc) {
      if(laboratory_save_fd>=0)return;
-@@ -71,8 +77,19 @@
+@@ -55,6 +61,9 @@
+     struct line b={0};text(&b,"ROMFS_OPEN verified-section=");text(&b,LC2_ROMFS_SHA256);text(&b," size=");hex(&b,ROMFS_SIZE);emit(&b);
+     romfs_overlay_select();
+ }
++/* Review 2026-10-13: separate counters for the UnityFS/asset loading phase, reported by the
++ * WOL_BOOT_TICK heartbeat (read there via the same include order). */
++static uint64_t wol_romfs_reads,wol_romfs_read_bytes;
+ static int filesystem_dispatch(uint8_t *buffer,struct session *s,struct ipc_request *req,enum endpoint endpoint,uint64_t pc) {
+     if(endpoint==EP_FSP && req->command==1005) {
+         uint32_t mode=0;ipc_reply(buffer,req->token,0,&mode,4,0,req->domain);return 1;
+@@ -71,8 +80,19 @@
      if(endpoint==EP_STORAGE_ROMFS && req->command==0) {
          if(req->data_size<16)stop("INVALID_STORAGE_READ_ARGUMENTS",pc,req->data_size,24);
          uint64_t offset,size;memcpy(&offset,req->data,8);memcpy(&size,req->data+8,8);
@@ -47,6 +57,14 @@
          struct line b={0};text(&b,"ROMFS_READ offset=");hex(&b,offset);text(&b," size=");hex(&b,size);emit(&b);
          uint64_t done=0;uint8_t *dest=size?(uint8_t *)(uintptr_t)req->outputs[0].address:NULL;
          t2_gzram_touch((uintptr_t)dest,size); /* Frente J: pread would EFAULT on a compressed block */
+@@ -83,6 +103,7 @@
+             done+=(uint64_t)got;
+         }
+         romfs_overlay_apply(dest,offset,size);
++        wol_romfs_reads++;wol_romfs_read_bytes+=size;
+         ipc_reply(buffer,req->token,0,NULL,0,0,req->domain);return 1;
+     }
+     return 0;
 --- a/native/loader.c
 +++ b/native/loader.c
 @@ -30,7 +30,12 @@
@@ -643,6 +661,21 @@
      t2_present_gpu_wait_issue(); /* FRENTE-C: GPU-side order after the frame (T2_PRESENT_GPU_WAIT=1) */
      nvn_single_present_quad(nvn_present.program,nvn_present.vertices);
      struct nvn_texture *t=nvn_window.textures[index];unsigned width=nvn_window.fb.width,height=nvn_window.fb.height;
+@@ -270,6 +277,14 @@
+     cadence_pixel_proof=proof;
+     const char *status=proof?"PIXELS":nonblack?"INCONCLUSIVE":"BLACK-SAMPLE";
+     printf("NVN_PRESENT_PIXELS frame=%u nonblack=%u max=%u white=%u texture-draws=%u status=%s\n",nvn_present.frames,nonblack,maximum,readback.measure.white,t->draws,status);
++    /* Review 2026-10-13: one heartbeat per 60 frames - is Unity still loading (reads/textures
++     * advancing) or stuck in a fixed state? Counters only, no guest access. */
++    if(!(nvn_present.frames%60)) {
++        unsigned threads=0;{FILE *st=fopen("/proc/self/status","r");char lb[256];if(st){while(fgets(lb,sizeof lb,st))if(!strncmp(lb,"Threads:",8))threads=(unsigned)strtoul(lb+8,NULL,10);fclose(st);}}
++        unsigned long rss_kb=0;{FILE *st=fopen("/proc/self/statm","r");char lb[256];if(st){unsigned long total=0;if(fgets(lb,sizeof lb,st)&&sscanf(lb,"%lu %lu",&total,&rss_kb)==2)rss_kb*=4;fclose(st);}}
++        printf("WOL_BOOT_TICK frame=%u romfs-reads=%" PRIu64 " romfs-bytes=%" PRIu64 " textures-real=%u unity-threads=%u rss-kb=%lu draws=%" PRIu64 "\n",
++            nvn_present.frames,wol_romfs_reads,wol_romfs_read_bytes,wol_textures_real,threads,rss_kb,(uint64_t)nvn_replay.draws);
++    }
+     /* Native54 frame381 proves a black atlas background, RGB0 glyph vertices
+      * and a transparent final overlay in the color layer; the normal target
+      * still renders. Twelve samples were insufficient to observe this native
 --- a/native/nvn_queue.h
 +++ b/native/nvn_queue.h
 @@ -57,7 +57,11 @@
@@ -703,7 +736,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -509,6 +520,172 @@
+@@ -509,6 +520,187 @@
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
@@ -741,7 +774,13 @@
 +         * translation, feed c3 from the guest's bound constant bank 3 and draw the recorded primitive
 +         * with the measured vertex layout (two attributes, stride from the stream). Everything is
 +         * guarded; any missing precondition falls back to the counted skip and says why. */
-+        if(wol_pair_stage_is_pair() && wol_pair_realize()) {
++        struct wol_cat_linked *wol_cat_cur=wol_cat_link(wol_active_cat[0],wol_active_cat[1]);
++        if(wol_cat_cur) {
++            wol_pair_program=wol_cat_cur->name;wol_pair_c3_loc=wol_cat_cur->c3;
++            wol_pair_c3f_loc=wol_cat_cur->c3f;wol_pair_tex_loc=wol_cat_cur->tex;
++            printf("WOL_CAT_DRAW vertex=%s fragment=%s mode=%s\n",
++                wol_cat_bindings[wol_cat_cur->v].name,wol_cat_bindings[wol_cat_cur->f].name,
++                wol_cat_bindings[wol_cat_cur->f].diag?"TEST-DIAGNOSTIC-COLOR":"translated");
 +            /* The bank slot is whatever the guest actually bound - the shader names it c3, but the bind
 +             * index is the title's business, so the slot is discovered from the live uniform state and the
 +             * choice is printed rather than assumed. */
@@ -854,7 +893,16 @@
 +            printf("WOL_PAIR_DRAW mode=%"PRIu64" count=%"PRIu64" stride=%llu stream=%llu c3bank=%llx/%u avail=%u target=%"PRIu64"/%ux%u\n",
 +                mode,count,stride,vsize,(unsigned long long)c3r.address,(unsigned)c3r.size,avail,
 +                nvn_render.target?nvn_render.target->id:0,nvn_render.target?nvn_render.target->b.width:0,nvn_render.target?nvn_render.target->b.height:0);
-+            if(mode==4 && count && stride && vsize>=(unsigned long long)count*stride) {
++            if(wol_cat_cur->fullscreen) {
++                glBindBuffer(GL_ARRAY_BUFFER,wol_cat_fullscreen_buffer());
++                glEnableVertexAttribArray(0);glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,0,0);
++                glDisableVertexAttribArray(1);
++                glDrawArrays(GL_TRIANGLES,0,3);
++                printf("WOL_CAT_FULLSCREEN_DRAW primitives=3 glerror=0x%x target=%"PRIu64"/%ux%u note=TEST-ONLY\n",
++                    (unsigned)glGetError(),nvn_render.target?nvn_render.target->id:0,
++                    nvn_render.target?nvn_render.target->b.width:0,nvn_render.target?nvn_render.target->b.height:0);
++                glDisableVertexAttribArray(0);
++            } else if(mode==4 && count && stride && vsize>=(unsigned long long)count*stride) {
 +                const uint8_t *base=(const uint8_t *)nvn_gpu_pointer(nvn_render.vertex[0].address,(size_t)(count*stride),PROT_READ);
 +                glEnableVertexAttribArray(0);glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,(GLsizei)stride,base);
 +                glEnableVertexAttribArray(1);glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,(GLsizei)stride,base+40);
@@ -876,7 +924,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1712,193 @@
+@@ -1535,6 +1727,210 @@
          begin=end+1;
      }
  }
@@ -1003,7 +1051,24 @@
 +            }
 +        }
 +        if(!src||!dst) {
-+            printf("WOL_DOWNSAMPLE_UNRESOLVED a=0x%"PRIx64" b=0x%"PRIx64" target=%"PRIu64"\n",objects[0],objects[1],nvn_render.target?nvn_render.target->id:0);
++        if(!src||!dst) {
++            /* Review 2026-10-13: trace the one unresolved operation per frame instead of only its id. */
++            unsigned live_n=0,cand_n=0,larger_n=0;
++            if(dst&&dst->live){for(unsigned i=0;i<nvn_textures_high&&i<4096;i++){struct nvn_texture *c=&nvn_textures[i];
++                if(!c->live){continue;}
++                live_n++;
++                if(c==dst){continue;}
++                if(c->b.format!=dst->b.format){continue;}
++                cand_n++;
++                if(c->b.levels!=1||c->b.target>4){continue;}
++                if((uint64_t)c->b.width*c->b.height<=(uint64_t)dst->b.width*dst->b.height){continue;}
++                larger_n++;}}
++            printf("WOL_DOWNSAMPLE_UNRESOLVED a=0x%"PRIx64" b=0x%"PRIx64" target=%"PRIu64" dst=%s %ux%u f=0x%x live=%u same-format=%u larger-ok=%u\n",
++                objects[0],objects[1],nvn_render.target?nvn_render.target->id:0,
++                dst?(dst->live?"live":"dead"):"none",dst?dst->b.width:0,dst?dst->b.height:0,dst?dst->b.format:0,
++                live_n,cand_n,larger_n);
++            return 1;
++        }
 +            return 1;
 +        }
 +        a=src;b=dst;
@@ -1070,7 +1135,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +1926,16 @@
+@@ -1562,7 +1958,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -1216,7 +1281,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,158 @@
+@@ -46,10 +46,282 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -1226,7 +1291,7 @@
 +/* WoL bring-up: what the title bound per stage, so the draw-side interface log can correlate a draw
 + * with the programs it would have used (ids and objects only - no shader content). */
 +static uint64_t wol_bound_object[2];static unsigned wol_bound_program_id[2];
-+static const char *wol_pair_vertex_glsl =
++static const char wol_pair_vertex_glsl[] =
 +"#version 100\n"
 +"precision highp float;\n"
 +"attribute vec3 a_pos;\n"        /* input slot 0 */
@@ -1272,7 +1337,7 @@
 +"    gl_Position = v7;\n"          /* the storage map is complete, so the position comes from v7 */
 +"}\n";
 +
-+static const char *wol_pair_fragment_glsl =
++static const char wol_pair_fragment_glsl[] =
 +"#version 100\n"
 +"precision mediump float;\n"
 +"varying vec4 v7;\n"
@@ -1336,6 +1401,122 @@
 +    printf("WOL_PAIR_REALIZE ok=1 program=%u c3=%d c3f=%d tex=%d\n",(unsigned)pr,(int)wol_pair_c3_loc,(int)wol_pair_c3f_loc,(int)wol_pair_tex_loc);
 +    return 1;
 +}
++
++/* ==================== WoL shader identity catalogue (review 2026-10-13) ====================
++ * Keyed by per-stage code SHA-256 + control SHA-256 (the same identity the capture path already
++ * computes). Draws substitute a translated GLSL for a known stage, an explicitly-marked TEST
++ * diagnostic colour while a stage is untranslated, or a TEST fullscreen diagnostic when the
++ * vertex is untranslated but the fragment has a colour; unknown stages keep the counted skip -
++ * the GPU work is never faked. Variants (same code, different control section) are separate
++ * entries with measured hashes. The binding is chosen from the live bound objects' identities,
++ * never from fixed guest addresses. */
++static const char wol_diag_magenta_glsl[] =
++"#version 100\n"
++"precision mediump float;\n"
++"uniform mediump sampler2D tex0;\n"
++"void main(){gl_FragColor=vec4(1.0,0.0,1.0,1.0);}\n";
++static const char wol_diag_cyan_glsl[] =
++"#version 100\n"
++"precision mediump float;\n"
++"uniform mediump sampler2D tex0;\n"
++"void main(){gl_FragColor=vec4(0.0,1.0,1.0,1.0);}\n";
++struct wol_shader_binding {
++    unsigned code_size,control_size,stage,diag;
++    const char *name,*glsl; /* glsl=NULL: not translated yet */
++    unsigned char code_hash[32],control_hash[32];
++};
++#define WOL_CAT_COUNT 8
++static const struct wol_shader_binding wol_cat_bindings[WOL_CAT_COUNT]={
++    /*0*/ {1024,0x848,0,0,"v189(d88c64a6)",NULL,
++           {0xd8,0x8c,0x64,0xa6,0xae,0x67,0x55,0x4a,0xbf,0x48,0xae,0x0b,0xc3,0xd6,0xc1,0x5e,0x4c,0xb1,0x82,0x63,0xa7,0xfa,0xea,0x39,0x19,0xb7,0xe8,0x35,0x90,0xb3,0x47,0xb5},
++           {0x33,0xf0,0x7b,0x3e,0xc6,0x01,0xc5,0x63,0xdd,0x3d,0x50,0x73,0x43,0x66,0x02,0x31,0x98,0xc0,0x08,0xca,0xf9,0x65,0x52,0x69,0xd1,0x1e,0x2a,0xbb,0xcc,0x3c,0x1f,0xb1}},
++    /*1*/ {1024,0x848,0,0,"v266(d88c64a6)",NULL,
++           {0xd8,0x8c,0x64,0xa6,0xae,0x67,0x55,0x4a,0xbf,0x48,0xae,0x0b,0xc3,0xd6,0xc1,0x5e,0x4c,0xb1,0x82,0x63,0xa7,0xfa,0xea,0x39,0x19,0xb7,0xe8,0x35,0x90,0xb3,0x47,0xb5},
++           {0x99,0x64,0x23,0xc6,0x5f,0xc4,0x87,0x9c,0x91,0x42,0xb4,0xec,0x6a,0xe2,0x9f,0x78,0xe2,0x96,0xca,0x85,0xcf,0xe7,0x40,0xd9,0x68,0xfd,0x2d,0x4b,0x83,0xa8,0x57,0x8c}},
++    /*2*/ { 768,0x848,0,0,"f309b86a#0184",wol_pair_vertex_glsl,
++           {0xf3,0x09,0xb8,0x6a,0x22,0x9f,0xaf,0xbf,0x3e,0x47,0xc6,0xb3,0x3c,0xea,0x95,0xaf,0x65,0x22,0x12,0xcf,0xe3,0x60,0x3c,0x77,0xac,0x44,0xb2,0xe2,0x21,0xc9,0xe2,0x0e},
++           {0x01,0x84,0x37,0x0a,0x5c,0x74,0x31,0xec,0x47,0x09,0x78,0xd3,0x02,0x6e,0x26,0x25,0x53,0x74,0x74,0x84,0x52,0x9d,0x59,0xb9,0xe4,0xf1,0xb3,0x3d,0xb2,0x64,0x85,0xac}},
++    /*3*/ { 768,0x848,0,0,"f309b86a#fbd5",wol_pair_vertex_glsl,
++           {0xf3,0x09,0xb8,0x6a,0x22,0x9f,0xaf,0xbf,0x3e,0x47,0xc6,0xb3,0x3c,0xea,0x95,0xaf,0x65,0x22,0x12,0xcf,0xe3,0x60,0x3c,0x77,0xac,0x44,0xb2,0xe2,0x21,0xc9,0xe2,0x0e},
++           {0xfb,0xd5,0x05,0x4d,0x26,0x01,0x16,0x1b,0xeb,0x4a,0xa3,0xcf,0x2f,0x00,0xb4,0x35,0x35,0xa2,0xda,0x12,0x91,0xb6,0x0d,0x59,0xc9,0xb5,0x57,0xfb,0x43,0x18,0x43,0xb1}},
++    /*4*/ { 512,0x848,1,0,"f08bad2f#a9b0",wol_pair_fragment_glsl,
++           {0xf0,0x8b,0xad,0x2f,0x44,0xa0,0x2b,0xae,0x70,0x83,0x85,0x47,0x69,0x75,0x5e,0x05,0xbe,0x1a,0x69,0x2c,0x35,0xf6,0xe1,0x7d,0xbc,0x88,0xf8,0x06,0x25,0xb8,0x3d,0x0e},
++           {0xa9,0xb0,0x3c,0x3f,0xa5,0xe7,0x80,0x0d,0x52,0x90,0xd5,0x2c,0x39,0x23,0xc8,0x9a,0x52,0x42,0xd4,0x12,0x39,0x74,0x24,0x38,0x8f,0x8a,0xd9,0x16,0x2a,0xcb,0x28,0x04}},
++    /*5*/ { 512,0x848,1,0,"f08bad2f#c320",wol_pair_fragment_glsl,
++           {0xf0,0x8b,0xad,0x2f,0x44,0xa0,0x2b,0xae,0x70,0x83,0x85,0x47,0x69,0x75,0x5e,0x05,0xbe,0x1a,0x69,0x2c,0x35,0xf6,0xe1,0x7d,0xbc,0x88,0xf8,0x06,0x25,0xb8,0x3d,0x0e},
++           {0xc3,0x20,0x07,0x08,0xdd,0xde,0xc3,0x52,0x68,0x8d,0x6f,0x76,0x83,0x11,0xa3,0x95,0x1d,0x44,0x84,0x75,0x56,0xe4,0x45,0x44,0xcc,0xa2,0x84,0x84,0xb5,0x8a,0x14,0xbb}},
++    /*6*/ { 512,0x848,1,1,"f191-diag",wol_diag_magenta_glsl,
++           {0x08,0x1c,0xff,0x28,0x29,0xd8,0x37,0xf0,0x99,0x78,0x20,0x22,0x23,0x7a,0x0b,0xfa,0xd9,0xe9,0x06,0x2f,0x41,0x81,0x18,0xa7,0x93,0xa2,0x83,0x70,0x18,0x87,0x5f,0x0d},
++           {0x3e,0x3b,0x38,0x7a,0x20,0x57,0xb9,0x28,0xc7,0x21,0x5c,0xfa,0xf3,0x99,0x07,0xa3,0xbd,0x65,0x6d,0x1d,0xe4,0x24,0x0b,0x33,0xcf,0x26,0x05,0x79,0x41,0xa6,0x0d,0x78}},
++    /*7*/ {1024,0x848,1,1,"f268-diag",wol_diag_cyan_glsl,
++           {0xc0,0x13,0x2f,0xb8,0xef,0xdf,0xed,0x26,0x92,0xda,0xb8,0xe7,0x6b,0xcc,0x2b,0x0f,0x99,0xee,0x1f,0x0f,0x0e,0x59,0xc9,0xc9,0xf4,0x1b,0xb8,0x16,0x9b,0x88,0x05,0xec},
++           {0xed,0xc9,0xd5,0x40,0x6b,0x0e,0x95,0xcc,0x15,0x19,0xa0,0xb6,0x15,0xa3,0xce,0xac,0x1b,0x51,0x21,0x63,0x35,0xd3,0x40,0xf4,0x48,0xc9,0x5d,0x0d,0x23,0xc7,0x16,0x39}},
++};
++static int wol_last_cat=-1;
++static int wol_active_cat[2]={-1,-1};
++struct wol_cat_program { uint64_t object; int cat[2]; };
++static struct wol_cat_program wol_cat_programs[128];static unsigned wol_cat_programs_used;
++static struct wol_cat_program *wol_cat_program_find(uint64_t object,int create) {
++    for(unsigned i=0;i<wol_cat_programs_used;i++)if(wol_cat_programs[i].object==object)return &wol_cat_programs[i];
++    if(!create||wol_cat_programs_used>=128)return NULL;
++    struct wol_cat_program *cp=&wol_cat_programs[wol_cat_programs_used++];
++    cp->object=object;cp->cat[0]=cp->cat[1]=-1;return cp;
++}
++static const char *wol_cat_name_for(uint64_t object,unsigned stage) {
++    struct wol_cat_program *cp=wol_cat_program_find(object,0);
++    if(!cp||cp->cat[stage]<0)return "none";
++    return wol_cat_bindings[cp->cat[stage]].name;
++}
++static unsigned wol_diag_enabled(void) {
++    static int v=-1;if(v<0){const char *o=getenv("WOL_DIAG");v=(o&&!strcmp(o,"0"))?0:1;}return (unsigned)v;
++}
++struct wol_cat_linked { int v,f; GLuint name; GLint c3,c3f,tex; unsigned fullscreen; };
++static struct wol_cat_linked wol_cat_linked_cache[4];static unsigned wol_cat_linked_used;
++static GLuint wol_cat_fullscreen_buffer_gl;
++static GLuint wol_cat_fullscreen_buffer(void) {
++    if(!wol_cat_fullscreen_buffer_gl) {
++        static const float tri[6]={-1.0f,-1.0f, 3.0f,-1.0f, -1.0f,3.0f};
++        glGenBuffers(1,&wol_cat_fullscreen_buffer_gl);
++        glBindBuffer(GL_ARRAY_BUFFER,wol_cat_fullscreen_buffer_gl);
++        glBufferData(GL_ARRAY_BUFFER,sizeof tri,tri,GL_STATIC_DRAW);
++    }
++    return wol_cat_fullscreen_buffer_gl;
++}
++static const char *wol_diag_fullscreen_vs=
++"attribute vec2 p;\n"
++"void main(){gl_Position=vec4(p,0.0,1.0);}\n";
++static struct wol_cat_linked *wol_cat_link(int v,int f) {
++    if(v<0||f<0||v>=WOL_CAT_COUNT||f>=WOL_CAT_COUNT)return NULL;
++    for(unsigned i=0;i<wol_cat_linked_used;i++)
++        if(wol_cat_linked_cache[i].v==v&&wol_cat_linked_cache[i].f==f)return &wol_cat_linked_cache[i];
++    const struct wol_shader_binding *bv=&wol_cat_bindings[v],*bf=&wol_cat_bindings[f];
++    if(!bf->glsl)return NULL; /* untranslated fragment: the draw stays counted and skipped */
++    unsigned fullscreen=0;
++    if(!bv->glsl) { if(bf->diag)fullscreen=1; else return NULL; }
++    if(bf->diag&&!wol_diag_enabled())return NULL;
++    if(wol_cat_linked_used>=4)return NULL;
++    GLint ok=0;char log[1024];
++    GLuint vs=glCreateShader(GL_VERTEX_SHADER),fs=glCreateShader(GL_FRAGMENT_SHADER);
++    const char *src=fullscreen?wol_diag_fullscreen_vs:bv->glsl;
++    glShaderSource(vs,1,&src,NULL);glCompileShader(vs);glGetShaderiv(vs,GL_COMPILE_STATUS,&ok);
++    if(!ok){log[0]=0;glGetShaderInfoLog(vs,sizeof log,NULL,log);printf("WOL_CAT_LINK stage=vertex shader=%s ok=0 log=%s\n",fullscreen?"fullscreen-diag":bv->name,log);return NULL;}
++    src=bf->glsl;glShaderSource(fs,1,&src,NULL);glCompileShader(fs);glGetShaderiv(fs,GL_COMPILE_STATUS,&ok);
++    if(!ok){log[0]=0;glGetShaderInfoLog(fs,sizeof log,NULL,log);printf("WOL_CAT_LINK stage=fragment shader=%s ok=0 log=%s\n",bf->name,log);return NULL;}
++    GLuint pr=glCreateProgram();glAttachShader(pr,vs);glAttachShader(pr,fs);
++    if(fullscreen)glBindAttribLocation(pr,0,"p");
++    else {glBindAttribLocation(pr,0,"a_pos");glBindAttribLocation(pr,1,"a_extra");}
++    glLinkProgram(pr);glGetProgramiv(pr,GL_LINK_STATUS,&ok);
++    if(!ok){log[0]=0;glGetProgramInfoLog(pr,sizeof log,NULL,log);printf("WOL_CAT_LINK stage=link ok=0 log=%s\n",log);glDeleteProgram(pr);return NULL;}
++    struct wol_cat_linked *lk=&wol_cat_linked_cache[wol_cat_linked_used++];
++    lk->v=v;lk->f=f;lk->name=pr;lk->fullscreen=fullscreen;
++    lk->c3=glGetUniformLocation(pr,"c3");lk->c3f=glGetUniformLocation(pr,"c3f");lk->tex=glGetUniformLocation(pr,"tex0");
++    printf("WOL_CAT_LINK ok=1 vertex=%s fragment=%s mode=%s program=%u c3=%d c3f=%d tex=%d%s\n",
++        fullscreen?"TEST-FULLSCREEN-DIAG":bv->name,bf->name,
++        fullscreen?"TEST-DIAGNOSTIC-FULLSCREEN":(bf->diag?"TEST-DIAGNOSTIC-COLOR":"translated"),
++        (unsigned)pr,(int)lk->c3,(int)lk->c3f,(int)lk->tex,bf->diag?" note=not-a-translation":"");
++    return lk;
++}
++
 +/* Does the state bound right now belong to the measured first pair? Objects from run 49; the env
 + * override exists so a later run can point the same hook at a different pair without a rebuild. */
 +static unsigned wol_pair_stage_is_pair(void) {
@@ -1367,6 +1548,14 @@
 +    printf(" control-sha256=");
 +    for(unsigned i=0;i<32;i++){printf("%02x",control_hash[i]);}
 +    putchar('\n');
++    wol_last_cat=-1;
++    for(unsigned i=0;i<WOL_CAT_COUNT;i++) {
++        const struct wol_shader_binding *m=&wol_cat_bindings[i];
++        if(m->code_size==code_bytes && m->control_size==0x848 &&
++           !memcmp(code_hash,m->code_hash,32) && !memcmp(control_hash,m->control_hash,32)) {wol_last_cat=(int)i;break;}
++    }
++    printf("WOL_SHADER_MATCH slot=%u code-bytes=%u matched=%s\n",nvn_capture_slot,code_bytes,
++           wol_last_cat<0?"none":wol_cat_bindings[wol_last_cat].name);
 +    unsigned sequence=nvn_capture_sequence++;
 +    nvn_private_dump("wol-shader-control",sequence,blob,0x848);
 +    nvn_private_dump("wol-shader-code",sequence,bytes,code_bytes);
@@ -1376,7 +1565,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +655,27 @@
+@@ -507,12 +779,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -1393,7 +1582,9 @@
 +    {   /* WoL bring-up: remember the binding per stage so the draw-side interface log can name the
 +         * programs a draw would have used (ids and objects only). */
 +        unsigned stage=(mask&1)?0:(mask&2)?1:2;
-+        if(stage<2 && p){wol_bound_object[stage]=object;wol_bound_program_id[stage]=p->id;}
++        if(stage<2 && p){wol_bound_object[stage]=object;wol_bound_program_id[stage]=p->id;
++            struct wol_cat_program *cp=wol_cat_program_find(object,0);
++            wol_active_cat[stage]=cp?cp->cat[stage]:-1;}
 +    }
 +#endif
 +    if(p && p->compute_only) {
@@ -1405,7 +1596,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +776,22 @@
+@@ -613,6 +902,28 @@
              }
          }
  #endif
@@ -1413,24 +1604,38 @@
 +        /* Inventory placeholders: no WoL translation exists yet. Untranslated
 +         * programs become compute-only so bind and draw paths skip them; the GPU
 +         * work is omitted, never faked. */
-+        for(unsigned i=0;i<a[1];i++) {
++        for(unsigned i=0;i<a[1]&&i<2;i++) {
 +            nvn_capture_slot=i;
-+            if(nvn_megaman_shader_match(inputs[i*2],inputs[i*2+1])==UINT32_MAX)nvn_capture_untranslated=1;
++            nvn_megaman_shader_match(inputs[i*2],inputs[i*2+1]);
++            struct wol_cat_program *cp=wol_cat_program_find(p->object,1);
++            if(wol_last_cat>=0)cp->cat[wol_cat_bindings[wol_last_cat].stage]=wol_last_cat;
++            if(wol_last_cat<0)nvn_capture_untranslated=1;
 +        }
++        p->stage_mask=0;p->sources[0]=p->sources[1]=0;p->compute_only=1;
 +        if(nvn_capture_untranslated) {
-+            p->stage_mask=0;p->sources[0]=p->sources[1]=0;p->compute_only=1;
 +            nvn_capture_untranslated=0;
 +            printf("WOL_PROGRAM_INVENTORY object=0x%"PRIx64" id=%"PRIu64" stages=%"PRIu64" code=0x%"PRIx64" control=0x%"PRIx64" recorded=placeholder-no-translation\n",
 +                   p->object,p->id,(uint64_t)a[1],a[1]?inputs[0]:0,a[1]?inputs[1]:0);
-+            *result=1;return 1;
++        } else {
++            printf("WOL_PROGRAM_CATALOGUE object=0x%"PRIx64" id=%"PRIu64" stages=%"PRIu64" cat=%s/%s path=draw-side-substitution\n",
++                   p->object,p->id,(uint64_t)a[1],wol_cat_name_for(p->object,0),wol_cat_name_for(p->object,1));
 +        }
++        *result=1;return 1;
 +#endif
          for(unsigned i=0;i<a[1];i++) {
              unsigned source=nvn_megaman_shader_match(inputs[i*2],inputs[i*2+1]),stage=nvn_shader_sources[source].stage;
              if(stage>1 || matched&(1U<<stage))stop("NVN_LC2_SHADER_STAGE_DUPLICATE",nvn_caller,source,24);
 --- a/native/nvn_textures.h
 +++ b/native/nvn_textures.h
-@@ -99,9 +99,16 @@
+@@ -3,6 +3,7 @@
+  * sparse storage and unimplemented formats are rejected, never reinterpreted.
+  */
+ #include "nvn_texture_formats.h"
++static unsigned wol_textures_real; /* review 2026-10-13: boot heartbeat counter */
+ #include "aw_float_emu.h"
+ #include "megaman_blocklinear.h"
+ #include "zero_bc_layout.h"
+@@ -99,9 +100,16 @@
  #include "nvn_normal.h"
  #include "nvn_texture_coherence.h"
  static uint64_t nvn_texture_layout(uint64_t address,struct nvn_texture_builder *b,uint64_t levels[14]) {
@@ -1447,7 +1652,7 @@
      /* SDK 17.5.3 builder (measured): the linear stride lives at +0x50 (the former packaged slot), the former stride and
       * packaged-layout slots are unused and +0x60 holds a builder marker (0x50). Packaged textures never occur here. */
      b->stride=(uint32_t)b->packaged;b->packaged=0;b->packaged_layout=0;b->gl_name=0;
-@@ -173,6 +180,18 @@
+@@ -173,6 +181,18 @@
         b->width>(uint32_t)nvn_device.texture_limit || b->height>(uint32_t)nvn_device.texture_limit ||
         0){static unsigned told;if(told++<8)printf("MOMO_TEXTURE_BUILDER flags=0x%x target=%u size=%ux%ux%u levels=%u format=0x%x samples=%u stride=%u\n",
             b->flags,b->target,b->width,b->height,b->depth,b->levels,b->format,b->samples,b->stride);}
@@ -1466,7 +1671,16 @@
      if((b->target!=1 && !((b->target==2||b->target==4) && b->depth==1)) || b->depth!=1 || !b->width || !b->height ||
         b->width>(uint32_t)nvn_device.texture_limit || b->height>(uint32_t)nvn_device.texture_limit ||
         !b->levels || b->levels>14 || b->samples>1)stop("NVN_TEXTURE_DIMENSIONS_REQUIRED",nvn_caller,((uint64_t)b->width<<32)|b->height,20);
-@@ -321,7 +340,7 @@
+@@ -191,7 +211,7 @@
+         b->format=0x25;
+     }
+ #endif
+-    if(!nvn_texture_swizzle_supported(b->format,b->swizzle))stop("NVN_TEXTURE_SWIZZLE_REQUIRED",nvn_caller,b->format,20);
++    if(!nvn_texture_swizzle_supported(b->format,b->swizzle)){printf("WOL_SWIZZLE_GATE format=0x%x swizzle=0x%x %ux%u levels=%u target=%u flags=0x%x caller=0x%llx\n",b->format,b->swizzle,b->width,b->height,b->levels,b->target,b->flags,(unsigned long long)nvn_caller);stop("NVN_TEXTURE_SWIZZLE_REQUIRED",nvn_caller,b->format,20);}
+     if(bc) {
+         if(b->flags&0x50 || b->packaged_layout)stop("ZERO_BC_LINEAR_BLOCK_LAYOUT_REQUIRED",nvn_caller,b->packaged_layout,20);
+         uint64_t size=0;
+@@ -321,7 +341,7 @@
      return NULL;
  }
  #endif
@@ -1475,7 +1689,7 @@
  static uint64_t zero_texture_record_id(uint64_t object) {return nvn_texture_find(object)->id;}
  static void aw_clear_texture_admit(uint64_t object,uint64_t view,const int32_t *region) {
      struct nvn_texture *t=nvn_texture_find(object);
-@@ -329,6 +348,7 @@
+@@ -329,6 +349,7 @@
      if(region[0]<0||region[1]<0||region[2]||region[3]<=0||region[4]<=0||region[5]!=1||
         (uint64_t)region[0]+region[3]>t->b.width||(uint64_t)region[1]+region[4]>t->b.height)stop("NVN_CLEAR_TEXTURE_REGION",nvn_caller,object,20);
  }
@@ -1483,7 +1697,7 @@
  static void zero_record_target_view(uint64_t object,const uint8_t *view,unsigned attachment) {
      struct nvn_texture *t=object?nvn_texture_find(object):NULL;
  #ifdef MOMO_SHADERS
-@@ -473,9 +493,26 @@
+@@ -473,9 +494,26 @@
  }
  static void zero_texture_bc_pixels(struct nvn_texture *t,unsigned level,const uint32_t *box,void *pixels,size_t bytes) {
      struct zero_bc_level m;
@@ -1512,6 +1726,14 @@
      unsigned x=box?box[0]/4:0,y=box?box[1]/4:0,width=box?box[3]:m.width,height=box?box[4]:m.height;
      unsigned nx=(width+3)/4,ny=(height+3)/4;size_t linear_bytes=(size_t)nx*ny*m.bytes;
      uint8_t *linear=malloc(linear_bytes);if(!linear)stop("ZERO_BC_LINEAR_MEMORY",nvn_caller,linear_bytes,21);
+@@ -739,6 +777,7 @@
+             printf("MOMO_TEXTURE_IDENTITY id=%"PRIu64" object=0x%"PRIx64" pool=0x%"PRIx64" offset=0x%"PRIx64" bytes=%"PRIu64" size=%ux%u format=0x%x flags=0x%x levels=%u target=%u\n",
+                 t->id,a[0],b.pool,b.offset,size,b.width,b.height,b.format,b.flags,b.levels,b.target);
+         printf("NVN_TEXTURE_REAL object=0x%"PRIx64" format=0x%x size=%ux%u levels=%u bytes=%"PRIu64" texture=%u depth=%u gpu-storage=%s no-draw\n",a[0],b.format,b.width,b.height,b.levels,size,t->name,t->depth_buffer,t->zero_backend_deferred?"unavailable-native-backing-retained":t->packaged_lazy?"deferred":"allocated");
++        wol_textures_real++;
+         if(t->host_scaled)printf("NVN_LC2_SCALED_STORAGE id=%"PRIu64" texture=%u depth=%u flags=0x%x pool=0x%x logical=%ux%u actual=%ux%u initial=%s\n",
+             t->id,t->name,t->depth_buffer,b.flags,pool->flags,b.width,b.height,t->host_width,t->host_height,
+             shared_storage?"existing-GPU-owner":t->name?"full-decode-uniform":"native-depth-uninitialized");
 --- a/native/nvn_window.h
 +++ b/native/nvn_window.h
 @@ -51,8 +51,17 @@
