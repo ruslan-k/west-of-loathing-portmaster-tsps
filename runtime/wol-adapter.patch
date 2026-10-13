@@ -3349,6 +3349,25 @@
          }
          else if(format==0x97){
              /* SDK texture word 0x2a712494: A1B5G5R5 hardware with
+--- a/native/nvn_texture_parameters.h
++++ b/native/nvn_texture_parameters.h
+@@ -10,6 +10,16 @@
+ }
+ static void nvn_texture_parameters(struct nvn_texture *t,GLint min,GLint mag,GLint s,GLint v) {
+     t=zero_texture_storage_state(t);
++    /* Review 2026-10-14 / measured gfx215: the menu atlas (id 493) carries NVN sampler
++     * min=0x2703 (NEAREST_MIPMAP_NEAREST) while the runtime stores only level 0. A GLES texture
++     * whose min filter demands a mip chain it does not have is INCOMPLETE: every fetch returns
++     * zero, the premultiplied ONE/ONE_MINUS_SRC_ALPHA blend then turns the whole pass into a
++     * no-op (measured: target_alpha_nz unchanged across the sign draws). Downgrade the min
++     * filter to its non-mip equivalent when the chain is missing - standard emulator practice. */
++    if(t && t->b.levels<=1) {
++        if(min==0x2700||min==0x2702)min=GL_NEAREST;      /* NEAREST_MIPMAP_* -> NEAREST */
++        else if(min==0x2701||min==0x2703)min=GL_LINEAR;  /* LINEAR_MIPMAP_*  -> LINEAR  */
++    }
+     pthread_once(&nvn_texture_parameter_once,nvn_texture_parameter_configure);
+     const GLenum names[4]={GL_TEXTURE_MIN_FILTER,GL_TEXTURE_MAG_FILTER,GL_TEXTURE_WRAP_S,GL_TEXTURE_WRAP_T};
+     const GLint values[4]={min,mag,s,v};
 --- a/native/nvn_textures.h
 +++ b/native/nvn_textures.h
 @@ -3,6 +3,7 @@
