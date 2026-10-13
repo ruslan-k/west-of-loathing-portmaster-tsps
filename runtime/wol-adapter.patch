@@ -141,6 +141,27 @@
 +    }
      return 0;
  }
+--- a/native/ipc.h
++++ b/native/ipc.h
+@@ -452,6 +452,18 @@
+         if(trace && endpoint==EP_HID && req.command==201 && ++aw_vibration_logged>16)trace=0;
+     }
+ #endif
++    /* WOL_QUIET=1 (review 2026-10-13): sample the per-call IPC trace by (endpoint,command) to powers
++     * of two; dispatch, buffer ownership, replies and every stop() stay untouched. */
++    {   static int quiet=-1;
++        if(quiet<0){const char *o=getenv("WOL_QUIET");quiet=o&&!strcmp(o,"1");}
++        if(quiet) {
++            static uint64_t wol_ipc_trace_counts[256];
++            unsigned key=(unsigned)((endpoint*31u+req.command)&0xff);
++            uint64_t c=++wol_ipc_trace_counts[key];
++            trace=c<=8 || !(c&(c-1));
++            if(trace&&!trace_count)trace_count=c;
++        }
++    }
+     if(trace) {
+         struct line b={0};text(&b,"IPC handle=");hex(&b,handle);text(&b," endpoint=");hex(&b,endpoint);
+         text(&b," type=");hex(&b,req.type);text(&b," command=");hex(&b,req.command);
 --- a/native/loader.c
 +++ b/native/loader.c
 @@ -30,7 +30,12 @@
@@ -537,13 +558,16 @@
              uint64_t used=p->used;unsigned dropped=t2_command_arena_release(o,i,0);
              t2_command_arena_remove(o,i);t2_command_transfers++;
              if(t2_command_transfers<=8 || !(t2_command_transfers&(t2_command_transfers-1)))
-@@ -461,6 +476,13 @@
+@@ -461,6 +476,16 @@
          source=f->args[3];break;
      case NI_nvnCommandBufferBindUniformBuffers:
          source=f->args[4];break;
 +    case NI_nvnCommandBufferDownsample: {
-+        /* The two arguments are recorded raw; the replay resolves them against the live texture table,
-+         * which is only visible there. No guest memory is dereferenced while building the record. */
++        /* The two arguments are 36-byte guest view structs. They are recorded raw; the replay decodes
++         * the texture object inside each view and resolves it against the live texture table. Measured
++         * (review 2026-10-13): the generic payload overwrite below used to clobber these two words with
++         * the first 16 bytes of view A, so the replay probed view bytes as if they were texture objects
++         * and the operation fell back to the size heuristic (which is how target=269 ended unresolved). */
 +        uint64_t values[2]={f->args[1],f->args[2]};
 +        memcpy(snapshot.payload,values,sizeof values);
 +        break;
@@ -551,7 +575,16 @@
      case NI_nvnCommandBufferSetRenderTargets: {
  #if !ZERO_ZX_GAME
          if(f->args[1] && f->args[3] && *(uint64_t *)nvn_pointer(f->args[3],8,PROT_READ))
-@@ -583,7 +605,7 @@
+@@ -483,7 +508,7 @@
+     }
+     default:break;
+     }
+-    if(bytes && id!=NI_nvnCommandBufferSetRenderTargets && id!=NI_nvnCommandBufferCopyBufferToTexture && id!=NI_nvnCommandBufferCopyTextureToTexture && id!=NI_nvnCommandBufferCopyTextureToBuffer) {
++    if(bytes && id!=NI_nvnCommandBufferSetRenderTargets && id!=NI_nvnCommandBufferCopyBufferToTexture && id!=NI_nvnCommandBufferCopyTextureToTexture && id!=NI_nvnCommandBufferCopyTextureToBuffer && id!=NI_nvnCommandBufferDownsample) {
+         memcpy(snapshot.payload,nvn_pointer(source,bytes,PROT_READ),bytes);
+     }
+     nvn_command_emit(c,id,&snapshot,size,vectors,bytes,f);
+@@ -583,7 +608,7 @@
      case NI_nvnCommandBufferSetShaderScratchMemory:case NI_nvnCommandBufferSetPrimitiveRestart:
      case NI_nvnCommandBufferSaveZCullData:case NI_nvnCommandBufferRestoreZCullData:
      case NI_nvnCommandBufferSetDepthClamp:case NI_nvnCommandBufferSetConservativeRasterEnable:
@@ -560,7 +593,7 @@
      case NI_nvnCommandBufferSetDepthBounds:
          nvn_command_record(nvn_command_find(a[0]),id,f);return 1;
      /* Animal Well (NVN 17.x array forms): a single viewport/scissor/depth range at index 0 is the singular command;
-@@ -678,7 +700,63 @@
+@@ -678,7 +703,63 @@
                  if((i<c->command_count)!=command)stop("NVN_COMMAND_ARENA_TYPE",nvn_caller,address,24);
                  nvn_command_reuse_arena(c,p);if(command)c->current=i;return 1;
              }
@@ -759,7 +792,7 @@
 +    /* Review 2026-10-13: name the actually-presented window texture (guest, GL name, id, dims). */
 +    { static unsigned told;if(told<8||!(nvn_present.frames%512)){told++;
 +        printf("WOL_PRESENT_SOURCE slot=%u guest=0x%llx texture=%u id=%"PRIu64" %ux%u levels=%u frame=%u\n",
-+            index,(unsigned long long)t->object,t->name,t->id,t->b.width,t->b.height,t->b.levels,nvn_present.frames);} }
++            (unsigned)index,(unsigned long long)t->object,t->name,t->id,t->b.width,t->b.height,t->b.levels,nvn_present.frames);} }
  #ifdef ANIMAL_WELL_SHADERS
      if(aw_fbcopy_enabled()){aw_fbcopy_open(width,height);glBindFramebuffer(GL_FRAMEBUFFER,aw_fbcopy.fbo);}
      else glBindFramebuffer(GL_FRAMEBUFFER,0);
@@ -856,7 +889,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -509,6 +520,189 @@
+@@ -509,6 +520,202 @@
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
@@ -1001,6 +1034,19 @@
 +                        printf("WOL_PAIR_TEX_LIVE_CHOSEN id=%"PRIu64" name=%u %ux%u pixels=%u\n",best->id,best->name,best->b.width,best->b.height,best_pixels);
 +                    }
 +                }
++                if(!handle && wol_quiet()) {
++                    /* Review 2026-10-13: quiet mode keeps the texture-bind contract without GPU->CPU
++                     * readbacks - take the first non-null candidate handle for this stage. Measured
++                     * (device-82): without this the translated pair sampled an unbound texture and
++                     * painted black by design, which is why the presented window textures stayed dark. */
++                    for(unsigned s=0;s<128 && !handle;s++) {
++                        uint64_t candidate=nvn_render.texture_handles[1][s];
++                        if(candidate){handle=candidate;tslot=s;}
++                    }
++                    static unsigned told;if(told<4){told++;
++                        if(handle)printf("WOL_PAIR_TEX quiet-slot=%u handle=0x%llx\n",tslot,(unsigned long long)handle);
++                        else printf("WOL_PAIR_TEX quiet-slot=none candidates-empty\n");}
++                }
 +                if(handle&&wol_pair_tex_loc>=0) {
 +                    GLint minf=0;GLenum wrap[2]={GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE};
 +                    struct nvn_texture *t=nvn_render_sampler(handle,0,0,0,&minf,wrap);
@@ -1046,7 +1092,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1729,210 @@
+@@ -1535,6 +1742,228 @@
          begin=end+1;
      }
  }
@@ -1154,9 +1200,27 @@
 +    return 1;
 +}
 +
++static struct nvn_texture *wol_view_texture(uint64_t view,unsigned *offset_out) {
++    /* Old-SDK downsample views (36 bytes): scan the words for one that is a registered texture object. */
++    if(!view || !accessible(view,36,PROT_READ))return NULL;
++    const uint64_t *words=(const uint64_t *)(uintptr_t)view;
++    for(unsigned i=0;i<4;i++) {
++        struct nvn_texture *t=wol_texture_probe(words[i]);
++        if(t){if(offset_out)*offset_out=i;return t;}
++    }
++    return NULL;
++}
 +static unsigned wol_downsample_copy(const struct nvn_record *r) {
 +    uint64_t objects[2];memcpy(objects,r->payload,sizeof objects);
-+    struct nvn_texture *a=wol_texture_probe(objects[0]),*b=wol_texture_probe(objects[1]);
++    struct nvn_texture *a=NULL,*b=NULL;unsigned ao=99,bo=99;
++    a=wol_view_texture(objects[0],&ao);b=wol_view_texture(objects[1],&bo);
++    if(a||b) {
++        /* Review 2026-10-13: record exactly which view word resolved, so the dst/src convention is
++         * measured instead of assumed. */
++        static unsigned told;if(told<12){told++;
++            printf("WOL_DOWNSAMPLE_VIEW a=0x%llx->%s b=0x%llx->%s offsets=%u/%u\n",
++                (unsigned long long)objects[0],a?"texture":"none",(unsigned long long)objects[1],b?"texture":"none",ao,bo);}
++    }
 +    if((!a||!b||a==b)) {
 +        /* The recorded arguments are not texture objects on this title (measured: a guest read through
 +         * them is refused, so they are packed values, not pointers). The textures are taken from live
@@ -1257,7 +1321,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +1960,16 @@
+@@ -1562,7 +1991,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -1924,7 +1988,7 @@
 +            /* Review 2026-10-13: name every swapchain window texture up front (id, GL name, dims),
 +             * so the present-side identity can be correlated instead of inferred. */
 +            printf("WOL_WINDOW_TEXTURE slot=%u guest=0x%llx texture=%u id=%llu %ux%u levels=%u\n",
-+                i,(unsigned long long)textures[i],t->name,t->id,t->b.width,t->b.height,t->b.levels);
++                i,(unsigned long long)textures[i],t->name,(unsigned long long)t->id,t->b.width,t->b.height,t->b.levels);
          }
          struct fb_var_screeninfo info={0};
          if(nvn_platform_sdl_window) {
