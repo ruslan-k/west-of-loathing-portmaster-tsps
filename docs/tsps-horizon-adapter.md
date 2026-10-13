@@ -1028,3 +1028,24 @@ chunking, and the constant factors (zero-mip path, BC decode, RT sizes).
 Run 129 (launched with this analysis) is the maximum-budget endurance test - 7200 s - to answer
 the practical question directly: does the loading phase ever complete and reach the menu's
 drawing phase at all.
+
+### Run 129: the two-hour verdict - more time produces LESS progress
+
+7200 s produced 172 presents (against 196 in the 3600 s runs), the same 128-texture ceiling, the
+same three shader pairs and no menu-phase programs. By the end the process held 522 MB anonymous
+plus **686 MB swapped** (up from 538 MB in the one-hour runs): the loading does not merely stall, it
+**self-strangles** - the longer it runs, the deeper the thrash. SVC traces in the final minutes show
+the guest circling its wait loop.
+
+The measured conclusion of the whole diagnostic era: the runtime side is faithful and fast (its
+per-frame work is ~155 ms); the wall is the **guesting heap - Unity's decompressed assets, ~1.1 GiB
+on a 963 MiB device**. Swap configurations cannot fix a working set that exceeds RAM (zram-first
+OOMs; both file swaps share one eMMC; firmware baseline restored). More time does not help.
+
+The remaining levers are data/architecture work, not tweaks:
+1. **Bundle repack** (the main path): extract `data.unity3d` (191 MiB), downscale the BC atlases
+   (2048x2048 x ~11 MiB each), repack - the guest heap shrinks by hundreds of MB. This modifies the
+   user's game assets and needs their explicit go-ahead.
+2. Render targets 1080p -> 720p (the guest allocates them; would need guest-config patching or a
+   runtime lie - both with tradeoffs).
+3. Constant factors (zero-mip via GL clears, BC decode) - tens of MB against 1.1 GiB, marginal.
