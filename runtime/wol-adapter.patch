@@ -619,7 +619,7 @@
      case NI_nvnCommandBufferSetDepthBounds:
          nvn_command_record(nvn_command_find(a[0]),id,f);return 1;
      /* Animal Well (NVN 17.x array forms): a single viewport/scissor/depth range at index 0 is the singular command;
-@@ -678,7 +707,86 @@
+@@ -678,7 +707,113 @@
                  if((i<c->command_count)!=command)stop("NVN_COMMAND_ARENA_TYPE",nvn_caller,address,24);
                  nvn_command_reuse_arena(c,p);if(command)c->current=i;return 1;
              }
@@ -682,10 +682,37 @@
 +                            for(unsigned r=0;r<l->t2_ranges && r<8;r++)
 +                                if(l->t2_range_first[r]<old_end && old_start<l->t2_range_end[r] && l->t2_range_end[r]>safe_end)
 +                                    safe_end=l->t2_range_end[r];
-+                        if(new_end>=safe_end) {
-+                            printf("WOL_COMMAND_ARENA_SHRINK old=0x%"PRIx64"/%"PRIu64" new=0x%"PRIx64"/%"PRIu64" limit=0x%"PRIx64" used=%u list=%d recording=%d action=accepted\n",
-+                                old_start,old_end-old_start,new_start,size,safe_end,(unsigned)p->used,(int)(c->list!=NULL),(int)c->recording);
++                        /* Run-150: the pool cycles with ever-smaller re-registrations while a new recording is
++                         * active. The historic ranges extend to the old end, so the conservative veto refuses
++                         * a discard the guest (owner of this memory, mid-recording) considers free. Trust the
++                         * guest's shrink under the new recording by default; set WOL_ARENA_TRUST_SHRINK=0 to
++                         * restore the strict veto for the A/B. */
++                        static int ts_configured,ts_trust;if(!ts_configured){const char *o=getenv("WOL_ARENA_TRUST_SHRINK");ts_trust=!o||strcmp(o,"0");ts_configured=1;}
++                        if(new_end>=safe_end || (ts_trust && c->recording)) {
++                            printf("WOL_COMMAND_ARENA_SHRINK old=0x%"PRIx64"/%"PRIu64" new=0x%"PRIx64"/%"PRIu64" limit=0x%"PRIx64" used=%u list=%d recording=%d action=accepted%s\n",
++                                old_start,old_end-old_start,new_start,size,safe_end,(unsigned)p->used,(int)(c->list!=NULL),(int)c->recording,
++                                new_end>=safe_end?"":" reason=trusted-while-recording");
 +                            p->size=size;if(command && (int)i<16 && c->command_retained[i].last>new_end)c->command_retained[i].last=new_end;
++                            continue;
++                        }
++                    }
++                }
++                /* Run-149: the pool regrows its first chunk after cycling (its base returns with a larger
++                 * size, windows-a: the extension is memory no arena owned yet, so a live list cannot
++                 * reference it). Accept the growth when the extension collides with no other arena entry;
++                 * a clash stays refused. */
++                {   uint64_t old_start=p->address,old_end=p->address+p->size,new_start=address,new_end=address+size;
++                    if(new_start<=old_start && new_end>old_end && old_end>new_start) {
++                        int clash=0;
++                        for(unsigned j=0;j<c->command_count+c->control_count && !clash;j++) {
++                            if(j==i)continue;
++                            struct nvn_command_arena *q=j<c->command_count?&c->command[j]:&c->control[j-c->command_count];
++                            if(q->address<new_end && new_start<q->address+q->size)clash=1;
++                        }
++                        if(!clash) {
++                            printf("WOL_COMMAND_ARENA_GROW old=0x%"PRIx64"/%"PRIu64" new=0x%"PRIx64"/%"PRIu64" used=%u list=%d recording=%d action=accepted\n",
++                                old_start,old_end-old_start,new_start,size,(unsigned)p->used,(int)(c->list!=NULL),(int)c->recording);
++                            p->address=address;p->size=size;
 +                            continue;
 +                        }
 +                    }
