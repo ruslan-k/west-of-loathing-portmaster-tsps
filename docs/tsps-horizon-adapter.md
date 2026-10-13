@@ -962,3 +962,20 @@ main thread and its workers wait on after frame ~190 (IPC service traffic, an NV
 that the replay never signals, or an unscheduled job). More budget is not the lever.
 
 Run 124 (launched alongside this analysis) carries the glBindTexture fix and f268-draft.
+
+### Run 124 + the sharper reading of run 123: the loading phase is swap-bound, not stuck
+
+Run 124 confirmed the binding fix works (`WOL_PAIR_TEX ... name=26/29/21` - real GL names, real
+bindings) and f268-draft links cleanly; the screen stays black because the composite samples the
+1080p scene, which is empty while the scene programs remain untranslated.
+
+Re-reading run 123's tail corrects the earlier "stall" reading into measurements: the presented
+frame count reaches ~196 and the title then stays in its loading phase for the rest of the budget
+(object counter past 466, ~113 textures, repeating same-object re-creations of small 256x256
+surfaces, an audio pump at underrun=0, HID polls). The decisive numbers are memory: available
+toggles 49-66 MiB, vmswap ~650-790 MiB of 2017, vmrss ~580-736 MiB - **every asset the loader
+touches triggers swap I/O**, which is what makes the phase take tens of minutes rather than
+seconds. The levers for the next block are therefore the review's memory list, measured rather
+than guessed: which allocations dominate (guest Unity copies vs GL-side storage vs the 1080p
+targets), whether the zero-mip CPU writes can become GL-side clears, and the render-target
+downscale 1080p -> 720p (56% area cut) once the scene path renders.
