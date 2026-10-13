@@ -919,7 +919,7 @@
  #ifdef ANIMAL_WELL_SHADERS
      if(aw_fbcopy_enabled()){aw_fbcopy_open(width,height);glBindFramebuffer(GL_FRAMEBUFFER,aw_fbcopy.fbo);}
      else glBindFramebuffer(GL_FRAMEBUFFER,0);
-@@ -225,6 +312,17 @@
+@@ -225,11 +312,41 @@
      }
      glViewport(rect->x,(int)height-rect->y-rect->h,rect->w,rect->h);
      glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,t->name);
@@ -937,7 +937,31 @@
      nvn_texture_parameters(t,GL_NEAREST,GL_NEAREST,GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE);
      GLfloat scale=(t->host_half||t->host_scaled)?1.0f:nvn_low_present_scale(t),scale_y=(t->host_half||t->host_scaled)?1.0f:nvn_low_present_scale_y(t);
      nvn_rt_storage_require(t);
-@@ -270,6 +368,14 @@
+     glUniform2f(nvn_present.image_scale,scale*nvn_window.crop[2]/t->b.width,scale_y*nvn_window.crop[3]/t->b.height);
+     glUniform2f(nvn_present.image_offset,scale*nvn_window.crop[0]/t->b.width,scale_y*nvn_window.crop[1]/t->b.height);
++    /* WOL_COMPOSITE_PROBE=1 (review 2026-10-13, the recommended experiment): instead of the window
++     * texture, display a chosen render target directly with real quad uv (scale 1 / offset 0), so a
++     * correct scene can be seen on screen even while the composite translation is still a draft.
++     * TEST-ONLY. Target picked by WOL_PROBE_TARGET=<runtime texture id>. */
++    {   static int cp_configured,cp_on;static uint64_t cp_id;
++        if(!cp_configured){const char *o=getenv("WOL_COMPOSITE_PROBE");cp_on=o&&!strcmp(o,"1");
++            const char *w=getenv("WOL_PROBE_TARGET");cp_id=w?strtoull(w,NULL,0):457ULL;cp_configured=1;
++            if(cp_on)printf("WOL_COMPOSITE_PROBE enabled=1 target=%llu note=TEST-ONLY\n",(unsigned long long)cp_id);}
++        if(cp_on){
++            struct nvn_texture *pt=NULL;
++            for(unsigned i=0;i<nvn_textures_high&&i<4096;i++){struct nvn_texture *ct=&nvn_textures[i];if(ct->live&&ct->id==cp_id&&ct->name){pt=ct;break;}}
++            if(pt){
++                glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,pt->name);
++                glUniform2f(nvn_present.image_scale,1.0f,1.0f);
++                glUniform2f(nvn_present.image_offset,0.0f,0.0f);
++                static unsigned told;if(told<4){told++;printf("WOL_COMPOSITE_PROBE displaying id=%llu texture=%u %ux%u\n",(unsigned long long)cp_id,pt->name,pt->b.width,pt->b.height);}
++            } else { static unsigned told2;if(told2<4){told2++;printf("WOL_COMPOSITE_PROBE target-missing id=%llu\n",(unsigned long long)cp_id);} }
++        }
++    }
+     glDrawArrays(GL_TRIANGLE_STRIP,0,4);nvn_present.frames++;
+     if(t2_video_needs_readback()) {
+         GLint viewport[4];EGLint measured_w=0,measured_h=0;
+@@ -270,6 +387,14 @@
      cadence_pixel_proof=proof;
      const char *status=proof?"PIXELS":nonblack?"INCONCLUSIVE":"BLACK-SAMPLE";
      printf("NVN_PRESENT_PIXELS frame=%u nonblack=%u max=%u white=%u texture-draws=%u status=%s\n",nvn_present.frames,nonblack,maximum,readback.measure.white,t->draws,status);
@@ -952,7 +976,7 @@
      /* Native54 frame381 proves a black atlas background, RGB0 glyph vertices
       * and a transparent final overlay in the color layer; the normal target
       * still renders. Twelve samples were insufficient to observe this native
-@@ -279,6 +385,31 @@
+@@ -279,6 +404,31 @@
       * wall-clock/memory limits remain. This is not a release acceptance policy. */
      static unsigned black_limit;if(!black_limit){const char *o=getenv("COTM_BLACK_LIMIT");black_limit=o?(unsigned)strtoul(o,NULL,10):120;if(black_limit<120)black_limit=120;}
      nvn_present_receipt(nvn_present.black_streak>=black_limit?"BLACK":status,nonblack,maximum,t->draws);
@@ -984,7 +1008,7 @@
      if(nvn_present.black_streak>=black_limit){free(pixels);stop("NVN_PRESENT_BLACK",nvn_caller,nvn_present.frames,22);}
      if(capture_requested&&!proof)printf("NVN_CAPTURE_ON_DEMAND_NO_CAPTURE pid=%ld run=%s frame=%u status=%s\n",
          (long)getpid(),getenv("COTM_RUN_ID"),nvn_present.frames,status);
-@@ -342,6 +473,7 @@
+@@ -342,6 +492,7 @@
      if(!nvn_present_from_job)nvn_window.acquired[index]=0;
      uint64_t now=nvn_nanoseconds();nvn_profile.present_ns+=now-started;nvn_profile.frames++;
      if(nvn_profile.start && nvn_profile.frames>=60) {
@@ -1052,7 +1076,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -509,6 +520,381 @@
+@@ -509,6 +520,387 @@
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
@@ -1257,7 +1281,8 @@
 +                    if(t){glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,t->name);glUniform1i(wol_pair_tex_loc,0);
 +                        printf("WOL_PAIR_TEX slot=%u handle=0x%llx name=%u %ux%u\n",tslot,(unsigned long long)handle,(unsigned)t->name,t->b.width,t->b.height);}
 +                    /* Second sampler (f268 draft): bind the next resolvable recorded handle to unit 1. */
-+                    if(wol_pair_tex1_loc>=0) {
++                    {int t1loc=wol_cat_cur&&wol_cat_cur->tex1>=0?wol_cat_cur->tex1:wol_pair_tex1_loc;
++                    if(t1loc>=0) {
 +                        uint64_t h2=0;struct nvn_texture *t2=0;
 +                        for(unsigned s=0;s<128;s++) {
 +                            uint64_t candidate=nvn_render.texture_handles[1][s];
@@ -1266,15 +1291,15 @@
 +                            struct nvn_texture *ct2=nvn_render_sampler(candidate,0,0,0,&minf2,wrap2);
 +                            if(ct2&&ct2->live&&ct2->b.width&&ct2->b.height){h2=candidate;t2=ct2;break;}
 +                        }
-+                        if(h2&&t2){glActiveTexture(GL_TEXTURE1);glBindTexture(GL_TEXTURE_2D,t2->name);glUniform1i(wol_pair_tex1_loc,1);
++                        if(h2&&t2){glActiveTexture(GL_TEXTURE1);glBindTexture(GL_TEXTURE_2D,t2->name);glUniform1i(t1loc,1);
 +                            glActiveTexture(GL_TEXTURE0);}
-+                    }
++                    }}
 +                } else printf("WOL_PAIR_TEX none=1\n");
 +            }
-+            uint64_t mode=r->args[0],count=r->args[2];
++            uint64_t mode=r->args[0],first=r->args[1],count=r->args[2];
 +            unsigned long long stride=nvn_render.streams[0][0],vsize=nvn_render.vertex[0].size;
-+            printf("WOL_PAIR_DRAW mode=%"PRIu64" count=%"PRIu64" stride=%llu stream=%llu c3bank=%llx/%u avail=%u target=%"PRIu64"/%ux%u\n",
-+                mode,count,stride,vsize,(unsigned long long)c3r.address,(unsigned)c3r.size,avail,
++            printf("WOL_PAIR_DRAW mode=%"PRIu64" first=%"PRIu64" count=%"PRIu64" stride=%llu stream=%llu c3bank=%llx/%u avail=%u target=%"PRIu64"/%ux%u\n",
++                mode,first,count,stride,vsize,(unsigned long long)c3r.address,(unsigned)c3r.size,avail,
 +                nvn_render.target?nvn_render.target->id:0,nvn_render.target?nvn_render.target->b.width:0,nvn_render.target?nvn_render.target->b.height:0);
 +            if(wol_cat_cur->fullscreen) {
 +                glBindBuffer(GL_ARRAY_BUFFER,wol_cat_fullscreen_buffer());
@@ -1286,8 +1311,11 @@
 +                    (unsigned)glGetError(),nvn_render.target?nvn_render.target->id:0,
 +                    nvn_render.target?nvn_render.target->b.width:0,nvn_render.target?nvn_render.target->b.height:0);
 +                glDisableVertexAttribArray(0);
-+            } else if(mode==4 && count && stride && vsize>=(unsigned long long)count*stride) {
-+                const uint8_t *base=(const uint8_t *)nvn_gpu_pointer(nvn_render.vertex[0].address,(size_t)(count*stride),PROT_READ);
++            } else if(mode==4 && count && stride && vsize>=(unsigned long long)(first+count)*stride) {
++                /* Run-137 fix (review): nvnCommandBufferDrawArrays carries (mode, first, count) and the
++                 * first argument was ignored - draws with a non-zero first read the wrong vertex range.
++                 * The base is now advanced by first*stride; a bad range is refused with a log. */
++                const uint8_t *base=(const uint8_t *)nvn_gpu_pointer(nvn_render.vertex[0].address+first*stride,(size_t)(count*stride),PROT_READ);
 +                /* Review 2026-10-13 (run 114 bisection): attribute pointers aimed straight at guest memory
 +                 * produced no fragments at all (trivial vertex, green fragment, five-point readback = 0),
 +                 * while the fullscreen diagnostics - which use a REAL GL buffer - do leave pixels. The
@@ -1325,8 +1353,10 @@
 +                }
 +                if(pair_vbo) {
 +                    glEnableVertexAttribArray(0);glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,(GLsizei)stride,(const void *)0);
-+                    if(stride==24) {
-+                        /* Sprite layout (d88c64a6, stride 24): pos 3f@0, colour RGBA8 normalized @12, uv 2f@16. */
++                    if(stride==24||stride==32) {
++                        /* Sprite layouts (d88c64a6): pos 3f@0, colour RGBA8 normalized @12, uv 2f@16.
++                         * Run-137 fix (review): stride 32 previously fell into the a_extra@40 branch,
++                         * reading past the vertex. */
 +                        glEnableVertexAttribArray(1);glVertexAttribPointer(1,4,GL_UNSIGNED_BYTE,GL_TRUE,(GLsizei)stride,(const void *)12);
 +                        glEnableVertexAttribArray(2);glVertexAttribPointer(2,2,GL_FLOAT,GL_FALSE,(GLsizei)stride,(const void *)16);
 +                    } else {
@@ -1334,7 +1364,7 @@
 +                    }
 +                } else {
 +                    glEnableVertexAttribArray(0);glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,(GLsizei)stride,base);
-+                    if(stride==24) {
++                    if(stride==24||stride==32) {
 +                        glEnableVertexAttribArray(1);glVertexAttribPointer(1,4,GL_UNSIGNED_BYTE,GL_TRUE,(GLsizei)stride,base+12);
 +                        glEnableVertexAttribArray(2);glVertexAttribPointer(2,2,GL_FLOAT,GL_FALSE,(GLsizei)stride,base+16);
 +                    } else {
@@ -1434,7 +1464,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1921,273 @@
+@@ -1535,6 +1927,273 @@
          begin=end+1;
      }
  }
@@ -1708,7 +1738,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2215,16 @@
+@@ -1562,7 +2221,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -1854,7 +1884,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,380 @@
+@@ -46,10 +46,387 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -2175,7 +2205,14 @@
 +    if(!ok){log[0]=0;glGetShaderInfoLog(fs,sizeof log,NULL,log);printf("WOL_CAT_LINK stage=fragment shader=%s ok=0 log=%s\n",bf->name,log);return NULL;}
 +    GLuint pr=glCreateProgram();glAttachShader(pr,vs);glAttachShader(pr,fs);
 +    if(fullscreen)glBindAttribLocation(pr,0,"p");
-+    else {glBindAttribLocation(pr,0,"a_pos");glBindAttribLocation(pr,1,"a_extra");}
++    else {
++        glBindAttribLocation(pr,0,"a_pos");
++        /* Run-137 fix (review): the sprite translations (v189/v266, d88c64a6) read a_pos/a_col/a_uv;
++         * other translations read a_pos/a_extra. Bind them explicitly - the implicit compiler
++         * assignment left a_col/a_uv on arbitrary slots while the draw path fed them as 1/2. */
++        if(v==0||v==1){glBindAttribLocation(pr,1,"a_col");glBindAttribLocation(pr,2,"a_uv");}
++        else glBindAttribLocation(pr,1,"a_extra");
++    }
 +    glLinkProgram(pr);glGetProgramiv(pr,GL_LINK_STATUS,&ok);
 +    if(!ok){log[0]=0;glGetProgramInfoLog(pr,sizeof log,NULL,log);printf("WOL_CAT_LINK stage=link ok=0 log=%s\n",log);glDeleteProgram(pr);return NULL;}
 +    struct wol_cat_linked *lk=&wol_cat_linked_cache[wol_cat_linked_used++];
@@ -2236,7 +2273,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +877,29 @@
+@@ -507,12 +884,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -2267,7 +2304,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +1000,28 @@
+@@ -613,6 +1007,28 @@
              }
          }
  #endif
