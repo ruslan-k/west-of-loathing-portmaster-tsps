@@ -768,3 +768,18 @@ code multiplies with. The 144-byte bound range matches c3's read extent, so run 
 actual floats: the full 36-word c3 bank (and the fragment bank) on the first draws, plus every
 bound stage-0 slot with its first words - then the matrix can be identified offline by arithmetic
 and the hand GLSL (or the bank choice) corrected 1:1. 210 presents, no stop, 144 textures.
+
+### Run 111: the constant bank is two GL column-major matrices - the hand math is corrected
+
+The bank dump settled it. c3[0..15] is an identity matrix and c3[16..31] is
+`[2,0,0,0, 0,2,0,0, 0,0,-0.019802,0, -1,-1,-0.980198,1]` - **both in GL column-major order**, i.e.
+the clip position is `M2 * (M1 * pos)` and for this draw equals `(2x-1, 2y-1, -0.98-0.0198z, 1)`:
+a unit quad projected to the full viewport with **w = 1**. The earlier verbatim ALU transcription
+of the vertex shader mixed the row/column roles (its last combination read `-0.98` into w), which
+is exactly why every vertex came out with clip.w = -0.98 and the hardware clipped the quad away.
+
+The hand vertex GLSL is now the honest two-matrix column-major transform (M1 at c3[0..15], M2 at
+c3[16..31]), the CPU probe replicates the same math, and the same GLSL/register roles stay for the
+varyings (v8 = (a_extra.x*c3[32]+c3[34], a_pos.z), v7 = gl_Position). Run 112 carries the fix with
+the green fragment still on: if the unit quad now paints the window textures, the presentation
+readback turns green and the geometry chapter is closed.

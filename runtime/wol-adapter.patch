@@ -890,7 +890,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -509,6 +520,250 @@
+@@ -509,6 +520,253 @@
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
@@ -1104,19 +1104,22 @@
 +                 * CPU and print the clip-space result per vertex, to tell an off-screen/clipped quad or a
 +                 * wrong constant bank from a sampling problem. TEST-ONLY, no GL state touched. */
 +                {   static int pm_configured,pm_on;if(!pm_configured){const char *o=getenv("WOL_PAIR_MATH");pm_on=o&&!strcmp(o,"1");pm_configured=1;}
-+                    if(pm_on&&avail>=(0x8c/4+1)*4 && count<=8) {
++                    if(pm_on&&avail>=32*4 && count<=8) {
 +                        static unsigned told;if(told<40){told++;
 +                        for(unsigned k=0;k<6&&k<count;k++) {
 +                            const float *v=(const float *)(base+(size_t)k*stride);
-+                            float r6=v[0],r4=v[1],r5=v[2],r1,r0,r2,r3,t4;
-+                            r1=r4*words[0x14/4]; r0=r4*words[0x10/4]; r3=r6*words[0x04/4]+r1; r3=r5*words[0x24/4]+r3;
-+                            r1=r4*words[0x18/4]; r2=r5*words[0x20/4]; r3=r3+words[0x34/4]; r0=r6*words[0x0c/4]+r0;
-+                            r2=r2+words[0x30/4]; r1=r5*words[0x28/4]+r1; r0=r5*words[0x2c/4]+r0;
-+                            r6=r2*words[0x40/4]+r6; t4=r3*words[0x58/4]; r1=r1+words[0x38/4];
-+                            float rr7=r2*words[0x44/4]+t4; float rr4=r2*words[0x48/4]+t4; r0=r0+words[0x3c/4];
-+                            r6=r1*words[0x60/4]+r6; r3=r1*words[0x68/4]+rr4; r0=r0*words[0x78/4]+(r1*words[0x6c/4]+r2);
-+                            r6=r0*words[0x70/4]+r6; r3=r0*words[0x74/4]+r3;
-+                            printf("WOL_PAIR_MATH v=%u pos=%g,%g,%g clip=%g,%g,%g,%g\n",k,v[0],v[1],v[2],r6,rr7,r3,r0);
++                            /* Measured layout (run 111): M1 at c3[0..15], M2 at c3[16..31], GL column-major;
++                             * clip = M2*(M1*pos). The probe verifies the GLSL against the same math. */
++                            float p0=v[0],p1=v[1],p2=v[2],p3=1.0f;
++                            float q0=words[0]*p0+words[4]*p1+words[8]*p2+words[12]*p3;
++                            float q1=words[1]*p0+words[5]*p1+words[9]*p2+words[13]*p3;
++                            float q2=words[2]*p0+words[6]*p1+words[10]*p2+words[14]*p3;
++                            float q3=words[3]*p0+words[7]*p1+words[11]*p2+words[15]*p3;
++                            float c0=words[16]*q0+words[20]*q1+words[24]*q2+words[28]*q3;
++                            float c1=words[17]*q0+words[21]*q1+words[25]*q2+words[29]*q3;
++                            float c2=words[18]*q0+words[22]*q1+words[26]*q2+words[30]*q3;
++                            float c3w=words[19]*q0+words[23]*q1+words[27]*q2+words[31]*q3;
++                            printf("WOL_PAIR_MATH v=%u pos=%g,%g,%g clip=%g,%g,%g,%g\n",k,v[0],v[1],v[2],c0,c1,c2,c3w);
 +                        }}
 +                    }
 +                }
@@ -1141,7 +1144,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1790,235 @@
+@@ -1535,6 +1793,235 @@
          begin=end+1;
      }
  }
@@ -1377,7 +1380,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2046,16 @@
+@@ -1562,7 +2049,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -1523,7 +1526,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,299 @@
+@@ -46,10 +46,281 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -1537,46 +1540,28 @@
 +"#version 100\n"
 +"precision highp float;\n"
 +"attribute vec3 a_pos;\n"        /* input slot 0 */
-+"attribute vec2 a_extra;\n"      /* input slot 1, vec3 declared, only x/y read */
++"attribute vec2 a_extra;\n"      /* input slot 1 */
 +"uniform float c3[96];\n"        /* constant bank 3, floats; c3[N] is the word at byte 4*N */
 +"varying vec4 v7;\n"
 +"varying vec2 v8;\n"
++/* Measured on the device (run 111): the bank holds TWO 4x4 matrices in GL column-major order at
++ * c3[0..15] (M1, object->world) and c3[16..31] (M2, world->clip). The clip position is M2*(M1*pos).
++ * The earlier verbatim ALU transcription mixed the row/column roles and produced clip.w = -0.98,
++ * which the hardware clipped away. For WoL's UI draw M1 = identity and
++ * M2 = [2,0,0,0, 0,2,0,0, 0,0,-0.019802,0, -1,-1,-0.980198,1], i.e. clip = (2x-1, 2y-1, -0.98-0.0198z, 1). */
 +"void main() {\n"
-+"    float r6 = a_pos.x;\n"
-+"    float r4 = a_pos.y;\n"
-+"    float r5 = a_pos.z;\n"
-+"    float r8 = a_extra.x;\n"
-+"    float r9 = a_extra.y;\n"
-+"    float r10 = c3[0x84/4];\n"
-+"    float r7  = c3[0x80/4];\n"
-+"    float r0, r1, r2, r3;\n"
-+/* --- transcription of the decoded ALU chain (fmul/ftz, ffma, fadd32i, mov c3) --- */
-+"    r1 = r4 * c3[0x14/4];\n"
-+"    r0 = r4 * c3[0x10/4];\n"
-+"    r3 = r6 * c3[0x04/4] + r1;\n"
-+"    r3 = r5 * c3[0x24/4] + r3;\n"
-+"    r1 = r4 * c3[0x18/4];\n"
-+"    r2 = r5 * c3[0x20/4];\n"
-+"    r3 = r3 + c3[0x34/4];\n"
-+"    r0 = r6 * c3[0x0c/4] + r0;\n"
-+"    r2 = r2 + c3[0x30/4];\n"
-+"    r1 = r5 * c3[0x28/4] + r1;\n"
-+"    r0 = r5 * c3[0x2c/4] + r0;\n"
-+"    r6 = r2 * c3[0x40/4] + r6;\n"
-+"    r4 = r3 * c3[0x58/4];\n"
-+"    r8 = r8 * r7 + c3[0x88/4];\n"
-+"    r1 = r1 + c3[0x38/4];\n"
-+"    r7 = r2 * c3[0x44/4] + r4;\n"
-+"    r4 = r2 * c3[0x48/4] + r4;\n"
-+"    r0 = r0 + c3[0x3c/4];\n"
-+"    r6 = r1 * c3[0x60/4] + r6;\n"
-+"    r3 = r1 * c3[0x68/4] + r4;\n"
-+"    r0 = r0 * c3[0x78/4] + (r1 * c3[0x6c/4] + r2);\n"
-+"    r6 = r0 * c3[0x70/4] + r6;\n"
-+"    r3 = r0 * c3[0x74/4] + r3;\n"
-+"    v8 = vec2(r8, r5);\n"        /* measured: v8.x = r8, v8.y = r5 (position z) */
-+"    v7 = vec4(r6, r7, r3, r0);\n" /* measured stores; r10 is not stored */
-+"    gl_Position = v7;\n"          /* the storage map is complete, so the position comes from v7 */
++"    vec4 p = vec4(a_pos.xyz, 1.0);\n"
++"    vec4 q;\n"
++"    q.x = c3[0] * p.x + c3[4] * p.y + c3[8]  * p.z + c3[12] * p.w;\n"
++"    q.y = c3[1] * p.x + c3[5] * p.y + c3[9]  * p.z + c3[13] * p.w;\n"
++"    q.z = c3[2] * p.x + c3[6] * p.y + c3[10] * p.z + c3[14] * p.w;\n"
++"    q.w = c3[3] * p.x + c3[7] * p.y + c3[11] * p.z + c3[15] * p.w;\n"
++"    gl_Position.x = c3[16] * q.x + c3[20] * q.y + c3[24] * q.z + c3[28] * q.w;\n"
++"    gl_Position.y = c3[17] * q.x + c3[21] * q.y + c3[25] * q.z + c3[29] * q.w;\n"
++"    gl_Position.z = c3[18] * q.x + c3[22] * q.y + c3[26] * q.z + c3[30] * q.w;\n"
++"    gl_Position.w = c3[19] * q.x + c3[23] * q.y + c3[27] * q.z + c3[31] * q.w;\n"
++"    v8 = vec2(a_extra.x * c3[32] + c3[34], a_pos.z);\n"
++"    v7 = gl_Position;\n"
 +"}\n";
 +
 +static const char wol_pair_fragment_glsl[] =
@@ -1824,7 +1809,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +796,29 @@
+@@ -507,12 +778,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -1855,7 +1840,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +919,28 @@
+@@ -613,6 +901,28 @@
              }
          }
  #endif
