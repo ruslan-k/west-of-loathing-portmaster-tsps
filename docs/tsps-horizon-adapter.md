@@ -739,3 +739,20 @@ Next instrumentation sent with run 109: `WOL_PAIR_TEST=1` paints the translated 
 while keeping its real vertex - if the green reaches the presented texture, geometry and target
 routing are fine and the remaining problem is texture/sampling; if not, the pair's geometry or
 render-target attachment is the break.
+
+### Run 109: view decode lands, the pair's geometry question narrows
+
+- **Downsample views decoded**: `WOL_DOWNSAMPLE_VIEW a=texture(id=269) b=texture(id=270)` and
+  `a=280 b=281` - the id-based lookup (high half of the view word) resolves both flavours, and
+  **UNRESOLVED is now 0** for the whole run (was 433/run). The resolve blits now use decoded
+  objects instead of the size heuristic.
+- 977 presented frames (best yet), full 1800 s budget, no stop, 130 textures including a
+  2048x2048 format-0x39 atlas (the swizzle gate accepts the big one).
+- **Green pair test answered the texture question**: with the translated pair painted solid green
+  (real vertex kept), all 977 present readbacks stayed black - so the pair's geometry or its
+  render-target attachment is the break, not texture sampling. Run 110 therefore carries
+  `WOL_PAIR_MATH=1`: the exact translated transform is replicated on the CPU per vertex and the
+  clip-space result is printed, to tell an off-screen/clipped quad or a wrong constant bank from
+  an attachment problem.
+- Quiet texture pick upgraded from "first non-null" to metadata-based (largest level-1 texture
+  that is not the current target) - no readbacks, closer to the probe-selected atlas.
