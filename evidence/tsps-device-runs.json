@@ -725,6 +725,12 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-95",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 190,
+      "note": "WOL_SPRITE_SCAN: sprite draws leave nonblack=10840 max=255 in target 280 - the d88c64a6 geometry paints on-screen; present stays black because the pair-1 composite samples a 4x4 fallback: the quiet pick's levels==1 filter excluded the BC atlases (11-12 mips); run 120 drops that filter"
+    },
+    {
       "run": "device-94",
       "stop": "none (governor SIGTERM, exit 143)",
       "presents": 196,
