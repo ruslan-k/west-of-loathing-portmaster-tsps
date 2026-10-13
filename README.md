@@ -97,7 +97,7 @@ This repository is GPL-3.0. Third-party reference packages remain local; the rep
 | GLSL ES translation | 1 of 3 pairs translated + draw hook now keyed by code/control SHA-256 identity (review 2026-10-13); the other 2 pairs draw a clearly-marked TEST diagnostic colour; all draws execute with zero GL errors |
 | Render targets | real GPU blit 1920x1080 -> 1280x720 |
 | Present | still black while the title is still loading (run 100: 254/254 samples; textures 33 -> 108, terminated by the time governor); 763 translated + 1016 TEST diagnostic draws execute |
-| Current state | run 100 (device-78): **no stop** - the time governor terminated it while the load was still advancing; the earlier `NVN_TEXTURE_SWIZZLE_REQUIRED` gate (format 0x39, swizzle B,G,R,A) was measured and fixed (gate + decode). Previous stops: `T2_MEMORY_FLOOR` (diagnostic; runs 91/95) and `NVN_GUEST_POINTER` (this runtime's own callback probe; fixed in runs 90-91) |
+| Current state | run 104 (device-81): 924 presented frames with the quiet hot path (same 1800s budget; diagnostics were throttling the title); stopped at HID `SetNpadHandheldActivationMode` (cmd 128) - the family 123-129 is now implemented; a leftover dump-file leak (14.7k files, one ENOSPC stop) was cleaned and captures are gated behind `WOL_DUMP=1`. Run 100 (device-78): **no stop** - the time governor terminated it while the load was still advancing; the earlier `NVN_TEXTURE_SWIZZLE_REQUIRED` gate (format 0x39, swizzle B,G,R,A) was measured and fixed (gate + decode). Previous stops: `T2_MEMORY_FLOOR` (diagnostic; runs 91/95) and `NVN_GUEST_POINTER` (this runtime's own callback probe; fixed in runs 90-91) |
 
 ### Command arena: what was measured
 

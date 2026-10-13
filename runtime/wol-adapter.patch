@@ -10,6 +10,23 @@
      -DMESA_EGL_NO_X11_HEADERS -fno-strict-aliasing -pthread -I"$1" \
      -I"$COTM_NXAUDIO_DIR" -I"$COTM_NXINPUT_DIR/include" \
      -I"$COTM_NXINPUT_DIR/engine-glue" -I"$COTM_NXCOMPAT_DIR/include" -I"$shaders" \
+--- a/native/diagnostic_dump.h
++++ b/native/diagnostic_dump.h
+@@ -2,7 +2,14 @@
+  * rendering, pixel measurements and receipts remain unchanged. */
+ #include <zlib.h>
+ #include "aw_release.h"
++/* Port hygiene (2026-10-13): captures accumulated to 14.7k files in the port directory and one run
++ * died at open() with ENOSPC (errno 28). Every diagnostic capture (files and the per-frame video
++ * journal) now requires an explicit WOL_DUMP=1; normal runs write nothing into the port directory. */
++static unsigned wol_dump_enabled(void) {
++    static int v=-1;if(v<0){const char *o=getenv("WOL_DUMP");v=(o&&!strcmp(o,"1"));}return (unsigned)v;
++}
+ static void nvn_private_dump(const char *kind,unsigned sequence,const void *data,size_t size) {
++    if(!wol_dump_enabled())return;
+     /* FRENTE-C: T2_RELEASE_CAPTURE=1 keeps the release profile (AW_RELEASE=1) for timing runs and admits
+      * only the explicitly requested frame image, so a measured optimisation can be checked by eye. */
+     if(aw_release_mode()) {
 --- a/native/filesystem.h
 +++ b/native/filesystem.h
 @@ -34,6 +34,12 @@
@@ -65,6 +82,65 @@
          ipc_reply(buffer,req->token,0,NULL,0,0,req->domain);return 1;
      }
      return 0;
+--- a/native/input.h
++++ b/native/input.h
+@@ -3,7 +3,7 @@
+  * ABI: SDK4.5/SDK9 and switchbrew/libnx services/hid.{c,h}.
+  */
+ #include "frame_logs.h"
+-static struct {unsigned shared_plus_one,active,revision,gesture_active,gesture_revision,touch_active,keyboard_active,mouse_active;uint32_t styles,ids[10],num_ids,events[10],assignment[10];uint64_t hold;} hid_state;
++static struct {unsigned shared_plus_one,active,revision,gesture_active,gesture_revision,touch_active,keyboard_active,mouse_active;uint32_t styles,ids[10],num_ids,events[10],assignment[10];uint64_t hold,handheld_mode;} hid_state;
+ static uint8_t zero_motion_active[10][5][3];
+ static struct {unsigned open,count;uint32_t handles[128];} vibration_lists[8];
+ static void vibration_destroy(unsigned state) {
+@@ -266,5 +266,47 @@
+     if(req->command==121) {
+         hid_aruid(req,0,pc);ipc_reply(buffer,req->token,0,&hid_state.hold,8,0,req->domain);return 1;
+     }
++    if(req->command==123) {
++        /* SetNpadJoyAssignmentModeSingle: u32 NpadIdType@0, u64 ARUID@8, u64 NpadJoyDeviceType@16
++         * (libnx hid.c cmd 123, _hidCmdInU32AruidU64NoOut). WoL run 104 asked for the family
++         * 123-129 after SetSupportedNpadStyleSet(100) and SetSupportedNpadIdType(102). */
++        hid_aruid(req,8,pc);
++        if(req->data_size<24 || req->copies || req->num_inputs || req->num_outputs)
++            stop("INVALID_HID_ASSIGNMENT_SINGLE",pc,req->data_size,24);
++        hid_state.assignment[hid_id(read32(req->data),pc)]=1;
++        ipc_reply(buffer,req->token,0,NULL,0,0,req->domain);return 1;
++    }
++    if(req->command==125) {
++        /* MergeSingleJoyAsDualJoy: u32 id0@0, u32 id1@4, u64 ARUID@8. */
++        hid_aruid(req,8,pc);
++        if(req->data_size<16 || req->copies || req->num_inputs || req->num_outputs)
++            stop("INVALID_HID_MERGE",pc,req->data_size,24);
++        hid_state.assignment[hid_id(read32(req->data),pc)]=0;
++        hid_state.assignment[hid_id(read32(req->data+4),pc)]=0;
++        ipc_reply(buffer,req->token,0,NULL,0,0,req->domain);return 1;
++    }
++    if(req->command==126 || req->command==127) {
++        /* StartLrAssignmentMode / StopLrAssignmentMode: ARUID only, no observable state. */
++        hid_aruid(req,0,pc);
++        if(req->data_size>12 || req->copies || req->num_inputs || req->num_outputs)
++            stop("INVALID_HID_LR_ASSIGNMENT",pc,req->data_size,24);
++        ipc_reply(buffer,req->token,0,NULL,0,0,req->domain);return 1;
++    }
++    if(req->command==128) {
++        /* SetNpadHandheldActivationMode: u64 ARUID@0, u64 mode@8 (libnx hid.c cmd 128,
++         * _hidCmdInU64AruidNoOut). The SDK getter 129 aborts unless the value is 0-2. */
++        hid_aruid(req,0,pc);
++        uint64_t mode=0;if(req->data_size>=16)memcpy(&mode,req->data+8,8);
++        if(req->data_size<16 || mode>2)stop("INVALID_HID_HANDHELD_MODE",pc,mode,20);
++        hid_state.handheld_mode=mode;
++        ipc_reply(buffer,req->token,0,NULL,0,0,req->domain);return 1;
++    }
++    if(req->command==129) {
++        /* GetNpadHandheldActivationMode: returns u64 0-2. */
++        hid_aruid(req,0,pc);
++        if(req->copies || req->num_inputs || req->num_outputs)stop("INVALID_HID_HANDHELD_GET",pc,req->data_size,24);
++        uint64_t mode=hid_state.handheld_mode;
++        ipc_reply(buffer,req->token,0,&mode,8,0,req->domain);return 1;
++    }
+     return 0;
+ }
 --- a/native/loader.c
 +++ b/native/loader.c
 @@ -30,7 +30,12 @@
@@ -647,7 +723,15 @@
  /* Called after Submit, outside the producer/regions locks. A quick atomic
 --- a/native/nvn_present.h
 +++ b/native/nvn_present.h
-@@ -186,7 +186,12 @@
+@@ -17,6 +17,7 @@
+     unsigned sparse_readback,sample_frame_logs;struct nvn_pixel_band band;} nvn_present;
+ static void nvn_present_receipt(const char *status,unsigned nonblack,unsigned maximum,unsigned draws) {
+     if(aw_release_mode())return;
++    if(!wol_dump_enabled())return; /* WOL_DUMP=1 only (see diagnostic_dump.h); keeps per-frame SD writes out of normal runs */
+     uint64_t started=nvn_nanoseconds();
+     char json[640];const char *run=getenv("COTM_RUN_ID");
+     int size=snprintf(json,sizeof(json),"{\"port\":\"legacy_runtime-switch-study\",\"run\":\"%s\",\"generation_pid\":%ld,\"frame\":%u,\"status\":\"%s\",\"nonblack_pixels\":%u,\"maximum_rgb\":%u,\"game_draws\":%u,\"black_streak\":%u,\"sampled_pixels\":%u,\"full_readback\":%s,\"sample_y\":%u,\"sample_rows\":%u,\"boundary\":\"%s\"}\n",
+@@ -186,7 +187,12 @@
      if(!nvn_async_frame_enabled())nvn_async_present_wait_locked(q,single);
      if(!single)nvn_egl_present_reader_wait();
      if(single) {
@@ -661,7 +745,7 @@
          /* This is a logical context use even though its physical binding is
           * retained. Do not reuse a completion proof from before the quad. */
          if(!++nvn_gl_completion.use_serial)stop("NVN_GL_SERIAL_WRAP",nvn_caller,0,24);
-@@ -199,7 +204,9 @@
+@@ -199,10 +205,16 @@
      }
      nvn_present_setup();
      momo_stencil_selftest();
@@ -672,7 +756,32 @@
      t2_present_gpu_wait_issue(); /* FRENTE-C: GPU-side order after the frame (T2_PRESENT_GPU_WAIT=1) */
      nvn_single_present_quad(nvn_present.program,nvn_present.vertices);
      struct nvn_texture *t=nvn_window.textures[index];unsigned width=nvn_window.fb.width,height=nvn_window.fb.height;
-@@ -270,6 +277,14 @@
++    /* Review 2026-10-13: name the actually-presented window texture (guest, GL name, id, dims). */
++    { static unsigned told;if(told<8||!(nvn_present.frames%512)){told++;
++        printf("WOL_PRESENT_SOURCE slot=%u guest=0x%llx texture=%u id=%"PRIu64" %ux%u levels=%u frame=%u\n",
++            index,(unsigned long long)t->object,t->name,t->id,t->b.width,t->b.height,t->b.levels,nvn_present.frames);} }
+ #ifdef ANIMAL_WELL_SHADERS
+     if(aw_fbcopy_enabled()){aw_fbcopy_open(width,height);glBindFramebuffer(GL_FRAMEBUFFER,aw_fbcopy.fbo);}
+     else glBindFramebuffer(GL_FRAMEBUFFER,0);
+@@ -225,6 +237,17 @@
+     }
+     glViewport(rect->x,(int)height-rect->y-rect->h,rect->w,rect->h);
+     glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,t->name);
++    /* WOL_PRESENT_TEST=1 (review 2026-10-13 P0 route test): write a known magenta marker directly
++     * into the presenting texture. If it shows in the on-screen image or in the present readback,
++     * the render-target -> window texture -> present chain is proven end to end. TEST-ONLY. */
++    {   static int pt_configured,pt_enabled;if(!pt_configured){pt_enabled=getenv("WOL_PRESENT_TEST")!=NULL;pt_configured=1;}
++        if(pt_enabled&&t->b.width>=64&&t->b.height>=64) {
++            static uint8_t marker[64*64*4];static int ready;
++            if(!ready){for(unsigned i=0;i<64*64;i++){marker[i*4+0]=255;marker[i*4+1]=0;marker[i*4+2]=255;marker[i*4+3]=255;}ready=1;}
++            glTexSubImage2D(GL_TEXTURE_2D,0,0,0,64,64,GL_RGBA,GL_UNSIGNED_BYTE,marker);
++            static unsigned told;if(told<4){told++;printf("WOL_PRESENT_TEST frame=%u texture=%u id=%"PRIu64" marker=magenta-64x64 note=TEST-ONLY\n",nvn_present.frames,t->name,t->id);}
++        }
++    }
+     nvn_texture_parameters(t,GL_NEAREST,GL_NEAREST,GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE);
+     GLfloat scale=(t->host_half||t->host_scaled)?1.0f:nvn_low_present_scale(t),scale_y=(t->host_half||t->host_scaled)?1.0f:nvn_low_present_scale_y(t);
+     nvn_rt_storage_require(t);
+@@ -270,6 +293,14 @@
      cadence_pixel_proof=proof;
      const char *status=proof?"PIXELS":nonblack?"INCONCLUSIVE":"BLACK-SAMPLE";
      printf("NVN_PRESENT_PIXELS frame=%u nonblack=%u max=%u white=%u texture-draws=%u status=%s\n",nvn_present.frames,nonblack,maximum,readback.measure.white,t->draws,status);
@@ -747,7 +856,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -509,6 +520,187 @@
+@@ -509,6 +520,189 @@
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
@@ -821,7 +930,7 @@
 +                 * probing after 8 candidates, so a sprite atlas created later could never be seen
 +                 * (review 2026-10-13). Latched per slot value; never exhausts. */
 +                static uint64_t tex_probed[128];static uint64_t tex_probes,tex_probes_nonblack;
-+                for(unsigned s=0;s<128 && !handle;s++) {
++                for(unsigned s=0;s<128 && !handle && !wol_quiet();s++) {
 +                    uint64_t candidate=nvn_render.texture_handles[1][s];
 +                    if(!candidate)continue;
 +                    if(tex_probed[s]==candidate)continue;
@@ -845,7 +954,7 @@
 +                        s,ct->id,ct->name,ct->b.width,ct->b.height,nb,maxc,tex_probes,tex_probes_nonblack);
 +                    if(!handle && nb) {handle=candidate;tslot=s;}
 +                }
-+                if(!handle && nvn_render.target && nvn_render.target->b.width==1920 && nvn_render.target->b.height==1080) {
++                if(!handle && !wol_quiet() && nvn_render.target && nvn_render.target->b.width==1920 && nvn_render.target->b.height==1080) {
 +                    /* Scene pass (renders into the 1920x1080 camera target). Its sprite textures are not
 +                     * visible through the per-stage slots this hook can see, so the live table is searched
 +                     * for the LARGEST pixel-bearing texture that is not a screen-sized target and not a
@@ -909,6 +1018,7 @@
 +                glEnableVertexAttribArray(0);glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,0,0);
 +                glDisableVertexAttribArray(1);
 +                glDrawArrays(GL_TRIANGLES,0,3);
++                nvn_replay.draws++;
 +                printf("WOL_CAT_FULLSCREEN_DRAW primitives=3 glerror=0x%x target=%"PRIu64"/%ux%u note=TEST-ONLY\n",
 +                    (unsigned)glGetError(),nvn_render.target?nvn_render.target->id:0,
 +                    nvn_render.target?nvn_render.target->b.width:0,nvn_render.target?nvn_render.target->b.height:0);
@@ -918,6 +1028,7 @@
 +                glEnableVertexAttribArray(0);glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,(GLsizei)stride,base);
 +                glEnableVertexAttribArray(1);glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,(GLsizei)stride,base+40);
 +                glDrawArrays(GL_TRIANGLES,0,(GLsizei)count);
++                nvn_replay.draws++;
 +                printf("WOL_PAIR_DRAW_ISSUED primitives=%"PRIu64" glerror=0x%x\n",count,(unsigned)glGetError());
 +                glDisableVertexAttribArray(0);glDisableVertexAttribArray(1);
 +            } else {
@@ -935,7 +1046,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1727,210 @@
+@@ -1535,6 +1729,210 @@
          begin=end+1;
      }
  }
@@ -1146,7 +1257,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +1958,16 @@
+@@ -1562,7 +1960,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -1292,7 +1403,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,282 @@
+@@ -46,10 +46,288 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -1481,6 +1592,12 @@
 +static unsigned wol_diag_enabled(void) {
 +    static int v=-1;if(v<0){const char *o=getenv("WOL_DIAG");v=(o&&!strcmp(o,"0"))?0:1;}return (unsigned)v;
 +}
++static unsigned wol_quiet(void) {
++    /* Review 2026-10-13 P1: WOL_QUIET=1 removes the per-draw texture content probing
++     * (full-texture GPU->CPU readbacks) from the hot path for speed runs; the draw
++     * substitution, banks and counters are untouched. */
++    static int v=-1;if(v<0){const char *o=getenv("WOL_QUIET");v=(o&&!strcmp(o,"1"));}return (unsigned)v;
++}
 +struct wol_cat_linked { int v,f; GLuint name; GLint c3,c3f,tex; unsigned fullscreen; };
 +static struct wol_cat_linked wol_cat_linked_cache[4];static unsigned wol_cat_linked_used;
 +static GLuint wol_cat_fullscreen_buffer_gl;
@@ -1576,7 +1693,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +779,29 @@
+@@ -507,12 +785,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -1607,7 +1724,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +902,28 @@
+@@ -613,6 +908,28 @@
              }
          }
  #endif
@@ -1800,6 +1917,17 @@
          if(!nvn_device.live || b.device!=nvn_device.address || nvn_window.live || !layer.opened || !b.native || b.count<2 || b.count>3)
              stop("NVN_WINDOW_CONTRACT",nvn_caller,b.count,24);
          if(b.interval_minus_one<-1 || b.interval_minus_one>0)stop("NVN_WINDOW_INTERVAL_REQUIRED",nvn_caller,b.interval_minus_one,20);
+@@ -68,6 +77,10 @@
+             for(unsigned j=0;j<i;j++)if(nvn_window.textures[j]==t)stop("NVN_WINDOW_TEXTURE_REPEATED",nvn_caller,textures[i],24);
+             if(i&&(t->b.width!=nvn_window.textures[0]->b.width||t->b.height!=nvn_window.textures[0]->b.height))stop("NVN_WINDOW_TEXTURE_DIMENSIONS",nvn_caller,textures[i],24);
+             nvn_window.textures[i]=t;
++            /* Review 2026-10-13: name every swapchain window texture up front (id, GL name, dims),
++             * so the present-side identity can be correlated instead of inferred. */
++            printf("WOL_WINDOW_TEXTURE slot=%u guest=0x%llx texture=%u id=%llu %ux%u levels=%u\n",
++                i,(unsigned long long)textures[i],t->name,t->id,t->b.width,t->b.height,t->b.levels);
+         }
+         struct fb_var_screeninfo info={0};
+         if(nvn_platform_sdl_window) {
 --- a/native/zero_texture_writes.h
 +++ b/native/zero_texture_writes.h
 @@ -5,7 +5,28 @@

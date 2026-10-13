@@ -725,6 +725,13 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-81",
+      "stop": "UNIMPLEMENTED_IPC_COMMAND (HID cmd 128, endpoint 0x2d)",
+      "stop_pc": "sdk.text.seg+0xa9d94",
+      "presents": 924,
+      "note": "quiet hot path (WOL_QUIET=1): 924 frames vs 279 in run 102 under the same 1800s budget; leftover dump files (14.7k) found and cleaned; capture writes now gated behind WOL_DUMP=1; new stop named the HID family 123-129; draws counter fixed in the catalogue hook"
+    },
+    {
       "run": "device-79",
       "stop": "none (harness time governor, exit 143, budget 1800s)",
       "presents": 279,
