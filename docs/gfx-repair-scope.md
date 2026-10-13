@@ -47,3 +47,9 @@ envydis decode (gm107) of the top pair: fragment = tinted sprite with explicit p
 - After the fix (gfx176, 620 s, build-172 sha 2c413761...): WOL_CAT_LINK ok=1 top-v-draft/top-f-draft; 232646 draws rendered through the new pair (was ~237k skipped); WOL_SKIP_TOP prints stopped entirely (skips collapsed below the 8192 threshold); no stops. kmsgrab: the scene renders - a room with white wall, dark floor/hearth with diagonal shapes - and the game's own dialogue matches it: "This hearth really puts the 'hearth' in 'hearth and home.'".
 - Measured pair layout: stride 24 (pos 3f@0 / colour RGBA8@12 / uv 2f@16 - the draft's assumption held), meshes up to 747 vertices, into the 1920x1080 scene target, real atlases sampled (512x128..1024x512). kmsgrab series gfx176/during-140..615.
 - Still open: f8e1b018 blob capture (the review's lighter-flag suggestion), WOL_TOP_GEOM=1 pure-geometry A/B variant, f191/f268 real translations, then memory/affinity (VmSwap ~696 MiB, Cpus_allowed_list: 0).
+
+## Light shader capture + the second pair's blob (gfx177, build-173)
+- WOL_SHADER_DUMP=1 (new): admits ONLY the once-per-stage wol-shader-* dumps; frame dumps and the receipt journal stay off (verified: 139 code + 139 control files, no nvn-frame-*/nvn-video-* from that run). The review's capture/load separation is in.
+- The missing blob f8e1b018f588f274... is captured (nvn-wol-shader-code-1791908615-138.bin, 768 B) - the untranslated-shader library is now 125/125 complete (code+control).
+- Its disasm (envydis gm107): textured sprite with perspective divide + RECT GUARDS + conditional kill - ipa a[0x7c]=w, rcp, uv=(a[0x90],a[0x94])/w, texs, then fsetp chains against c3[0x10..0x1c] and c1[0x0] with `$p0 kil`, colour from a[0x80..0x8c] plus c3 constant offsets. Same family as f191/f268 (the f268 decode predicted exactly this guard shape).
+- WOL_TOP_GEOM=1 (new): real world vertex + solid-colour fragment for a pure geometry A/B (TEST-ONLY).
