@@ -725,6 +725,15 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-79",
+      "stop": "none (harness time governor, exit 143, budget 1800s)",
+      "presents": 279,
+      "textures_real": 124,
+      "pair_draws_issued": 837,
+      "diag_fullscreen_draws": 1116,
+      "note": "no stop; load advances (33 -> 108 -> 124 real textures incl. R8 256x256 glyphs); all three pairs draw incl. the second pair diag; end state = repeating IPC poll loop (handle 0x42e endpoint 0x3f cmd 0x7/0x8) with texture creation; present still black; frame period ~86 ms with long non-present stretches"
+    },
+    {
       "run": "device-78",
       "stop": "none (harness time governor, exit 143)",
       "presents": 254,

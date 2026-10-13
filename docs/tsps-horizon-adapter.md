@@ -639,3 +639,21 @@ Next gates: give the title a longer bounded budget and watch the heartbeat until
 (menu reachability), transcribe f191/f268 (variant A) to replace the TEST diagnostic pairs, and
 decode the still-unresolved `target=269` operation (33 -> 110 live textures, 39 same-format, none
 "larger" - the current heuristic cannot resolve it).
+
+### Runs 101-102: longer budget, and where the time actually goes
+
+Run 101 was rejected by the runtime's own validation (`INVALID_PROBE_TIME_BUDGET`, detail 0x708):
+the diagnostic cap was 900 s. The cap is now deliberately raised to 1800 s (loader.c, with the
+memory floor as the active guard).
+
+Run 102 (device-79, 1800 s): **no stop** - the time governor ended it. The load kept advancing,
+slowly: real textures 33 -> 108 (frame 240 tick) -> 124 total, including R8 256x256 glyph/font
+textures (the title is past the first bundles); all three pairs draw (the second pair's
+`v189/v266 + f191/f268-diag` draws are now active alongside the translated first pair). ~279
+present samples, still black. Frame periods at the end are ~86 ms with long non-present stretches,
+and the log ends in a repeating IPC poll loop (`handle=0x42e endpoint=0x3f command=0x7/0x8`) with
+texture creation interleaved - the title is waiting/polling on a service, not crashed.
+
+Next: identify what the `0x42e/0x3f` wait expects; slim the readback diagnostics out of the hot
+path (review P1) so an hour-scale observation runs at real speed; continue the f191/f268
+transcription (variant A).

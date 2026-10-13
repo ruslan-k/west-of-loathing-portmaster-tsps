@@ -280,6 +280,17 @@
      FILE *random=fopen("/dev/urandom","rb");
      if(!random || fread(entropy,1,sizeof(entropy),random)!=sizeof(entropy)){fprintf(stderr,"entropy unavailable\n");return 1;}
      fclose(random);
+@@ -815,7 +899,9 @@
+     const char *budget=getenv("MEGAMAN_PROBE_SECONDS");
+     if(budget) {
+         char *end=NULL;unsigned long seconds=strtoul(budget,&end,10);
+-        if(!*budget || *end || (seconds<1 && strcmp(budget,"0")) || seconds>900)stop("INVALID_PROBE_TIME_BUDGET",0,seconds,24);
++        /* Diagnostic cap raised 900 -> 1800 s (2026-10-13): run 100 showed the title still loading at the
++     * 900 s governor; the memory floor remains the active guard for the longer window. */
++    if(!*budget || *end || (seconds<1 && strcmp(budget,"0")) || seconds>1800)stop("INVALID_PROBE_TIME_BUDGET",0,seconds,24);
+         probe_seconds=(unsigned)seconds;
+     }
+     printf("NATIVE_PROBE_TIME_BUDGET seconds=%u\n",probe_seconds);
 --- a/native/megaman_texture_view.h
 +++ b/native/megaman_texture_view.h
 @@ -55,6 +55,64 @@
