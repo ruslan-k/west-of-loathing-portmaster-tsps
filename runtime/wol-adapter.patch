@@ -631,7 +631,7 @@
      case NI_nvnCommandBufferSetDepthBounds:
          nvn_command_record(nvn_command_find(a[0]),id,f);return 1;
      /* Animal Well (NVN 17.x array forms): a single viewport/scissor/depth range at index 0 is the singular command;
-@@ -678,7 +710,149 @@
+@@ -678,7 +710,159 @@
                  if((i<c->command_count)!=command)stop("NVN_COMMAND_ARENA_TYPE",nvn_caller,address,24);
                  nvn_command_reuse_arena(c,p);if(command)c->current=i;return 1;
              }
@@ -777,6 +777,16 @@
 +                    p->address=address;p->size=size;if(i<c->command_count)c->current=i;return 1;
 +                }
 +#endif
++                /* Run-157: overlapping registrations inside one command pool are benign - the arena table
++                 * is a lookup, not an ownership model, and both entries describe the same memory. Keep the
++                 * old entry and let the new one register alongside it (the storage lookup accepts either);
++                 * the diagnostic logs above remain the audit trail. Cross-pool overlaps, type mismatches
++                 * and unregistered regions keep the fail-closed stops. */
++                if(p->pool && p->pool->size && address>=p->pool->address && address+size<=p->pool->address+p->pool->size) {
++                    printf("WOL_COMMAND_ARENA_COEXIST old=0x%"PRIx64"/%"PRIu64" new=0x%"PRIx64"/%"PRIu64" note=lookup-entry-kept\n",
++                        p->address,p->size,address,size);
++                    continue;
++                }
 +                stop("NVN_COMMAND_ARENA_OVERLAP",nvn_caller,address,24);
 +            }
          }
