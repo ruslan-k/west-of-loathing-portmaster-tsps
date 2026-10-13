@@ -1913,7 +1913,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,387 @@
+@@ -46,10 +46,411 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -2114,6 +2114,27 @@
 + * (v10.xy then v9.xy) and the second pair was never confirmed as the texture uv. This variant
 + * samples v10.xy. Selected by the linker for *-draft fragments when WOL_F191_UV=v10. */
 +"void main(){ vec4 t=texture2D(tex0,v10.xy); gl_FragColor=vec4(t.rgb*v8.rgb, t.a*v8.a); }\n";
++static const char wol_f191_draft_yz_fragment_glsl[] =
++"#version 100\n"
++"precision mediump float;\n"
++"varying vec4 v7;\n"
++"varying vec4 v8;\n"
++"varying vec2 v9;\n"
++"varying vec4 v10;\n"
++"uniform sampler2D tex0;\n"
++/* Variant B (2026-10-13): f191's SASS builds its tex coord from v8.y and v8.y/v7.w; if v8 carries
++ * the sprite uv pair, the plain (u,v) read is (v8.y, v8.z). TEST-DRAFT. */
++"void main(){ vec4 t=texture2D(tex0, vec2(v8.y, v8.z)); gl_FragColor=vec4(t.rgb*v8.rgb, t.a*v8.a); }\n";
++static const char wol_f191_draft_xy_fragment_glsl[] =
++"#version 100\n"
++"precision mediump float;\n"
++"varying vec4 v7;\n"
++"varying vec4 v8;\n"
++"varying vec2 v9;\n"
++"varying vec4 v10;\n"
++"uniform sampler2D tex0;\n"
++/* Variant C (2026-10-13): the uv pair in v8.xy. TEST-DRAFT. */
++"void main(){ vec4 t=texture2D(tex0, vec2(v8.x, v8.y)); gl_FragColor=vec4(t.rgb*v8.rgb, t.a*v8.a); }\n";
 +static const char wol_diag_green_glsl[] =
 +"#version 100\n"
 +"precision mediump float;\n"
@@ -2215,8 +2236,11 @@
 +        static int pt_configured,pt_on;if(!pt_configured){const char *o=getenv("WOL_PAIR_TEST");pt_on=o&&!strcmp(o,"1");pt_configured=1;}
 +        if(pt_on){frag=wol_diag_green_glsl;testfrag=1;}
 +        else if(strstr(bf->name,"f191")) {
-+            static int uv_configured,uv10;if(!uv_configured){const char *o=getenv("WOL_F191_UV");uv10=o&&!strcmp(o,"v10");uv_configured=1;}
-+            if(uv10)frag=wol_f191_draft_v10_fragment_glsl;
++            static int uv_configured,uv_mode;if(!uv_configured){const char *o=getenv("WOL_F191_UV");
++                uv_mode=!o?0:(!strcmp(o,"v10")?1:(!strcmp(o,"yz")?2:(!strcmp(o,"xy")?3:0)));uv_configured=1;}
++            if(uv_mode==1)frag=wol_f191_draft_v10_fragment_glsl;
++            else if(uv_mode==2)frag=wol_f191_draft_yz_fragment_glsl;
++            else if(uv_mode==3)frag=wol_f191_draft_xy_fragment_glsl;
 +        }
 +    }
 +    const char *vsrc=NULL;
@@ -2302,7 +2326,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +884,29 @@
+@@ -507,12 +908,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -2333,7 +2357,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +1007,28 @@
+@@ -613,6 +1031,28 @@
              }
          }
  #endif
