@@ -725,6 +725,12 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-96",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 187,
+      "note": "levels-filter drop alone insufficient: the sole bound texture resolves to id=275 (1920x1080 scene target) and the screen-size filter rejected it (id=0 0x0 -> 4x4 fallback); run 121 binds the first resolvable recorded texture unit with no size/level filters - the faithful binding for the composite"
+    },
+    {
       "run": "device-95",
       "stop": "none (governor SIGTERM, exit 143)",
       "presents": 190,
