@@ -621,5 +621,21 @@ classifications are an artifact of the vendored decode table - empty lookup slot
 counted on top of a mis-decode. Details and the partial smoke-test results are in
 `docs/shader-draft/hades-evaluation.md`.
 
-Next gates: implement the swizzle mapping the SDK requests (the new stop), keep the TEST diagnostic
-pairs until f191/f268 are transcribed (variant A), and decode the target=269 operation.
+### Runs 99-100: the swizzle gate measured and resolved
+
+Run 99 named the stop exactly: `WOL_SWIZZLE_GATE format=0x39 swizzle=4,3,2,5 256x256 levels=9
+target=1 flags=0x0 caller=0x8afb4a0` - an NVIDIA A4B4G4R4 image whose guest swizzle exchanges B and
+R (B,G,R,A). The format already had a decoder and upload path; what was missing was (a) the
+capability gate accepting 0x39 with any per-channel choice and (b) the decode applying the guest
+swizzle instead of assuming identity. Both are now implemented (`nvn_texture_formats.h`).
+
+Run 100 (device-78) did not stop at all: the harness time governor terminated it while the title
+was still loading (exit status 143). Measured: textures 33 -> 108 real textures (the boot heartbeat
+shows the loading ADVANCING after the fix, not frozen), 763 translated pair draws + 1016 TEST
+fullscreen draws, draws into the scene targets 30/31/269/280, no swizzle gate rejections. The
+presented frames are still black (254/254 samples) with the loading unfinished at the budget end.
+
+Next gates: give the title a longer bounded budget and watch the heartbeat until the load settles
+(menu reachability), transcribe f191/f268 (variant A) to replace the TEST diagnostic pairs, and
+decode the still-unresolved `target=269` operation (33 -> 110 live textures, 39 same-format, none
+"larger" - the current heuristic cannot resolve it).

@@ -1625,6 +1625,40 @@
          for(unsigned i=0;i<a[1];i++) {
              unsigned source=nvn_megaman_shader_match(inputs[i*2],inputs[i*2+1]),stage=nvn_shader_sources[source].stage;
              if(stage>1 || matched&(1U<<stage))stop("NVN_LC2_SHADER_STAGE_DUPLICATE",nvn_caller,source,24);
+--- a/native/nvn_texture_formats.h
++++ b/native/nvn_texture_formats.h
+@@ -63,7 +63,7 @@
+     /* Four-channel 8-bit images are materialized as RGBA8 by the host, so any per-channel choice of
+      * ZERO/ONE/R/G/B/A can be applied while decoding (Unity 2021 uses them, MEDIDO run momo-051). */
+     return identity || (format==1 && constant_or_red) || ((format==6 || format==0x0d) && constant_or_rg) ||
+-           ((format==0x25 || format==0x9a) && any_channel);
++           ((format==0x25 || format==0x9a || format==0x39) && any_channel);
+ }
+ /* R16's base image preserves bytes in R/G. It is NOT normalized R16 color:
+  * ordinary TEX sampling must be refused, or bind a separately proven view.
+@@ -84,12 +84,16 @@
+         }
+         else if(format==0x39){
+             /* SDK table 0x39 texture word 0x2c692492 selects NVIDIA
+-             * A4B4G4R4, four UNORM channels and identity swizzles.
+-             * n/15 == (17*n)/255, so RGBA8 preserves normalization. */
+-            dst[0]=(uint8_t)((src[0]&15U)*17U);
+-            dst[1]=(uint8_t)((src[0]>>4)*17U);
+-            dst[2]=(uint8_t)((src[1]&15U)*17U);
+-            dst[3]=(uint8_t)((src[1]>>4)*17U);src+=2;
++             * A4B4G4R4, four UNORM channels. n/15 == (17*n)/255, so RGBA8
++             * preserves normalization. The packed word's channels are
++             * R=bits3:0, G=7:4, B=11:8, A=15:12; the guest swizzle is
++             * applied on top (WoL run 99 measured swizzle 4,3,2,5 = B,G,R,A). */
++            uint8_t channel[4];
++            channel[0]=(uint8_t)((src[0]&15U)*17U);
++            channel[1]=(uint8_t)((src[0]>>4)*17U);
++            channel[2]=(uint8_t)((src[1]&15U)*17U);
++            channel[3]=(uint8_t)((src[1]>>4)*17U);src+=2;
++            for(unsigned c=0;c<4;c++)dst[c]=swizzle[c]>=2?channel[swizzle[c]-2]:(swizzle[c]==1?255:0);
+         }
+         else if(format==0x97){
+             /* SDK texture word 0x2a712494: A1B5G5R5 hardware with
 --- a/native/nvn_textures.h
 +++ b/native/nvn_textures.h
 @@ -3,6 +3,7 @@
@@ -1676,7 +1710,7 @@
      }
  #endif
 -    if(!nvn_texture_swizzle_supported(b->format,b->swizzle))stop("NVN_TEXTURE_SWIZZLE_REQUIRED",nvn_caller,b->format,20);
-+    if(!nvn_texture_swizzle_supported(b->format,b->swizzle)){printf("WOL_SWIZZLE_GATE format=0x%x swizzle=0x%x %ux%u levels=%u target=%u flags=0x%x caller=0x%llx\n",b->format,b->swizzle,b->width,b->height,b->levels,b->target,b->flags,(unsigned long long)nvn_caller);stop("NVN_TEXTURE_SWIZZLE_REQUIRED",nvn_caller,b->format,20);}
++    if(!nvn_texture_swizzle_supported(b->format,b->swizzle)){printf("WOL_SWIZZLE_GATE format=0x%x swizzle=%u,%u,%u,%u %ux%u levels=%u target=%u flags=0x%x caller=0x%llx\n",b->format,b->swizzle[0],b->swizzle[1],b->swizzle[2],b->swizzle[3],b->width,b->height,b->levels,b->target,b->flags,(unsigned long long)nvn_caller);stop("NVN_TEXTURE_SWIZZLE_REQUIRED",nvn_caller,b->format,20);}
      if(bc) {
          if(b->flags&0x50 || b->packaged_layout)stop("ZERO_BC_LINEAR_BLOCK_LAYOUT_REQUIRED",nvn_caller,b->packaged_layout,20);
          uint64_t size=0;
