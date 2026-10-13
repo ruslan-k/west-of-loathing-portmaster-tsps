@@ -2414,13 +2414,13 @@
 +"uniform sampler2D tex0;\n"
 +/* Composite uv variant D (2026-10-13): the f268 decode showed the engine uses the raw position as
 + * on-screen coordinates; the composite's quad spans the clip cube, so the fullscreen uv is
-+ * v7.xy*0.5+0.5. WOL_COMP_UV=D selects it (default). 2026-10-13 late: the EXACT decode samples at
-+ * the vertex-transformed uv attribute, but the composite quad does not carry a uv attribute on this
-+ * runtime (a_uv = 0 -> blank screen, measured gfx197), so the clip-derived uv stays; the R/G swap
-+ * of the old body is REMOVED (it turned red menu content green) and the c3f[0..3] scale added. */
++ * v7.xy*0.5+0.5. WOL_COMP_UV=D selects it (default). 2026-10-13 late: the old body's R/G swap
++ * (vec4(t.y,t.x,..)) was the source of the "green" muzzle flash on screen - the raw RTs contain a
++ * RED flash; swap removed + the c3f[0..3] scale added. The exact uv-attribute route stays off: the
++ * composite quad carries no uv attribute here (sampled (0,0), blanked the screen in gfx197). */
 +"void main() {\n"
 +"    vec4 t = texture2D(tex0, v7.xy*0.5+0.5);\n"
-+"    gl_FragColor = vec4(t.y, t.x, t.z, t.w);\n"
++"    gl_FragColor = vec4(t.r, t.g, t.b, t.a) * vec4(c3f[0], c3f[1], c3f[2], c3f[3]);\n"
 +"}\n";
 +
 +/* Compile-and-link check for the hand-translated first pair. It runs once, at the first placeholder bind
