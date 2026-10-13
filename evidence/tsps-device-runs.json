@@ -725,6 +725,12 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-97",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 193,
+      "note": "faithful binding: the composite's unit resolves to id=275 (1920x1080 scene target); the sampled texel is black in these loading frames, so the screen stays black faithfully - the pair-1 pipeline is now real vertex + real fragment + real binding; run 122 swaps the f191 magenta for a TEST-DRAFT textured fragment (texture2D(tex0,v9)*v8)"
+    },
+    {
       "run": "device-96",
       "stop": "none (governor SIGTERM, exit 143)",
       "presents": 187,
