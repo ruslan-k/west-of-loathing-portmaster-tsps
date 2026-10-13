@@ -1241,7 +1241,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -507,8 +543,516 @@
+@@ -507,8 +543,572 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -1339,20 +1339,76 @@
 +            if(c3r.address&&avail)memcpy(words,nvn_gpu_pointer(c3r.address,avail,PROT_READ),avail);
 +            /* The fragment stage has its own bank; feeding the vertex bank to both stages made the tint
 +             * read the vertex matrix by accident (measured: fragment bank is a separate 16-byte range). */
-+            /* Review 2026-10-13 (second pass): the first non-empty stage-1 slot is often a 16-byte
-+             * dummy (measured [1,1,1,1]) or a garbage slot (+-inf), which corrupted the f8e1b018/f191
-+             * fragment constants (green bar on the menu sign). Prefer the first slot with a plausible
-+             * CBUF size (>= 0x30 bytes); fall back to the largest slot. */
++            /* Review 2026-10-13 (third pass, MEASURED): the guest binds the fragment's constant bank as
++             * stage-1 slot 0 and sizes it exactly to the shader's need - f191 = 32 B (8 floats =
++             * c3[0x0..0x1c]), f268 = 64 B (with +-inf as the "no clip" rect sentinel), composite = 16 B.
++             * The earlier "largest slot >= 0x30" heuristic DISCARDED the correct 32-byte slot; the
++             * measured rule is: stage-1 slot 0 IS the bank. Validate (address, size, finite-or-sentinel,
++             * rect ordering) and report instead of silently feeding a wrong buffer. */
 +            unsigned fbank=16;struct nvn_range c3f={0,0};
-+            for(unsigned s=0;s<16;s++)if(nvn_render.uniform[1][s].size>=0x30&&nvn_render.uniform[1][s].size>c3f.size){fbank=s;c3f=nvn_render.uniform[1][s];}
-+            if(!c3f.size)
-+                for(unsigned s=0;s<16;s++)if(nvn_render.uniform[1][s].size>c3f.size){fbank=s;c3f=nvn_render.uniform[1][s];}
++            if(nvn_render.uniform[1][0].size) { fbank=0;c3f=nvn_render.uniform[1][0]; }
++            else for(unsigned s=1;s<16;s++)if(nvn_render.uniform[1][s].size){fbank=s;c3f=nvn_render.uniform[1][s];break;}
 +            float fwords[96];memset(fwords,0,sizeof fwords);
 +            unsigned favail=c3f.size>sizeof fwords?(unsigned)sizeof fwords:(unsigned)c3f.size;
 +            if(c3f.address&&favail)memcpy(fwords,nvn_gpu_pointer(c3f.address,favail,PROT_READ),favail);
++            {   /* Review 2026-10-13: validation, reported not assumed. Non-finite values are legal only as
++                 * the pass-all rect sentinel (-inf,-inf,+inf,+inf at the guard offsets); a NaN or an inf
++                 * at an offset the shader adds to colour is a broken binding. */
++                static unsigned bank_told;
++                int bad=0;for(unsigned i=0;i<favail/4&&i<8;i++)if(isnan(fwords[i]))bad=1;
++                if(!c3f.address)bad=2;
++                if(c3f.size<16)bad=3;
++                if(bad&&bank_told<6){bank_told++;
++                    printf("WOL_PAIR_BANK_INVALID f=%s slot=%u size=%u bad=%d first=%g,%g,%g,%g\n",
++                        wol_cat_bindings[wol_cat_cur->f].name,fbank,(unsigned)c3f.size,bad,
++                        fwords[0],fwords[1],fwords[2],fwords[3]);}
++                else if(!bad&&bank_told<6&&favail>=32){bank_told++;
++                    /* rect sanity: when the guard offsets are finite they must order left<=right, bottom<=top */
++                    float a1=fwords[4],b1=fwords[5],c1=fwords[6],d1=fwords[7];
++                    int rect_ok=1;
++                    if(isfinite(a1)&&isfinite(c1)&&a1>c1)rect_ok=0;
++                    if(isfinite(b1)&&isfinite(d1)&&b1>d1)rect_ok=0;
++                    printf("WOL_PAIR_BANK_OK f=%s slot=%u size=%u guard=%g,%g,%g,%g rect_ok=%d\n",
++                        wol_cat_bindings[wol_cat_cur->f].name,fbank,(unsigned)c3f.size,a1,b1,c1,d1,rect_ok);
++                }
++            }
 +            printf("WOL_PAIR_BANK stage=0 slot=%u size=%u first=%g,%g,%g,%g stage=1 slot=%u size=%u first=%g,%g,%g,%g\n",
 +                bank,(unsigned)c3r.size,words[0],words[1],words[2],words[3],
 +                fbank,(unsigned)c3f.size,fwords[0],fwords[1],fwords[2],fwords[3]);
++            {   /* Review 2026-10-13 (third pass): dump EVERY non-empty uniform slot for both stages at the
++                 * first draws of each distinct fragment, so the c3/c3f slot can be identified from the live
++                 * state (control[0x708]=0x30 and control[0x70c] per shader) instead of guessed. Bounded:
++                 * one report per fragment name. */
++                static const char *slot_seen[48];static unsigned slot_seen_count;
++                unsigned slot_known=0;for(unsigned i2=0;i2<slot_seen_count;i2++)if(slot_seen[i2]==wol_cat_bindings[wol_cat_cur->f].name)slot_known=1;
++                if(!slot_known&&slot_seen_count<48) {
++                    slot_seen[slot_seen_count++]=wol_cat_bindings[wol_cat_cur->f].name;
++                    for(unsigned st=0;st<2;st++) {
++                        printf("WOL_SLOTS f=%s stage=%u",wol_cat_bindings[wol_cat_cur->f].name,st);
++                        for(unsigned s=0;s<16;s++) {
++                            struct nvn_range rg=nvn_render.uniform[st][s];
++                            if(!rg.size)continue;
++                            unsigned n=rg.size<16?(unsigned)rg.size:16;
++                            const float *p=(const float *)nvn_gpu_pointer(rg.address,n,PROT_READ);
++                            printf(" [s%u size=%u %g,%g,%g,%g]",s,(unsigned)rg.size,
++                                n>=4?p[0]:0.0f,n>=8?p[1]:0.0f,n>=12?p[2]:0.0f,n>=16?p[3]:0.0f);
++                        }
++                        putchar('\n');
++                    }
++                    /* Review 2026-10-13 (texture P0): EVERY bound texture slot for this draw with its
++                     * resolved size, so the atlas (small, real content) can be told from the scene RT
++                     * (1920x1080/1280x720) and the 4x4 dummy the quiet-pick currently grabs. */
++                    printf("WOL_TSLOTS f=%s",wol_cat_bindings[wol_cat_cur->f].name);
++                    for(unsigned s=0;s<128;s++) {
++                        uint64_t h=nvn_render.texture_handles[1][s];
++                        if(!h)continue;
++                        GLint minf=0;GLenum wrap[2]={GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE};
++                        struct nvn_texture *t=nvn_render_sampler(h,0,0,0,&minf,wrap);
++                        printf(" [t%u id=%llu %ux%u]",s,(unsigned long long)(t?t->id:0),t?t->b.width:0,t?t->b.height:0);
++                    }
++                    printf(" target=%ux%u\n",nvn_render.target?nvn_render.target->b.width:0,nvn_render.target?nvn_render.target->b.height:0);
++                }
++            }
 +            {   /* Review 2026-10-13: dump the fed constant banks once (the CPU transform probe showed a
 +                 * negative w - the exact values tell which slot/offsets carry the real matrix). */
 +                static unsigned slot_told;if(slot_told<3){slot_told++;
@@ -1758,7 +1814,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +1248,7 @@
+@@ -704,6 +1304,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -1766,7 +1822,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1535,6 +2080,279 @@
+@@ -1535,6 +2136,279 @@
          begin=end+1;
      }
  }
@@ -2046,7 +2102,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2380,16 @@
+@@ -1562,7 +2436,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
