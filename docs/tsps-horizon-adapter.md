@@ -1093,3 +1093,14 @@ filled** (99% of the 1280x720 frame), frame 386, textures 251, audio nonzero 1.4
 the default for the pair draws; the env still offers triangles/quad4 for A/B. The coherence A/B
 re-confirmed STALE-OVERWRITE (897 -> 0) with the fix active - the CPU mirror no longer overwrites
 GPU results.
+
+### Runs 144-145: the real composite path and its uv
+
+The probe was an experiment: with it on, the screen showed target 457 directly, which is why the
+splash looked correct while the default path still composed wrong. The harness default is now the
+real path. The f191 resolution (the engine packs the sampled pair into the attribute the fragment
+reads) transfers to f08bad2f: with its uv switched to the plain v8.xy the real present carried
+content (nonblack 368k, max 255, white 12960) but a wrong region (no wordmark). The f268 decode
+then showed this engine uses the raw position as on-screen coordinates, so variant D samples
+v7.xy*0.5+0.5 - the fullscreen-blit analogue of the composite quad. Variants A/B/C remain for A/B
+via WOL_COMP_UV. The composite fragment also keeps the decoded channel roles (t.y/t.x swap).
