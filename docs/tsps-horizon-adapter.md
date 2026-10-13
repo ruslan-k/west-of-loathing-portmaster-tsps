@@ -820,3 +820,24 @@ stream VBO (`glBufferData` from the copied bytes) and reads the attributes from 
 mechanism the working fullscreen draw uses; the old direct-pointer path stays behind
 `WOL_PAIR_DIRECT=1` for the A/B. Also staged: `WOL_PAIR_STATE` (color mask + blend) in case the
 first fix is not sufficient.
+
+### Run 115: THE PAIR DRAWS PIXELS - the presented frame turns green (milestone)
+
+The VBO upload fixed it. `WOL_PAIR_PIXELS` now reads **green (0,255,0,255) in the center and three
+corners of every window texture** (the lone black corner is the game's degenerate second triangle:
+vertices 4 and 5 of this quad are duplicate zeros, so only the upper-left triangle covers pixels -
+explained 1:1 by the measured vertex data). And the present readback - the actual end of the
+pipeline - reports **nonblack=460800 = exactly half of 1280x720 in all 193 samples**: the
+upper-left half of the screen, covered by that triangle, flowing target -> window texture ->
+present -> readback. This is the first rasterized geometry reaching the presented frame in the
+entire porting effort.
+
+Root cause (found independently in the review of commit 77d1c05, same conclusion): the fullscreen
+diagnostic draws bound their own `GL_ARRAY_BUFFER` and never unbound it, so the real pair's
+`glVertexAttribPointer(..., base)` interpreted `base` as an offset into that leftover buffer - the
+GPU saw zeros, the quad collapsed to a point, and no fragment was ever produced anywhere. The
+stream-VBO upload (plus the explicit unbind) removes the stale-binding trap entirely.
+
+Next, per the agreed order: real vertex shader with the green fragment (run 116), then the real
+fragment with verified texture bindings; the quiet texture pick no longer considers screen-sized
+render targets (it kept selecting id=275, another 1920x1080 target, instead of the atlas).
