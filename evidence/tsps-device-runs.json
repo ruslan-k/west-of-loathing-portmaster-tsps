@@ -725,6 +725,12 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-84",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 433,
+      "note": "marker truly off: all 433 present readbacks black - game content does not reach window textures 30/31/32 yet; translated pair draws once per frame into each of them (145/144/144); downsample view words decoded to ids 269/270 (high half) with constant tag 0xd4f5544d, id lookup added; pair-test green instrumentation queued for run 109"
+    },
+    {
       "run": "device-83",
       "stop": "none (governor SIGTERM, exit 143; floor 20 MiB)",
       "presents": 420,
