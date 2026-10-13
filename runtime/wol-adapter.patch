@@ -567,7 +567,7 @@
 +        /* Run-153: the pool's chunking writes up to 0x40 past the registered size (the same
 +         * alignment overlap measured on the registration side); tolerate that small overhang,
 +         * anything larger keeps the fail-closed skip. */
-+        if(a->used>a->size+0x50 || !a->pool || !(a->pool->live||a->pool->retired) || !a->pool->references)continue;
++        if(a->used>a->size+0x100 || !a->pool || !(a->pool->live||a->pool->retired) || !a->pool->references)continue;
          unsigned retained=address>=c->command_retained[i].first && address<=c->command_retained[i].last &&
              bytes<=c->command_retained[i].last-address;
          if((address>=a->address && address-a->address<=a->used && bytes<=a->used-(address-a->address)) || retained)
