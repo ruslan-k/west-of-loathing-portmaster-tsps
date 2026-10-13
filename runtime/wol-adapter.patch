@@ -1191,7 +1191,7 @@
  static GLenum nvn_blend_equation(unsigned value) {
      if(value==1)return GL_FUNC_ADD;
      if(value==2)return GL_FUNC_SUBTRACT;
-@@ -210,6 +212,99 @@
+@@ -210,6 +212,101 @@
      }
  #endif
      stop("NVN_BLEND_EQUATION_REQUIRED",nvn_caller,value,20);return 0;
@@ -1241,8 +1241,10 @@
 +    glGetTexParameteriv(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,&wt);
 +    /* GLES2 has no base/max-level or level queries; the min_filter mip bits already answer the
 +     * completeness question (0x2700..0x2703 demand a mip chain, 0x2600/0x2601 do not). */
-+    printf("WOL_TRACE tex_state gl_name=%d min=0x%x mag=0x%x wrap=0x%x/0x%x mips_demanded=%d\n",
-+        name,mn,mg,ws,wt,(mn>=0x2700&&mn<=0x2703));
++    uint64_t tid=0;unsigned tw=0,th=0;
++    for(unsigned i=0;i<4096;i++)if(nvn_textures[i].live&&nvn_textures[i].name==(GLuint)name){tid=nvn_textures[i].id;tw=nvn_textures[i].b.width;th=nvn_textures[i].b.height;break;}
++    printf("WOL_TRACE tex_state gl_name=%d id=%llu %ux%u min=0x%x mag=0x%x wrap=0x%x/0x%x mips_demanded=%d\n",
++        name,(unsigned long long)tid,tw,th,mn,mg,ws,wt,(mn>=0x2700&&mn<=0x2703));
 +}
 +static void wol_trace_blend_state(void) {
 +    GLint s=0,d=0,as=0,ad=0,eq=0,aeq=0;GLboolean en=glIsEnabled(GL_BLEND);
@@ -1252,8 +1254,8 @@
 +    GLint mask[4]={0,0,0,0};glGetIntegerv(GL_COLOR_WRITEMASK,mask);
 +    GLboolean sc=glIsEnabled(GL_SCISSOR_TEST),dep=glIsEnabled(GL_DEPTH_TEST);
 +    GLint scb[4]={0,0,0,0};glGetIntegerv(GL_SCISSOR_BOX,scb);
-+    printf("WOL_TRACE blend en=%d src=0x%x dst=0x%x asrc=0x%x adst=0x%x eq=0x%x/0x%x mask=%d%d%d%d scissor=%d[%d,%d,%d,%d] depth=%d\n",
-+        (int)en,s,d,as,ad,eq,aeq,mask[0],mask[1],mask[2],mask[3],(int)sc,scb[0],scb[1],scb[2],scb[3],(int)dep);
++    printf("WOL_TRACE blend en=%d src=0x%x dst=0x%x asrc=0x%x adst=0x%x eq=0x%x/0x%x mask=%d%d%d%d guest_mask=0x%x scissor=%d[%d,%d,%d,%d] depth=%d\n",
++        (int)en,s,d,as,ad,eq,aeq,mask[0],mask[1],mask[2],mask[3],(unsigned)nvn_render.mask,(int)sc,scb[0],scb[1],scb[2],scb[3],(int)dep);
 +}
 +static void wol_trace_scan(unsigned *alpha_nz,unsigned *rgb_nz,unsigned *w_out,unsigned *h_out) {
 +    *alpha_nz=0;*rgb_nz=0;*w_out=0;*h_out=0;
@@ -1291,7 +1293,7 @@
  }
  static GLenum nvn_stencil_operation(unsigned value) {
      static const GLenum operations[]={0,GL_KEEP,GL_ZERO,GL_REPLACE,GL_INCR,GL_DECR,GL_INVERT,GL_INCR_WRAP,GL_DECR_WRAP};
-@@ -312,8 +407,19 @@
+@@ -312,8 +409,19 @@
       * sampler2D shaders never evaluate; both are admitted once-logged. Reduction/anisotropy/bias stay closed. */
      {static unsigned aw_sampler_reported;
       if((b->compare || b->lod_min<0) && !aw_sampler_reported++)printf("AW_SAMPLER_ADMIT compare=%u lod-min=%g shaders=sampler2D-only\n",b->compare,b->lod_min);}
@@ -1311,7 +1313,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -507,8 +613,681 @@
+@@ -507,8 +615,718 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -1817,6 +1819,38 @@
 +                            printf("WOL_TRACE c3f size=%u v=%g,%g,%g,%g guard=%g,%g,%g,%g\n",(unsigned)fb.size,fw[0],fw[1],fw[2],fw[3],fw[4],fw[5],fw[6],fw[7]);
 +                        }
 +                        printf("WOL_TRACE c3_35=%g\n",avail>=36*4?words[35]:-999.0f);
++                        /* Guest vertex interface for this exact draw (same decode as WOL_VERTEX_INTERFACE):
++                         * the attribute formats tell the REAL layout, which stride-60 sprites do not share
++                         * with the 24/32-byte layouts the pair path assumes. */
++                        printf("WOL_TRACE vtx_iface attribs=%u streams=%u",(unsigned)nvn_render.attrib_count,(unsigned)nvn_render.stream_count);
++                        for(unsigned i2=0;i2<nvn_render.attrib_count&&i2<16;i2++) {
++                            uint32_t a2=nvn_render.attrib[i2];
++                            printf(" s%u=%s/%u/0x%x/off%u",i2,(a2&64u)?"on":"off",a2&31u,(a2>>21)&1023u,(a2>>7)&16383u);
++                        }
++                        for(unsigned s2=0;s2<nvn_render.stream_count&&s2<4;s2++)printf(" stride%u=%u",s2,(unsigned)nvn_render.streams[s2][0]);
++                        putchar('\n');
++                        if(stride&&stride<=96) {
++                            const uint8_t *rb=base;
++                            printf("WOL_TRACE raw0=");
++                            for(unsigned b2=0;b2<stride&&b2<96;b2++)printf("%02x",rb[b2]);
++                            putchar('\n');
++                        }
++                        /* CPU clip-space transform for the first vertices (m1 = c3[0..15], m2 = c3[16..31]). */
++                        if(avail>=32*4) {
++                            for(unsigned k=0;k<3&&k<vertex_count;k++) {
++                                const float *v=(const float *)(base+(size_t)k*stride);
++                                float p0=v[0],p1=v[1],p2=v[2],p3=1.0f;
++                                float q0=words[0]*p0+words[4]*p1+words[8]*p2+words[12]*p3;
++                                float q1=words[1]*p0+words[5]*p1+words[9]*p2+words[13]*p3;
++                                float q2=words[2]*p0+words[6]*p1+words[10]*p2+words[14]*p3;
++                                float q3=words[3]*p0+words[7]*p1+words[11]*p2+words[15]*p3;
++                                float c0=words[16]*q0+words[20]*q1+words[24]*q2+words[28]*q3;
++                                float c1=words[17]*q0+words[21]*q1+words[25]*q2+words[29]*q3;
++                                float c2=words[18]*q0+words[22]*q1+words[26]*q2+words[30]*q3;
++                                float c3w=words[19]*q0+words[23]*q1+words[27]*q2+words[31]*q3;
++                                printf("WOL_TRACE clip%u=%g,%g,%g,%g\n",k,c0,c1,c2,c3w);
++                            }
++                        }
 +                        for(unsigned k=0;k<3&&k<vertex_count;k++) {
 +                            const float *v=(const float *)(base+(size_t)k*stride);
 +                            const uint8_t *vc=base+(size_t)k*stride+12;
@@ -1827,15 +1861,19 @@
 +                        if(traced<=3)wol_trace_save_pam("before");
 +                    }
 +                }
-+                /* WOL_P2_SOLID: the geometry probe lifts blend+scissor+depth so the magenta pixels can
-+                 * land unconditionally; the previous state is restored right after the draw. TEST-ONLY. */
-+                int p2solid=0;GLboolean p2_saved_blend=0,p2_saved_scissor=0,p2_saved_depth=0;
++                /* WOL_P2_SOLID: the geometry probe lifts blend+scissor+depth+color-mask so the magenta
++                 * pixels can land unconditionally; the previous state is restored right after the draw.
++                 * (The measured top2 draw had GL_COLOR_WRITEMASK=0000 - nothing could ever land.)
++                 * TEST-ONLY. */
++                int p2solid=0;GLboolean p2_saved_blend=0,p2_saved_scissor=0,p2_saved_depth=0;GLint p2_saved_mask[4]={1,1,1,1};
 +                {   static int c;static unsigned on;if(!c){const char *o=getenv("WOL_P2_SOLID");on=o&&!strcmp(o,"1");c=1;}
 +                    if(on&&strstr(wol_cat_bindings[wol_cat_cur->f].name,"top2")) {
 +                        p2solid=1;
 +                        p2_saved_blend=glIsEnabled(GL_BLEND);p2_saved_scissor=glIsEnabled(GL_SCISSOR_TEST);
 +                        p2_saved_depth=glIsEnabled(GL_DEPTH_TEST);
++                        glGetIntegerv(GL_COLOR_WRITEMASK,p2_saved_mask);
 +                        glDisable(GL_BLEND);glDisable(GL_SCISSOR_TEST);glDisable(GL_DEPTH_TEST);
++                        glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
 +                    }
 +                }
 +                if(geometry.indices) {
@@ -1847,7 +1885,8 @@
 +                } else glDrawArrays(geometry.primitive,0,(GLsizei)count);
 +                if(p2solid){if(p2_saved_blend)glEnable(GL_BLEND);else glDisable(GL_BLEND);
 +                            if(p2_saved_scissor)glEnable(GL_SCISSOR_TEST);else glDisable(GL_SCISSOR_TEST);
-+                            if(p2_saved_depth)glEnable(GL_DEPTH_TEST);else glDisable(GL_DEPTH_TEST);}
++                            if(p2_saved_depth)glEnable(GL_DEPTH_TEST);else glDisable(GL_DEPTH_TEST);
++                            glColorMask((GLboolean)p2_saved_mask[0],(GLboolean)p2_saved_mask[1],(GLboolean)p2_saved_mask[2],(GLboolean)p2_saved_mask[3]);}
 +                /* WOL_TRACE_PAIR after-draw: prove the target changed (alpha included). */
 +                {   static unsigned traced_after;
 +                    if(wol_trace_on(wol_cat_bindings[wol_cat_cur->f].name) && traced_after<wol_trace_limit()) {
@@ -1993,7 +2032,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +1483,7 @@
+@@ -704,6 +1522,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -2001,7 +2040,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1535,6 +2315,279 @@
+@@ -1535,6 +2354,279 @@
          begin=end+1;
      }
  }
@@ -2281,7 +2320,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2615,16 @@
+@@ -1562,7 +2654,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
