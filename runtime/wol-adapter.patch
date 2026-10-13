@@ -631,7 +631,7 @@
      case NI_nvnCommandBufferSetDepthBounds:
          nvn_command_record(nvn_command_find(a[0]),id,f);return 1;
      /* Animal Well (NVN 17.x array forms): a single viewport/scissor/depth range at index 0 is the singular command;
-@@ -678,7 +710,151 @@
+@@ -678,7 +710,149 @@
                  if((i<c->command_count)!=command)stop("NVN_COMMAND_ARENA_TYPE",nvn_caller,address,24);
                  nvn_command_reuse_arena(c,p);if(command)c->current=i;return 1;
              }
@@ -701,7 +701,7 @@
 +                         * restore the strict veto for the A/B. */
 +                        static int ts_configured,ts_trust;if(!ts_configured){const char *o=getenv("WOL_ARENA_TRUST_SHRINK");ts_trust=!o||strcmp(o,"0");ts_configured=1;}
 +                        if((new_end>=safe_end || (ts_trust && c->recording))
-+                           && !(command && (int)i<16 && (int)c->current==(int)i)) {
++                           ) {
 +                            printf("WOL_COMMAND_ARENA_SHRINK old=0x%"PRIx64"/%"PRIu64" new=0x%"PRIx64"/%"PRIu64" limit=0x%"PRIx64" used=%u list=%d recording=%d action=accepted%s\n",
 +                                old_start,old_end-old_start,new_start,size,safe_end,(unsigned)p->used,(int)(c->list!=NULL),(int)c->recording,
 +                                new_end>=safe_end?"":" reason=trusted-while-recording");
@@ -737,7 +737,7 @@
 +                {   uint64_t old_start=p->address,old_end=p->address+p->size,new_start=address,new_end=address+size;
 +                    uint64_t lo=old_start>new_start?old_start:new_start,hi=old_end<new_end?old_end:new_end;
 +                    if(hi>lo && new_start>=old_start && new_end>old_end && (hi-lo)<=0x100
-+                       && !(command && (int)i<16 && (int)c->current==(int)i)) {
++                       ) {
 +                        printf("WOL_COMMAND_ARENA_BOUNDARY old=0x%"PRIx64"/%"PRIu64" new=0x%"PRIx64"/%"PRIu64" overlap=%"PRIu64" action=trimmed\n",
 +                            old_start,old_end-old_start,new_start,size,hi-lo);
 +                        p->size=new_start-old_start;
@@ -751,16 +751,14 @@
 +                {   uint64_t old_start=p->address,old_end=p->address+p->size,new_start=address,new_end=address+size;
 +                    uint64_t lo2=old_start>new_start?old_start:new_start,hi2=old_end<new_end?old_end:new_end;
 +                    if(p->pool && p->pool->size && address>=p->pool->address && new_end<=p->pool->address+p->pool->size
-+                       && hi2>lo2 && new_start<=old_start && new_end<old_end
-+                       && !(command && (int)i<16 && (int)c->current==(int)i)) {
++                       && hi2>lo2 && new_start<=old_start && new_end<old_end) {
 +                        printf("WOL_COMMAND_ARENA_POOL_RECYCLE old=0x%"PRIx64"/%"PRIu64" new=0x%"PRIx64"/%"PRIu64" overlap=%"PRIu64" action=trim-to-tail tail=0x%"PRIx64"/%"PRIu64"\n",
 +                            old_start,old_end-old_start,new_start,size,hi2-lo2,new_end,old_end-new_end);
 +                        p->address=new_end;p->size=old_end-new_end;
 +                        continue;
 +                    }
 +                    if(p->pool && p->pool->size && address>=p->pool->address && address<=p->pool->address+p->pool->size
-+                       && hi2>lo2 && new_start<=old_start && new_end>=old_end
-+                       && !(command && (int)i<16 && (int)c->current==(int)i)) {
++                       && hi2>lo2 && new_start<=old_start && new_end>=old_end) {
 +                        printf("WOL_COMMAND_ARENA_POOL_RECYCLE old=0x%"PRIx64"/%"PRIu64" new=0x%"PRIx64"/%"PRIu64" overlap=%"PRIu64" action=retired\n",
 +                            old_start,old_end-old_start,new_start,size,hi2-lo2);
 +                        p->size=0;
