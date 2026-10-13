@@ -1,0 +1,22 @@
+KMS before-menu 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx200/before-menu.png (FB ID: 160, 1280x720) 
+RUNTIME [4806] {'WOL_PROBE_SECONDS': '300', 'WOL_MEMORY_FLOOR_MIB': '20', 'WOL_QUIET': '1', 'WOL_PRESENT_TEST': '0', 'WOL_PAIR_TEST': '0', 'WOL_FS_TESTTEX': '0', 'WOL_PAIR_MATH': '1', 'WOL_VS_TRIVIAL': '0', 'WOL_COHERENCE': '1', 'WOL_DUMP': '0', 'WOL_F191_UV': 'xy', 'WOL_COMPOSITE_PROBE': '0', 'COTM_PRESENT_READBACK_60': '1', 'COTM_READBACK_PERIOD': '600', 'COTM_CAPTURE_PERIOD': '600', 'WOL_CAPTURE_MARKS': '20,40,60,80,100,120,140,160,180,200,220,240,260,280,295'}
+KMS during-20 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx200/during-20.png (FB ID: 163, 1280x720) 
+KMS during-40 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx200/during-40.png (FB ID: 160, 1280x720) 
+KMS during-60 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx200/during-60.png (FB ID: 160, 1280x720) 
+KMS during-80 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx200/during-80.png (FB ID: 163, 1280x720) 
+KMS during-100 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx200/during-100.png (FB ID: 160, 1280x720) 
+KMS during-120 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx200/during-120.png (FB ID: 160, 1280x720) 
+KMS during-140 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx200/during-140.png (FB ID: 161, 1280x720) 
+KMS during-160 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx200/during-160.png (FB ID: 163, 1280x720) 
+KMS during-180 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx200/during-180.png (FB ID: 160, 1280x720) 
+KMS during-200 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx200/during-200.png (FB ID: 163, 1280x720) 
+KMS during-220 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx200/during-220.png (FB ID: 163, 1280x720) 
+KMS during-240 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx200/during-240.png (FB ID: 161, 1280x720) 
+KMS during-260 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx200/during-260.png (FB ID: 160, 1280x720) 
+KMS during-280 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx200/during-280.png (FB ID: 160, 1280x720) 
+KMS during-295 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx200/during-295.png (FB ID: 161, 1280x720) 
+KMS after-menu 0 1  No active framebuffers found on planes
+KMS after-menu 1 1  No active framebuffers found on planes
+KMS after-menu 2 1  No active framebuffers found on planes
+FINAL_STATE [5488] []
+RUNTIME_SEEN True
