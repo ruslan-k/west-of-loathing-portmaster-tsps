@@ -514,3 +514,21 @@ environment makes of the guest's own stack switch - or, equally likely, the titl
 guard path because its draws still produce nothing (the two untranslated pairs).
 
 Runs 71/72 end clean, no CPU_FAULT, device restored to the menu.
+
+### Decode progress on the two remaining pairs (private workspace evidence)
+
+Both fragments were disassembled with the same toolchain as the first pair. Their structure, statement by
+statement, is now known well enough to author the GLSL:
+
+- **f191 (512 B)**: six `ipa` interpolant loads (r0, r1, r5, r6, r7, r8), one `texs` sample, then a chain of
+  `fsetp`/`fadd`/`lop3`/`fmul` comparisons and multiplies, ending in `exit` - a tinted sprite with one
+  conditional term. No `kil`, so it draws everywhere it is asked to.
+- **f268 (1024 B)**: `ipa` loads, `fsetp`/`sel` select chains, `fmul`/`fadd`, **two** texture samples (a
+  second TEX-family control word), `mov`/`iadd`/`lop3` and an **alpha `kil` discard** - the text/UI
+  signature, consistent with the `g[]` global reads seen earlier.
+- The shared vertex (`d88c64a6`, used with two control sections) reads three inputs sized 12 + 4 + 8 = the
+  measured stride 24, and writes varyings 7 (clip position), 8 (colour.rgb + position.w), 9 and 10.
+
+What is still missing before the GLSL can be written is the exact varying offset of each `ipa` operand (the
+disassembler's operand text is not readable for those lines yet); that is the next mechanical decode step,
+after which the pair is wired through the same hook as the first one.
