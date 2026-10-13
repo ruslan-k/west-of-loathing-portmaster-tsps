@@ -1020,7 +1020,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -509,6 +520,351 @@
+@@ -509,6 +520,363 @@
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
@@ -1309,7 +1309,19 @@
 +                        glEnableVertexAttribArray(1);glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,(GLsizei)stride,base+40);
 +                    }
 +                }
-+                glDrawArrays(GL_TRIANGLES,0,(GLsizei)count);
++                /* Primitive A/B (2026-10-13): the title's 6-vertex draws carry a 4-vertex quad plus two
++                 * degenerate tail vertices - strip semantics. WOL_PAIR_PRIM=strip draws GL_TRIANGLE_STRIP,
++                 * =quad4 draws only the first four as triangles; default keeps the current behaviour. */
++                {   static int pp_configured,pp_mode=-1;
++                    if(!pp_configured){const char *o=getenv("WOL_PAIR_PRIM");
++                        /* Run 133 measured the strip semantics as correct for the title's 6-vertex
++                         * draws (presented nonblack 460800 -> 912488, the missing half filled);
++                         * strip is now the default, the env keeps triangles/quad4 for A/B. */
++                        pp_mode=!o?1:(!strcmp(o,"strip")?1:(!strcmp(o,"quad4")?2:0));pp_configured=1;}
++                    if(pp_mode==1)glDrawArrays(GL_TRIANGLE_STRIP,0,(GLsizei)count);
++                    else if(pp_mode==2&&count>=4)glDrawArrays(GL_TRIANGLES,0,4);
++                    else glDrawArrays(GL_TRIANGLES,0,(GLsizei)count);
++                }
 +                nvn_replay.draws++;
 +                if(pair_vbo){glBindBuffer(GL_ARRAY_BUFFER,0);glDeleteBuffers(1,&pair_vbo);pair_vbo=0;}
 +                printf("WOL_PAIR_DRAW_ISSUED primitives=%"PRIu64" glerror=0x%x\n",count,(unsigned)glGetError());
@@ -1372,7 +1384,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1891,262 @@
+@@ -1535,6 +1903,262 @@
          begin=end+1;
      }
  }
@@ -1635,7 +1647,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2174,16 @@
+@@ -1562,7 +2186,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
