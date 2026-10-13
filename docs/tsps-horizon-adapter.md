@@ -806,3 +806,17 @@ produce no fragments at all, despite the verified clip coordinates. Run 114 bise
 uniform read at all) with the same green fragment and a five-point readback (center + four
 corners). Green with the trivial vertex = the c3 data path at draw time is the fault; still black
 = the draw plumbing itself (attributes/FBO attachment/program realization).
+
+### Run 114: the bisection lands on the attribute plumbing - guest pointers feed the GPU nothing
+
+With `WOL_VS_TRIVIAL=1` (matrix-free pass-through vertex, green fragment) all five readback points
+are still 0,0,0,0. The c3 data path is NOT the fault; the difference that remains is the attribute
+source. The fullscreen diagnostics - the only path that has ever left pixels (census 925 in target
+280) - read from a **real GL buffer**, while the pair draw pointed the attributes **straight at
+guest memory**. Hypothesis (run 115 carries the fix): the GPU fetch from those raw guest pointers
+yields zeros, collapsing the quad to a single point (hence no fragments, clean glerror, and no
+pixels anywhere - not even in 280/269). The pair draw now uploads the guest vertex bytes into a
+stream VBO (`glBufferData` from the copied bytes) and reads the attributes from it - the same
+mechanism the working fullscreen draw uses; the old direct-pointer path stays behind
+`WOL_PAIR_DIRECT=1` for the A/B. Also staged: `WOL_PAIR_STATE` (color mask + blend) in case the
+first fix is not sufficient.

@@ -890,7 +890,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -509,6 +520,275 @@
+@@ -509,6 +520,296 @@
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
@@ -1100,6 +1100,17 @@
 +                glDisableVertexAttribArray(0);
 +            } else if(mode==4 && count && stride && vsize>=(unsigned long long)count*stride) {
 +                const uint8_t *base=(const uint8_t *)nvn_gpu_pointer(nvn_render.vertex[0].address,(size_t)(count*stride),PROT_READ);
++                /* Review 2026-10-13 (run 114 bisection): attribute pointers aimed straight at guest memory
++                 * produced no fragments at all (trivial vertex, green fragment, five-point readback = 0),
++                 * while the fullscreen diagnostics - which use a REAL GL buffer - do leave pixels. The
++                 * guest bytes are uploaded into a stream buffer and the attributes read from it. The old
++                 * direct-pointer path stays available as WOL_PAIR_DIRECT=1 for the A/B. */
++                static int pd_configured,pd_direct;if(!pd_configured){const char *o=getenv("WOL_PAIR_DIRECT");pd_direct=o&&!strcmp(o,"1");pd_configured=1;}
++                GLuint pair_vbo=0;
++                if(!pd_direct) {
++                    glGenBuffers(1,&pair_vbo);glBindBuffer(GL_ARRAY_BUFFER,pair_vbo);
++                    glBufferData(GL_ARRAY_BUFFER,(GLsizeiptr)(count*stride),base,GL_STREAM_DRAW);
++                }
 +                /* WOL_PAIR_MATH=1 (review 2026-10-13): replicate the translated vertex transform on the
 +                 * CPU and print the clip-space result per vertex, to tell an off-screen/clipped quad or a
 +                 * wrong constant bank from a sampling problem. TEST-ONLY, no GL state touched. */
@@ -1123,10 +1134,16 @@
 +                        }}
 +                    }
 +                }
-+                glEnableVertexAttribArray(0);glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,(GLsizei)stride,base);
-+                glEnableVertexAttribArray(1);glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,(GLsizei)stride,base+40);
++                if(pair_vbo) {
++                    glEnableVertexAttribArray(0);glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,(GLsizei)stride,(const void *)0);
++                    glEnableVertexAttribArray(1);glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,(GLsizei)stride,(const void *)40);
++                } else {
++                    glEnableVertexAttribArray(0);glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,(GLsizei)stride,base);
++                    glEnableVertexAttribArray(1);glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,(GLsizei)stride,base+40);
++                }
 +                glDrawArrays(GL_TRIANGLES,0,(GLsizei)count);
 +                nvn_replay.draws++;
++                if(pair_vbo){glBindBuffer(GL_ARRAY_BUFFER,0);glDeleteBuffers(1,&pair_vbo);pair_vbo=0;}
 +                printf("WOL_PAIR_DRAW_ISSUED primitives=%"PRIu64" glerror=0x%x\n",count,(unsigned)glGetError());
 +                /* Review 2026-10-13: prove the pair draw lands in its target - center-pixel readback plus
 +                 * the render state that could swallow it (scissor/depth/viewport), right after the draw. */
@@ -1138,6 +1155,9 @@
 +                        unsigned char d_on=(unsigned char)glIsEnabled(GL_DEPTH_TEST);
 +                        GLint df=0;glGetIntegerv(GL_DEPTH_FUNC,&df);
 +                        GLint pre=0;glGetIntegerv(GL_FRAMEBUFFER_BINDING,&pre);
++                        GLint cm[4]={0,0,0,0};glGetIntegerv(GL_COLOR_WRITEMASK,cm);
++                        unsigned char bl=(unsigned char)glIsEnabled(GL_BLEND);
++                        GLint bsrc=0,bdst=0;glGetIntegerv(GL_BLEND_SRC_RGB,&bsrc);glGetIntegerv(GL_BLEND_DST_RGB,&bdst);
 +                        uint8_t px[5][4]={{0}};
 +                        glReadPixels(vp[0]+vp[2]/2,vp[1]+vp[3]/2,1,1,GL_RGBA,GL_UNSIGNED_BYTE,px[0]);
 +                        glReadPixels(vp[0]+vp[2]/8,vp[1]+vp[3]/8,1,1,GL_RGBA,GL_UNSIGNED_BYTE,px[1]);
@@ -1148,6 +1168,7 @@
 +                            nvn_render.target->id,vp[0],vp[1],vp[2],vp[3],(int)sc_on,(int)d_on,(int)pre,
 +                            px[0][0],px[0][1],px[0][2],px[0][3],px[1][0],px[1][1],px[1][2],px[2][0],px[2][1],px[2][2],
 +                            px[3][0],px[3][1],px[3][2],px[4][0],px[4][1],px[4][2],(unsigned)glGetError());
++                        printf("WOL_PAIR_STATE colormask=%d,%d,%d,%d blend=%d/%d/%d\n",cm[0],cm[1],cm[2],cm[3],(int)bl,(int)bsrc,(int)bdst);
 +                    }
 +                }
 +                glDisableVertexAttribArray(0);glDisableVertexAttribArray(1);
@@ -1166,7 +1187,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1815,235 @@
+@@ -1535,6 +1836,235 @@
          begin=end+1;
      }
  }
@@ -1402,7 +1423,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2071,16 @@
+@@ -1562,7 +2092,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
