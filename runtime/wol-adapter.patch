@@ -2307,7 +2307,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,634 @@
+@@ -46,10 +46,659 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -2370,13 +2370,14 @@
 +"                       c3[18]*q.x+c3[22]*q.y+c3[26]*q.z+c3[30]*q.w,\n"
 +"                       c3[19]*q.x+c3[23]*q.y+c3[27]*q.z+c3[31]*q.w);}\n"
 +"void main() {\n"
-+"    v10 = a_pos;\n"
-+/* NOTE 2026-10-13 late: the f309b86a SASS transforms this uv (u'=u*c3[0x80]+c3[0x88]), but the
-+ * composite fragment on this runtime reads the CLIP-derived uv (v7) instead - enabling the
-+ * attribute-transform here blanked the screen (gfx198-200 white, measured), so it stays off. */
 +"    v9 = a_uv;\n"
 +"    v8 = vec4(a_col.rgb, a_col.a * c3[35]);\n"
 +"    gl_Position = m2(m1(a_pos));\n"
++/* 2026-10-13 late, decode fix: the SASS stores the TRANSFORMED position to the guard varyings
++ * (st a[0xa0]=$r7, a[0xa4]=$r5 - the matrix-chain results), not the raw attribute. The f8e1b018 /
++ * top2 fragment tests its rect (c3[0x10..0x1c]) against exactly this pair, so v10 must carry the
++ * transformed position or the menu-UI guard compares two different spaces. */
++"    v10 = gl_Position;\n"
 +"    v7 = gl_Position;\n"
 +"}\n";
 +static const char wol_pair_fragment_glsl[] =
@@ -2691,6 +2692,25 @@
 +"  vec4 t = texture2D(tex0, uv);\n"
 +"  float guard = (v10.x >= c3f[4] && v10.x <= c3f[6] && v10.y >= c3f[5] && v10.y <= c3f[7]) ? 1.0 : 0.0;\n"
 +"  float a = ((t.a + c3f[3]) * v8.a) * guard;\n"
++/* The SASS says kil when the alpha value < c1[0x0] (assumed 1.0 - a hard cutout). Measured effect:
++ * with the hard kill the menu-UI elements never appear, so it is gated: WOL_PAIR2_KILL=1 selects the
++ * strict-cutout variant (wol_pair2b_kill_fragment_glsl), default leaves alpha to blending. */
++"  gl_FragColor = vec4((t.r + c3f[0]) * v8.r, (t.g + c3f[1]) * v8.g, (t.b + c3f[2]) * v8.b, a);\n"
++"}\n";
++static const char wol_pair2b_kill_fragment_glsl[] =
++"#version 100\n"
++"precision mediump float;\n"
++"varying vec4 v7;\n"
++"varying vec4 v8;\n"
++"varying vec2 v9;\n"
++"varying vec4 v10;\n"
++"uniform highp float c3f[96];\n"
++"uniform sampler2D tex0;\n"
++"void main(){\n"
++"  vec2 uv = v9 / v7.w;\n"
++"  vec4 t = texture2D(tex0, uv);\n"
++"  float guard = (v10.x >= c3f[4] && v10.x <= c3f[6] && v10.y >= c3f[5] && v10.y <= c3f[7]) ? 1.0 : 0.0;\n"
++"  float a = ((t.a + c3f[3]) * v8.a) * guard;\n"
 +"  if(a < 1.0) discard;\n"
 +"  gl_FragColor = vec4((t.r + c3f[0]) * v8.r, (t.g + c3f[1]) * v8.g, (t.b + c3f[2]) * v8.b, a);\n"
 +"}\n";
@@ -2852,6 +2872,11 @@
 +    {static int fe;static unsigned feon;
 +     if(!fe){const char *o=getenv("WOL_F268_EXACT");feon=o&&!strcmp(o,"1");fe=1;}
 +     if(feon&&strstr(bf->name,"f268"))frag=wol_f268_exact_fragment_glsl;}
++    /* WOL_PAIR2_KILL=1: the strict alpha cutout for the menu-UI fragment (f8e1b018 top2 pair). Default
++     * leaves alpha to blending - with the cutout the menu elements never appeared on screen. */
++    {static int pk;static unsigned pkon;
++     if(!pk){const char *o=getenv("WOL_PAIR2_KILL");pkon=o&&!strcmp(o,"1");pk=1;}
++     if(pkon&&strstr(bf->name,"top2-f"))frag=wol_pair2b_kill_fragment_glsl;}
 +    /* WOL_TOP_GEOM=1 (review 2026-10-13): the REAL world vertex with a solid colour fragment - proves
 +     * the geometry/transform lands in the right target before the texture path is trusted. TEST-ONLY. */
 +    {static int tg;static unsigned tgon;
@@ -2943,7 +2968,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +1131,29 @@
+@@ -507,12 +1156,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -2974,7 +2999,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +1254,28 @@
+@@ -613,6 +1279,28 @@
              }
          }
  #endif
