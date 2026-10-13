@@ -890,7 +890,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -509,6 +520,346 @@
+@@ -509,6 +520,338 @@
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
@@ -1057,30 +1057,22 @@
 +                     * readbacks. Choose by metadata instead of content: the largest level-1 texture that
 +                     * is not the current render target (the sprite atlas wins over the tiny font fills),
 +                     * falling back to the first non-null handle. */
-+                    uint64_t first=0;unsigned first_slot=0,best_slot=0,best_area=0;uint64_t best_id=0;unsigned best_w=0,best_h=0;
++                    /* Review 2026-10-13: sample what the game itself bound. The recorded handle array is
++                     * indexed by texture unit; take the first slot that resolves to a live texture - no
++                     * size or level filtering (the composite's unit really carries a 1920x1080 scene
++                     * target; an earlier screen-size filter starved it and the screen stayed black). */
++                    uint64_t picked=0;unsigned picked_slot=0,pw=0,ph=0;uint64_t pid2=0;
 +                    for(unsigned s=0;s<128;s++) {
 +                        uint64_t candidate=nvn_render.texture_handles[1][s];
 +                        if(!candidate)continue;
-+                        if(!first){first=candidate;first_slot=s;}
 +                        GLint minf=0;GLenum wrap[2]={GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE};
 +                        struct nvn_texture *ct=nvn_render_sampler(candidate,0,0,0,&minf,wrap);
-+                        /* Review 2026-10-13: the BC sprite atlases carry 11-12 mip levels, so the old
-+                         * levels==1 filter excluded exactly the texture this pass needs (measured:
-+                         * runs 116-119 fell back to a 4x4 fill and the composite went near-black). */
 +                        if(!ct||!ct->live||!ct->b.width||!ct->b.height)continue;
-+                        if(nvn_render.target&&ct==nvn_render.target)continue;
-+                        /* Review 2026-10-13: the largest-texture heuristic kept picking OTHER 1920x1080
-+                         * render targets (id=275 measured). Exclude every screen-sized target outright;
-+                         * the sprite atlas (1024x256 .. 2048x512) is what the game's UI draws sample. */
-+                        if(ct->b.width>=1280&&ct->b.height>=720)continue;
-+                        if((uint64_t)ct->b.width*ct->b.height>(uint64_t)1920*1080)continue;
-+                        unsigned area=ct->b.width*ct->b.height;
-+                        if(area>best_area){best_area=area;best_slot=s;best_id=ct->id;best_w=ct->b.width;best_h=ct->b.height;}
++                        picked=candidate;picked_slot=s;pid2=ct->id;pw=ct->b.width;ph=ct->b.height;break;
 +                    }
-+                    if(best_area){handle=nvn_render.texture_handles[1][best_slot];tslot=best_slot;}
-+                    else if(first){handle=first;tslot=first_slot;}
++                    if(picked){handle=picked;tslot=picked_slot;}
 +                    static unsigned told;if(told<4){told++;
-+                        if(handle)printf("WOL_PAIR_TEX quiet-pick slot=%u id=%llu %ux%u\n",tslot,(unsigned long long)best_id,best_w,best_h);
++                        if(handle)printf("WOL_PAIR_TEX quiet-pick slot=%u id=%llu %ux%u\n",tslot,(unsigned long long)pid2,pw,ph);
 +                        else printf("WOL_PAIR_TEX quiet-pick=none candidates-empty\n");}
 +                }
 +                if(wol_fs_testtex()&&wol_pair_tex_loc>=0) {
@@ -1237,7 +1229,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1886,235 @@
+@@ -1535,6 +1878,235 @@
          begin=end+1;
      }
  }
@@ -1473,7 +1465,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2142,16 @@
+@@ -1562,7 +2134,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
