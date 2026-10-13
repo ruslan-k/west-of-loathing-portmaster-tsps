@@ -919,7 +919,7 @@
  #ifdef ANIMAL_WELL_SHADERS
      if(aw_fbcopy_enabled()){aw_fbcopy_open(width,height);glBindFramebuffer(GL_FRAMEBUFFER,aw_fbcopy.fbo);}
      else glBindFramebuffer(GL_FRAMEBUFFER,0);
-@@ -225,11 +312,41 @@
+@@ -225,11 +312,46 @@
      }
      glViewport(rect->x,(int)height-rect->y-rect->h,rect->w,rect->h);
      glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,t->name);
@@ -950,18 +950,23 @@
 +        if(cp_on){
 +            struct nvn_texture *pt=NULL;
 +            for(unsigned i=0;i<nvn_textures_high&&i<4096;i++){struct nvn_texture *ct=&nvn_textures[i];if(ct->live&&ct->id==cp_id&&ct->name){pt=ct;break;}}
++            if(!pt && wol_probe_last_dst && wol_probe_last_dst->live && wol_probe_last_dst->name)pt=wol_probe_last_dst;
 +            if(pt){
 +                glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,pt->name);
 +                glUniform2f(nvn_present.image_scale,1.0f,1.0f);
 +                glUniform2f(nvn_present.image_offset,0.0f,0.0f);
-+                static unsigned told;if(told<4){told++;printf("WOL_COMPOSITE_PROBE displaying id=%llu texture=%u %ux%u\n",(unsigned long long)cp_id,pt->name,pt->b.width,pt->b.height);}
-+            } else { static unsigned told2;if(told2<4){told2++;printf("WOL_COMPOSITE_PROBE target-missing id=%llu\n",(unsigned long long)cp_id);} }
++                static unsigned told;if(told<4){told++;printf("WOL_COMPOSITE_PROBE displaying id=%llu texture=%u %ux%u requested=%llu\n",(unsigned long long)pt->id,pt->name,pt->b.width,pt->b.height,(unsigned long long)cp_id);}
++            } else { static unsigned told2;if(told2<4){told2++;
++                unsigned live=0;uint64_t first_ids[4]={0};for(unsigned i=0;i<nvn_textures_high&&i<4096&&live<4;i++){struct nvn_texture *ct=&nvn_textures[i];if(ct->live){first_ids[live++]=ct->id;}}
++                printf("WOL_COMPOSITE_PROBE target-missing id=%llu live-sample=%u ids=%llu,%llu,%llu,%llu last-dst=%llu\n",(unsigned long long)cp_id,live,
++                    (unsigned long long)first_ids[0],(unsigned long long)first_ids[1],(unsigned long long)first_ids[2],(unsigned long long)first_ids[3],
++                    (unsigned long long)(wol_probe_last_dst?wol_probe_last_dst->id:0));} }
 +        }
 +    }
      glDrawArrays(GL_TRIANGLE_STRIP,0,4);nvn_present.frames++;
      if(t2_video_needs_readback()) {
          GLint viewport[4];EGLint measured_w=0,measured_h=0;
-@@ -270,6 +387,14 @@
+@@ -270,6 +392,14 @@
      cadence_pixel_proof=proof;
      const char *status=proof?"PIXELS":nonblack?"INCONCLUSIVE":"BLACK-SAMPLE";
      printf("NVN_PRESENT_PIXELS frame=%u nonblack=%u max=%u white=%u texture-draws=%u status=%s\n",nvn_present.frames,nonblack,maximum,readback.measure.white,t->draws,status);
@@ -976,7 +981,7 @@
      /* Native54 frame381 proves a black atlas background, RGB0 glyph vertices
       * and a transparent final overlay in the color layer; the normal target
       * still renders. Twelve samples were insufficient to observe this native
-@@ -279,6 +404,31 @@
+@@ -279,6 +409,31 @@
       * wall-clock/memory limits remain. This is not a release acceptance policy. */
      static unsigned black_limit;if(!black_limit){const char *o=getenv("COTM_BLACK_LIMIT");black_limit=o?(unsigned)strtoul(o,NULL,10):120;if(black_limit<120)black_limit=120;}
      nvn_present_receipt(nvn_present.black_streak>=black_limit?"BLACK":status,nonblack,maximum,t->draws);
@@ -1008,7 +1013,7 @@
      if(nvn_present.black_streak>=black_limit){free(pixels);stop("NVN_PRESENT_BLACK",nvn_caller,nvn_present.frames,22);}
      if(capture_requested&&!proof)printf("NVN_CAPTURE_ON_DEMAND_NO_CAPTURE pid=%ld run=%s frame=%u status=%s\n",
          (long)getpid(),getenv("COTM_RUN_ID"),nvn_present.frames,status);
-@@ -342,6 +492,7 @@
+@@ -342,6 +497,7 @@
      if(!nvn_present_from_job)nvn_window.acquired[index]=0;
      uint64_t now=nvn_nanoseconds();nvn_profile.present_ns+=now-started;nvn_profile.frames++;
      if(nvn_profile.start && nvn_profile.frames>=60) {
@@ -1076,7 +1081,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -509,6 +520,387 @@
+@@ -509,6 +520,409 @@
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
@@ -1388,6 +1393,9 @@
 +                     * to see what the sprite/composite passes actually paint. */
 +                    static unsigned tdump;const char *o=getenv("WOL_DUMP");
 +                    if(o&&!strcmp(o,"1")&&tdump<6&&nvn_render.target&&count>=6){
++                        GLint prev_ab2=0;glGetIntegerv(GL_FRAMEBUFFER_BINDING,&prev_ab2);
++                        uint64_t bound0_handle=0;
++                        for(unsigned s2=0;s2<128;s2++){if(nvn_render.texture_handles[1][s2]){bound0_handle=nvn_render.texture_handles[1][s2];break;}}
 +                        unsigned tw=nvn_render.target->b.width,th=nvn_render.target->b.height;
 +                        if(tw&&th&&tw<=2048&&th<=2048){
 +                            uint8_t *tp=malloc((size_t)tw*th*4);
@@ -1399,6 +1407,25 @@
 +                                    for(unsigned y=0;y<th;y++)for(unsigned x=0;x<tw;x++)fwrite(tp+((size_t)(th-1-y)*tw+x)*4,1,3,fp);
 +                                    fclose(fp);tdump++;printf("WOL_TGT_DUMP file=%s\n",path);}
 +                                free(tp);}
++                            /* Also dump the texture the draw just sampled (the sprite's input art). */
++                            GLint sminf=0;GLenum swrap[2]={GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE};
++                            struct nvn_texture *st=nvn_render_sampler(bound0_handle,0,0,0,&sminf,swrap);
++                            if(st&&st->live&&st->name&&st->b.width&&st->b.height&&st->b.width<=2048&&st->b.height<=2048){
++                                GLuint sfb=0;glGenFramebuffers(1,&sfb);glBindFramebuffer(GL_FRAMEBUFFER,sfb);
++                                glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,st->name,0);
++                                if(glCheckFramebufferStatus(GL_FRAMEBUFFER)==GL_FRAMEBUFFER_COMPLETE){
++                                    size_t sb=(size_t)st->b.width*st->b.height*4;uint8_t *sp=malloc(sb);
++                                    if(sp){glReadPixels(0,0,(GLsizei)st->b.width,(GLsizei)st->b.height,GL_RGBA,GL_UNSIGNED_BYTE,sp);
++                                        char sp2[112];snprintf(sp2,sizeof sp2,"wol-tex-src-%u-%ux%u-%u.ppm",(unsigned)st->id,st->b.width,st->b.height,tdump);
++                                        FILE *fp2=fopen(sp2,"wb");
++                                        if(fp2){char hd[64];int hn=snprintf(hd,sizeof hd,"P6\n%u %u\n255\n",st->b.width,st->b.height);
++                                            fwrite(hd,1,hn,fp2);
++                                            for(unsigned y=0;y<st->b.height;y++)for(unsigned x=0;x<st->b.width;x++)fwrite(sp+((size_t)(st->b.height-1-y)*st->b.width+x)*4,1,3,fp2);
++                                            fclose(fp2);printf("WOL_SRC_DUMP file=%s\n",sp2);}
++                                        free(sp);}
++                                }
++                                glBindFramebuffer(GL_FRAMEBUFFER,(GLuint)prev_ab2);glDeleteFramebuffers(1,&sfb);
++                            }
 +                        }
 +                    }
 +                }
@@ -1464,7 +1491,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1927,273 @@
+@@ -1535,6 +1949,275 @@
          begin=end+1;
      }
  }
@@ -1593,6 +1620,7 @@
 +    }
 +    return NULL;
 +}
++static struct nvn_texture *wol_probe_last_dst; /* WOL_COMPOSITE_PROBE fallback: the newest blit destination */
 +static unsigned wol_downsample_copy(const struct nvn_record *r) {
 +    struct nvn_texture *a=NULL,*b=NULL;unsigned ao=99,bo=99;
 +    a=wol_view_texture(r->payload,&ao);b=wol_view_texture(r->payload+36,&bo);
@@ -1732,13 +1760,14 @@
 +        if(coerced==1)printf("WOL_COHERENCE_NOTE gpu-authoritative=1 cpu-dirty-cleared=1\n");
 +    }
 +    __atomic_store_n(&dst->zero_cpu_dirty,0,__ATOMIC_RELEASE);
++    wol_probe_last_dst=dst;
 +    return 1;
 +}
 +
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2221,16 @@
+@@ -1562,7 +2245,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
