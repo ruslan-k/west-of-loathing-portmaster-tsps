@@ -1191,10 +1191,11 @@
  static GLenum nvn_blend_equation(unsigned value) {
      if(value==1)return GL_FUNC_ADD;
      if(value==2)return GL_FUNC_SUBTRACT;
-@@ -211,6 +213,29 @@
+@@ -210,6 +212,99 @@
+     }
  #endif
      stop("NVN_BLEND_EQUATION_REQUIRED",nvn_caller,value,20);return 0;
- }
++}
 +/* WOL_COLOR_STATE_BEGIN */
 +/* The guest color contract for one substituted draw: blend enable (bit 0x100 of the NVN color
 + * word), separate rgb/alpha factors and equations, and the colour write mask. Measured on the
@@ -1218,10 +1219,79 @@
 +    nvn_render_state.valid&=~((1u<<NCS_BLEND_ENABLE)|(1u<<NCS_BLEND_FUNC)|(1u<<NCS_BLEND_EQUATION)|(1u<<NCS_COLOR_MASK));
 +}
 +/* WOL_COLOR_STATE_END */
++/* WOL_TRACE_PAIR pass recorder (review 2026-10-14): enabled only for one named pair (e.g. top2),
++ * bounded by WOL_TRACE_LIMIT (default 12). Records the full chain for the draw: GL texture state of
++ * the sampled texture (min/mag filter, base/max level, wrap - the sampler-completeness question),
++ * the applied blend factors, the guard constants, the first vertices, and RGBA (alpha included!)
++ * before/after the draw. Old dumps were RGB PPM and could not prove alpha. PAM (P7) snapshots keep
++ * alpha. TEST-ONLY. */
++static int wol_trace_on(const char *name) {
++    static int conf;static const char *pat;
++    if(!conf){pat=getenv("WOL_TRACE_PAIR");conf=1;}
++    return pat&&*pat&&name&&strstr(name,pat);
++}
++static unsigned wol_trace_limit(void){static int v=-1;if(v<0){const char*o=getenv("WOL_TRACE_LIMIT");v=o?atoi(o):12;if(v<1||v>64)v=12;}return (unsigned)v;}
++static void wol_trace_tex_state(void) {
++    GLint name=0;glGetIntegerv(GL_TEXTURE_BINDING_2D,&name);
++    if(!name){printf("WOL_TRACE tex=none\n");return;}
++    GLint mn=0,mg=0,ws=0,wt=0;
++    glGetTexParameteriv(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,&mn);
++    glGetTexParameteriv(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,&mg);
++    glGetTexParameteriv(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,&ws);
++    glGetTexParameteriv(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,&wt);
++    /* GLES2 has no base/max-level or level queries; the min_filter mip bits already answer the
++     * completeness question (0x2700..0x2703 demand a mip chain, 0x2600/0x2601 do not). */
++    printf("WOL_TRACE tex_state gl_name=%d min=0x%x mag=0x%x wrap=0x%x/0x%x mips_demanded=%d\n",
++        name,mn,mg,ws,wt,(mn>=0x2700&&mn<=0x2703));
++}
++static void wol_trace_blend_state(void) {
++    GLint s=0,d=0,as=0,ad=0,eq=0,aeq=0;GLboolean en=glIsEnabled(GL_BLEND);
++    glGetIntegerv(GL_BLEND_SRC_RGB,&s);glGetIntegerv(GL_BLEND_DST_RGB,&d);
++    glGetIntegerv(GL_BLEND_SRC_ALPHA,&as);glGetIntegerv(GL_BLEND_DST_ALPHA,&ad);
++    glGetIntegerv(GL_BLEND_EQUATION_RGB,&eq);glGetIntegerv(GL_BLEND_EQUATION_ALPHA,&aeq);
++    GLint mask[4]={0,0,0,0};glGetIntegerv(GL_COLOR_WRITEMASK,mask);
++    GLboolean sc=glIsEnabled(GL_SCISSOR_TEST),dep=glIsEnabled(GL_DEPTH_TEST);
++    GLint scb[4]={0,0,0,0};glGetIntegerv(GL_SCISSOR_BOX,scb);
++    printf("WOL_TRACE blend en=%d src=0x%x dst=0x%x asrc=0x%x adst=0x%x eq=0x%x/0x%x mask=%d%d%d%d scissor=%d[%d,%d,%d,%d] depth=%d\n",
++        (int)en,s,d,as,ad,eq,aeq,mask[0],mask[1],mask[2],mask[3],(int)sc,scb[0],scb[1],scb[2],scb[3],(int)dep);
++}
++static void wol_trace_scan(unsigned *alpha_nz,unsigned *rgb_nz,unsigned *w_out,unsigned *h_out) {
++    *alpha_nz=0;*rgb_nz=0;*w_out=0;*h_out=0;
++    GLint vp[4]={0,0,0,0};glGetIntegerv(GL_VIEWPORT,vp);
++    unsigned w=(unsigned)(vp[2]>0?vp[2]:0),h=(unsigned)(vp[3]>0?vp[3]:0);
++    if(!w||!h||w>2048||h>2048)return;
++    uint8_t *buf=malloc((size_t)w*h*4);
++    if(!buf)return;
++    glReadPixels(vp[0],vp[1],(GLsizei)w,(GLsizei)h,GL_RGBA,GL_UNSIGNED_BYTE,buf);
++    unsigned sx=w>320?w/320:1,sy=h>180?h/180:1;
++    for(unsigned y=0;y<h;y+=sy)for(unsigned x=0;x<w;x+=sx){
++        const uint8_t *c=&buf[((size_t)y*w+x)*4];
++        if(c[3])(*alpha_nz)++;
++        if(c[0]||c[1]||c[2])(*rgb_nz)++;
++    }
++    *w_out=w;*h_out=h;
++    free(buf);
++}
++static void wol_trace_save_pam(const char *tag) {
++    GLint vp[4]={0,0,0,0};glGetIntegerv(GL_VIEWPORT,vp);
++    unsigned w=(unsigned)(vp[2]>0?vp[2]:0),h=(unsigned)(vp[3]>0?vp[3]:0);
++    if(!w||!h||w>2048||h>2048)return;
++    uint8_t *buf=malloc((size_t)w*h*4);
++    if(!buf)return;
++    glReadPixels(vp[0],vp[1],(GLsizei)w,(GLsizei)h,GL_RGBA,GL_UNSIGNED_BYTE,buf);
++    char path[128];snprintf(path,sizeof path,"wol-trace-%s-%ux%u.pam",tag,w,h);
++    FILE *fp=fopen(path,"wb");
++    if(fp){
++        fprintf(fp,"P7\nWIDTH %u\nHEIGHT %u\nDEPTH 4\nMAXVAL 255\nTUPLTYPE RGB_ALPHA\nENDHDR\n",w,h);
++        for(unsigned y=0;y<h;y++)fwrite(buf+(size_t)(h-1-y)*w*4,1,(size_t)w*4,fp);
++        fclose(fp);
++        printf("WOL_TRACE_PAM file=%s\n",path);
++    }
++    free(buf);
+ }
  static GLenum nvn_stencil_operation(unsigned value) {
      static const GLenum operations[]={0,GL_KEEP,GL_ZERO,GL_REPLACE,GL_INCR,GL_DECR,GL_INVERT,GL_INCR_WRAP,GL_DECR_WRAP};
-     if(value<1||value>8)stop("NVN_STENCIL_OPERATION_REQUIRED",nvn_caller,value,20);
-@@ -312,8 +337,19 @@
+@@ -312,8 +407,19 @@
       * sampler2D shaders never evaluate; both are admitted once-logged. Reduction/anisotropy/bias stay closed. */
      {static unsigned aw_sampler_reported;
       if((b->compare || b->lod_min<0) && !aw_sampler_reported++)printf("AW_SAMPLER_ADMIT compare=%u lod-min=%g shaders=sampler2D-only\n",b->compare,b->lod_min);}
@@ -1241,7 +1311,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -507,8 +543,631 @@
+@@ -507,8 +613,681 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -1730,6 +1800,44 @@
 +                 * (0,0,0,0) fullscreen sprite wiped the target black (scan 586 -> 0) while the
 +                 * state was left unapplied; with blending on it is the no-op the title wants. */
 +                wol_apply_color_state(nvn_render.color,nvn_render.blend[1],nvn_render.blend[0],nvn_render.mask&15U);
++                /* WOL_TRACE_PAIR: alpha-aware record of the chain (review 2026-10-14). */
++                {   static unsigned traced;
++                    if(wol_trace_on(wol_cat_bindings[wol_cat_cur->f].name) && traced<wol_trace_limit()) {
++                        traced++;
++                        printf("WOL_TRACE draw#%u f=%s v=%s target=%llu/%ux%u stride=%llu count=%llu first=%llu\n",
++                            traced,wol_cat_bindings[wol_cat_cur->f].name,wol_cat_bindings[wol_cat_cur->v].name,
++                            (unsigned long long)(nvn_render.target?nvn_render.target->id:0),
++                            nvn_render.target?nvn_render.target->b.width:0,nvn_render.target?nvn_render.target->b.height:0,
++                            (unsigned long long)stride,(unsigned long long)count,(unsigned long long)first);
++                        wol_trace_tex_state();
++                        wol_trace_blend_state();
++                        {   struct nvn_range fb=nvn_render.uniform[1][0];float fw[16];memset(fw,0,sizeof fw);
++                            unsigned n=0;
++                            if(fb.address&&fb.size){n=fb.size>sizeof fw?(unsigned)sizeof fw:(unsigned)fb.size;memcpy(fw,nvn_gpu_pointer(fb.address,n,PROT_READ),n);}
++                            printf("WOL_TRACE c3f size=%u v=%g,%g,%g,%g guard=%g,%g,%g,%g\n",(unsigned)fb.size,fw[0],fw[1],fw[2],fw[3],fw[4],fw[5],fw[6],fw[7]);
++                        }
++                        printf("WOL_TRACE c3_35=%g\n",avail>=36*4?words[35]:-999.0f);
++                        for(unsigned k=0;k<3&&k<vertex_count;k++) {
++                            const float *v=(const float *)(base+(size_t)k*stride);
++                            const uint8_t *vc=base+(size_t)k*stride+12;
++                            printf("WOL_TRACE vert%u pos=%g,%g,%g rgba=%u,%u,%u,%u uv=%g,%g\n",k,v[0],v[1],v[2],vc[0],vc[1],vc[2],vc[3],v[4],v[5]);
++                        }
++                        {   unsigned an=0,rn=0,w0=0,h0=0;wol_trace_scan(&an,&rn,&w0,&h0);
++                            printf("WOL_TRACE before target_alpha_nz=%u target_rgb_nz=%u %ux%u\n",an,rn,w0,h0);}
++                        if(traced<=3)wol_trace_save_pam("before");
++                    }
++                }
++                /* WOL_P2_SOLID: the geometry probe lifts blend+scissor+depth so the magenta pixels can
++                 * land unconditionally; the previous state is restored right after the draw. TEST-ONLY. */
++                int p2solid=0;GLboolean p2_saved_blend=0,p2_saved_scissor=0,p2_saved_depth=0;
++                {   static int c;static unsigned on;if(!c){const char *o=getenv("WOL_P2_SOLID");on=o&&!strcmp(o,"1");c=1;}
++                    if(on&&strstr(wol_cat_bindings[wol_cat_cur->f].name,"top2")) {
++                        p2solid=1;
++                        p2_saved_blend=glIsEnabled(GL_BLEND);p2_saved_scissor=glIsEnabled(GL_SCISSOR_TEST);
++                        p2_saved_depth=glIsEnabled(GL_DEPTH_TEST);
++                        glDisable(GL_BLEND);glDisable(GL_SCISSOR_TEST);glDisable(GL_DEPTH_TEST);
++                    }
++                }
 +                if(geometry.indices) {
 +                    GLint saved_elements=0;glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING,&saved_elements);
 +                    GLuint elements=0;glGenBuffers(1,&elements);glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,elements);
@@ -1737,6 +1845,18 @@
 +                    glDrawElements(geometry.primitive,(GLsizei)count,GL_UNSIGNED_SHORT,0);
 +                    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,(GLuint)saved_elements);glDeleteBuffers(1,&elements);
 +                } else glDrawArrays(geometry.primitive,0,(GLsizei)count);
++                if(p2solid){if(p2_saved_blend)glEnable(GL_BLEND);else glDisable(GL_BLEND);
++                            if(p2_saved_scissor)glEnable(GL_SCISSOR_TEST);else glDisable(GL_SCISSOR_TEST);
++                            if(p2_saved_depth)glEnable(GL_DEPTH_TEST);else glDisable(GL_DEPTH_TEST);}
++                /* WOL_TRACE_PAIR after-draw: prove the target changed (alpha included). */
++                {   static unsigned traced_after;
++                    if(wol_trace_on(wol_cat_bindings[wol_cat_cur->f].name) && traced_after<wol_trace_limit()) {
++                        traced_after++;
++                        unsigned an=0,rn=0,w0=0,h0=0;wol_trace_scan(&an,&rn,&w0,&h0);
++                        printf("WOL_TRACE after target_alpha_nz=%u target_rgb_nz=%u %ux%u\n",an,rn,w0,h0);
++                        if(traced_after<=3)wol_trace_save_pam("after");
++                    }
++                }
 +                {   /* WOL_DUMP=1: dump the CURRENT target right after the pair draw (max 6 across the run),
 +                     * to see what the sprite/composite passes actually paint. */
 +                    static unsigned tdump;const char *o=getenv("WOL_DUMP");
@@ -1873,7 +1993,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +1363,7 @@
+@@ -704,6 +1483,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -1881,7 +2001,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1535,6 +2195,279 @@
+@@ -1535,6 +2315,279 @@
          begin=end+1;
      }
  }
@@ -2161,7 +2281,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2495,16 @@
+@@ -1562,7 +2615,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -2307,7 +2427,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,659 @@
+@@ -46,10 +46,709 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -2714,6 +2834,46 @@
 +"  if(a < 1.0) discard;\n"
 +"  gl_FragColor = vec4((t.r + c3f[0]) * v8.r, (t.g + c3f[1]) * v8.g, (t.b + c3f[2]) * v8.b, a);\n"
 +"}\n";
++/* Review 2026-10-14: isolated A/B diagnostic variants for the menu-UI pair (separate programs, not
++ * if-chains inside the production formula - the reviewer's explicit ask). Selected by env gates:
++ * WOL_P2_SOLID=1 -> opaque magenta (geometry/target probe; the draw path also lifts blend+scissor),
++ * WOL_P2_TEXONLY=1 -> texture rgb with alpha forced to 1 and no guard (texture/UV probe),
++ * WOL_P2_ALPHAVIZ=1 -> red=texture alpha, green=vertex alpha, blue=guard (which multiplier dies). */
++static const char wol_pair2b_solid_glsl[] =
++"#version 100\n"
++"precision mediump float;\n"
++"void main() {\n"
++"    gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);\n"
++"}\n";
++static const char wol_pair2b_texonly_glsl[] =
++"#version 100\n"
++"precision mediump float;\n"
++"varying vec4 v7;\n"
++"varying vec4 v8;\n"
++"varying vec2 v9;\n"
++"varying vec4 v10;\n"
++"uniform highp float c3f[96];\n"
++"uniform sampler2D tex0;\n"
++"void main() {\n"
++"    vec2 uv = v9 / v7.w;\n"
++"    vec4 t = texture2D(tex0, uv);\n"
++"    gl_FragColor = vec4(t.rgb, 1.0);\n"
++"}\n";
++static const char wol_pair2b_alphaviz_glsl[] =
++"#version 100\n"
++"precision mediump float;\n"
++"varying vec4 v7;\n"
++"varying vec4 v8;\n"
++"varying vec2 v9;\n"
++"varying vec4 v10;\n"
++"uniform highp float c3f[96];\n"
++"uniform sampler2D tex0;\n"
++"void main() {\n"
++"    vec2 uv = v9 / v7.w;\n"
++"    vec4 t = texture2D(tex0, uv);\n"
++"    float g = (v10.x >= c3f[4] && v10.x <= c3f[6] && v10.y >= c3f[5] && v10.y <= c3f[7]) ? 1.0 : 0.0;\n"
++"    gl_FragColor = vec4(t.a, v8.a, g, 1.0);\n"
++"}\n";
 +static const char wol_diag_green_glsl[] =
 +"#version 100\n"
 +"precision mediump float;\n"
@@ -2877,6 +3037,16 @@
 +    {static int pk;static unsigned pkon;
 +     if(!pk){const char *o=getenv("WOL_PAIR2_KILL");pkon=o&&!strcmp(o,"1");pk=1;}
 +     if(pkon&&strstr(bf->name,"top2-f"))frag=wol_pair2b_kill_fragment_glsl;}
++    /* Review 2026-10-14 A/B variants for the menu-UI pair, mutually exclusive, isolated programs. */
++    {static int pv;static unsigned pvsolid,pvtex,pvviz;
++     if(!pv){const char *o=getenv("WOL_P2_SOLID");pvsolid=o&&!strcmp(o,"1");
++             o=getenv("WOL_P2_TEXONLY");pvtex=o&&!strcmp(o,"1");
++             o=getenv("WOL_P2_ALPHAVIZ");pvviz=o&&!strcmp(o,"1");pv=1;}
++     if(strstr(bf->name,"top2-f")) {
++        if(pvsolid)frag=wol_pair2b_solid_glsl;
++        else if(pvtex)frag=wol_pair2b_texonly_glsl;
++        else if(pvviz)frag=wol_pair2b_alphaviz_glsl;
++     }}
 +    /* WOL_TOP_GEOM=1 (review 2026-10-13): the REAL world vertex with a solid colour fragment - proves
 +     * the geometry/transform lands in the right target before the texture path is trusted. TEST-ONLY. */
 +    {static int tg;static unsigned tgon;
@@ -2968,7 +3138,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +1156,29 @@
+@@ -507,12 +1206,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -2999,7 +3169,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +1279,28 @@
+@@ -613,6 +1329,28 @@
              }
          }
  #endif

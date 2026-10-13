@@ -39,7 +39,9 @@ def level0_size(w, h, fmt):
     if fmt in ("R8", "Alpha8"):
         return w * h
     if fmt == "RG16":
-        return w * h * 4
+        # Unity TextureFormat.RG16 = two 8-bit channels (2 bytes/px). The earlier *4 was wrong
+        # (review 2026-10-14) and would mis-slice the level-0 data on such textures.
+        return w * h * 2
     return None
 
 
