@@ -1,0 +1,6 @@
+KMS before-menu 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx165/before-menu.png (FB ID: 161, 1280x720) 
+RUNTIME [5234] {'WOL_PROBE_SECONDS': '120', 'WOL_MEMORY_FLOOR_MIB': '20', 'WOL_QUIET': '1', 'WOL_PRESENT_TEST': '0', 'WOL_PAIR_TEST': '0', 'WOL_FS_TESTTEX': '0', 'WOL_PAIR_MATH': '1', 'WOL_VS_TRIVIAL': '0', 'WOL_COHERENCE': '1', 'WOL_DUMP': '0', 'WOL_F191_UV': 'xy', 'WOL_COMPOSITE_PROBE': '0', 'COTM_PRESENT_READBACK_60': '1', 'COTM_READBACK_PERIOD': '600', 'COTM_CAPTURE_PERIOD': '600'}
+KMS during-15 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx165/during-15.png (FB ID: 161, 1280x720) 
+KMS after-menu 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx165/after-menu.png (FB ID: 160, 1280x720) 
+FINAL_STATE [5544] []
+RUNTIME_SEEN True

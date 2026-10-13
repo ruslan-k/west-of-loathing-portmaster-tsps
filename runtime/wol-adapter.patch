@@ -1171,7 +1171,46 @@
      nvn_gl_completion.completion_valid=0;
 --- a/native/nvn_render.h
 +++ b/native/nvn_render.h
-@@ -312,8 +312,19 @@
+@@ -197,6 +197,8 @@
+     return factors[value];
+ }
+ #include <GLES2/gl2ext.h>
++static void nvn_render_state_epoch(void);
++static void nvn_render_color_mask(unsigned mask);
+ static GLenum nvn_blend_equation(unsigned value) {
+     if(value==1)return GL_FUNC_ADD;
+     if(value==2)return GL_FUNC_SUBTRACT;
+@@ -211,6 +213,29 @@
+ #endif
+     stop("NVN_BLEND_EQUATION_REQUIRED",nvn_caller,value,20);return 0;
+ }
++/* WOL_COLOR_STATE_BEGIN */
++/* The guest color contract for one substituted draw: blend enable (bit 0x100 of the NVN color
++ * word), separate rgb/alpha factors and equations, and the colour write mask. Measured on the
++ * device: the sprite passes request SRC_ALPHA/ONE_MINUS_SRC_ALPHA, and a transparent fullscreen
++ * sprite (vertex colour 0,0,0,0) must be a no-op - with the state unapplied it wiped the target
++ * black (sprite scan 586 -> 0). Direct GL calls, never a cache-gated skip: the present/upload
++ * paths toggle GL_BLEND behind the state cache's back, so a cache-based send wrongly skips the
++ * re-enable (run 167: gl-blend=0 at draw time for thousands of draws). The four touched cache
++ * slots are invalidated so the next cache user always re-syncs with GL. Defined here, outside
++ * every game-conditional block, because the WoL pair path calls it too. */
++static void wol_apply_color_state(uint32_t guest_flags, uint32_t blend, uint32_t equation, uint32_t mask) {
++    unsigned sf=blend&127,df=(blend>>8)&127,af=(blend>>16)&127,da=(blend>>24)&127;
++    unsigned ce=(equation>>24)&7,ae=(equation>>28)&7;
++    nvn_render_state_epoch();
++    if(guest_flags&0x100u) {
++        glEnable(GL_BLEND);
++        glBlendFuncSeparate(nvn_blend_factor(sf),nvn_blend_factor(df),nvn_blend_factor(af),nvn_blend_factor(da));
++        glBlendEquationSeparate(nvn_blend_equation(ce),nvn_blend_equation(ae));
++    } else glDisable(GL_BLEND);
++    nvn_render_color_mask(mask&15U);
++    nvn_render_state.valid&=~((1u<<NCS_BLEND_ENABLE)|(1u<<NCS_BLEND_FUNC)|(1u<<NCS_BLEND_EQUATION)|(1u<<NCS_COLOR_MASK));
++}
++/* WOL_COLOR_STATE_END */
+ static GLenum nvn_stencil_operation(unsigned value) {
+     static const GLenum operations[]={0,GL_KEEP,GL_ZERO,GL_REPLACE,GL_INCR,GL_DECR,GL_INVERT,GL_INCR_WRAP,GL_DECR_WRAP};
+     if(value<1||value>8)stop("NVN_STENCIL_OPERATION_REQUIRED",nvn_caller,value,20);
+@@ -312,8 +337,19 @@
       * sampler2D shaders never evaluate; both are admitted once-logged. Reduction/anisotropy/bias stay closed. */
      {static unsigned aw_sampler_reported;
       if((b->compare || b->lod_min<0) && !aw_sampler_reported++)printf("AW_SAMPLER_ADMIT compare=%u lod-min=%g shaders=sampler2D-only\n",b->compare,b->lod_min);}
@@ -1191,8 +1230,51 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -509,6 +520,414 @@
+@@ -507,8 +543,476 @@
+ }
+ #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
++#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++/* WOL_DRAW_GEOMETRY_BEGIN */
++struct wol_draw_geometry {
++    unsigned primitive;
++    uint64_t base,maximum,count;
++    const uint16_t *indices;
++};
++static unsigned wol_decode_draw_geometry(const struct nvn_record *r,struct wol_draw_geometry *g) {
++    memset(g,0,sizeof(*g));
++    g->primitive=(unsigned)r->args[0];g->count=r->args[2];
++    if(g->primitive>6 || g->count>1048576)stop("WOL_DRAW_RANGE",nvn_caller,g->count,24);
++    if(!g->count)return 0;
++    if(r->op==NI_nvnCommandBufferDrawArrays) {
++        g->base=r->args[1];g->maximum=g->count-1;
++        if(g->base>UINT32_MAX)stop("WOL_DRAW_RANGE",nvn_caller,g->base,24);
++        return 1;
++    }
++    if(r->op!=NI_nvnCommandBufferDrawElements && r->op!=NI_nvnCommandBufferDrawElementsBaseVertex)
++        stop("WOL_DRAW_OPCODE",nvn_caller,r->op,24);
++    unsigned type=(unsigned)r->args[1];
++    if(type>2)stop("WOL_INDEX_RANGE",nvn_caller,type,24);
++    const uint8_t *src=nvn_gpu_pointer(r->args[3],g->count*(1U<<type),PROT_READ);
++    uint32_t lo=UINT32_MAX,hi=0;
++    for(uint64_t i=0;i<g->count;i++) {
++        uint32_t v=type==0?src[i]:type==1?(uint32_t)src[2*i]|((uint32_t)src[2*i+1]<<8):read32(src+4*i);
++        if(v<lo)lo=v;
++        if(v>hi)hi=v;
++    }
++    if(hi-lo>65535)stop("WOL_INDEX_REBASE_SPAN",nvn_caller,hi-lo,24);
++    int64_t origin=(r->op==NI_nvnCommandBufferDrawElementsBaseVertex?(int32_t)r->args[4]:0)+(int64_t)lo;
++    if(origin<0)stop("WOL_INDEX_NEGATIVE_VERTEX",nvn_caller,(uint64_t)origin,24);
++    g->base=(uint64_t)origin;g->maximum=hi-lo;
++    uint16_t *dst=nvn_render_index_scratch(g->count);g->indices=dst;
++    for(uint64_t i=0;i<g->count;i++) {
++        uint32_t v=type==0?src[i]:type==1?(uint32_t)src[2*i]|((uint32_t)src[2*i+1]<<8):read32(src+4*i);
++        dst[i]=(uint16_t)(v-lo);
++    }
++    return 1;
++}
++/* WOL_DRAW_GEOMETRY_END */
++#endif
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
 +#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
@@ -1411,7 +1493,20 @@
 +                    }}
 +                } else printf("WOL_PAIR_TEX none=1\n");
 +            }
-+            uint64_t mode=r->args[0],first=r->args[1],count=r->args[2];
++            struct wol_draw_geometry geometry;
++            if(!wol_decode_draw_geometry(r,&geometry)){nvn_render.program=NULL;return;}
++            uint64_t mode=geometry.primitive,first=geometry.base,count=geometry.count;
++            uint64_t vertex_count=geometry.maximum+1;
++            {static unsigned geometry_reports;
++                if(geometry_reports<16) {
++                    geometry_reports++;
++                    printf("WOL_DRAW_GEOMETRY op=%s primitive=%u indexed=%u index-type=%"PRIu64" base=%"PRIu64" vertices=%"PRIu64" count=%"PRIu64" indices=",
++                        nvn_functions[r->op].name,geometry.primitive,geometry.indices!=NULL,
++                        geometry.indices?r->args[1]:UINT64_MAX,first,vertex_count,count);
++                    for(unsigned k=0;k<count&&k<12;k++)printf("%u,",geometry.indices?geometry.indices[k]:k);
++                    putchar('\n');
++                }
++            }
 +            unsigned long long stride=nvn_render.streams[0][0],vsize=nvn_render.vertex[0].size;
 +            printf("WOL_PAIR_DRAW mode=%"PRIu64" first=%"PRIu64" count=%"PRIu64" stride=%llu stream=%llu c3bank=%llx/%u avail=%u target=%"PRIu64"/%ux%u\n",
 +                mode,first,count,stride,vsize,(unsigned long long)c3r.address,(unsigned)c3r.size,avail,
@@ -1426,11 +1521,10 @@
 +                    (unsigned)glGetError(),nvn_render.target?nvn_render.target->id:0,
 +                    nvn_render.target?nvn_render.target->b.width:0,nvn_render.target?nvn_render.target->b.height:0);
 +                glDisableVertexAttribArray(0);
-+            } else if(mode==4 && count && stride && vsize>=(unsigned long long)(first+count)*stride) {
-+                /* Run-137 fix (review): nvnCommandBufferDrawArrays carries (mode, first, count) and the
-+                 * first argument was ignored - draws with a non-zero first read the wrong vertex range.
-+                 * The base is now advanced by first*stride; a bad range is refused with a log. */
-+                const uint8_t *base=(const uint8_t *)nvn_gpu_pointer(nvn_render.vertex[0].address+first*stride,(size_t)(count*stride),PROT_READ);
++            } else if(count && stride && first<=vsize/stride && vertex_count<=vsize/stride-first) {
++                /* Indexed draws address vertices through the recorded index buffer plus baseVertex.
++                 * The index type is not firstVertex, and primitive 4 remains GL_TRIANGLES. */
++                const uint8_t *base=(const uint8_t *)nvn_gpu_pointer(nvn_render.vertex[0].address+first*stride,(size_t)(vertex_count*stride),PROT_READ);
 +                /* Review 2026-10-13 (run 114 bisection): attribute pointers aimed straight at guest memory
 +                 * produced no fragments at all (trivial vertex, green fragment, five-point readback = 0),
 +                 * while the fullscreen diagnostics - which use a REAL GL buffer - do leave pixels. The
@@ -1440,7 +1534,7 @@
 +                GLuint pair_vbo=0;
 +                if(!pd_direct) {
 +                    glGenBuffers(1,&pair_vbo);glBindBuffer(GL_ARRAY_BUFFER,pair_vbo);
-+                    glBufferData(GL_ARRAY_BUFFER,(GLsizeiptr)(count*stride),base,GL_STREAM_DRAW);
++                    glBufferData(GL_ARRAY_BUFFER,(GLsizeiptr)(vertex_count*stride),base,GL_STREAM_DRAW);
 +                }
 +                /* WOL_PAIR_MATH=1 (review 2026-10-13): replicate the translated vertex transform on the
 +                 * CPU and print the clip-space result per vertex, to tell an off-screen/clipped quad or a
@@ -1449,7 +1543,7 @@
 +                    if(pm_on&&avail>=32*4 && count<=96) {
 +                        static unsigned told,told24,told32;
 +                        if(stride==24?told24<40:(stride==32?told32<24:told<40)){if(stride==24)told24++;else if(stride==32)told32++;else told++;
-+                        for(unsigned k=0;k<6&&k<count;k++) {
++                        for(unsigned k=0;k<6&&k<vertex_count;k++) {
 +                            const float *v=(const float *)(base+(size_t)k*stride);
 +                            /* Measured layout (run 111): M1 at c3[0..15], M2 at c3[16..31], GL column-major;
 +                             * clip = M2*(M1*pos). The probe verifies the GLSL against the same math. */
@@ -1463,7 +1557,15 @@
 +                            float c2=words[18]*q0+words[22]*q1+words[26]*q2+words[30]*q3;
 +                            float c3w=words[19]*q0+words[23]*q1+words[27]*q2+words[31]*q3;
 +                            printf("WOL_PAIR_MATH v=%u pos=%g,%g,%g clip=%g,%g,%g,%g\n",k,v[0],v[1],v[2],c0,c1,c2,c3w);
++                            if(k<4 && (stride==24 || stride==32)) {
++                                const uint8_t *vc=base+(size_t)k*stride+12;
++                                printf("WOL_VERTEX_VALUE v=%u rgba=%u,%u,%u,%u uv=%g,%g alpha-bank=%g\n",
++                                    k,vc[0],vc[1],vc[2],vc[3],v[4],v[5],words[35]);
++                            }
 +                        }
++                        printf("WOL_GUEST_GL_STATE target=%"PRIu64" color=0x%x blend=0x%x/0x%x mask=0x%x gl-blend=%u\n",
++                            nvn_render.target?nvn_render.target->id:0,nvn_render.color,
++                            nvn_render.blend[0],nvn_render.blend[1],nvn_render.mask,(unsigned)glIsEnabled(GL_BLEND));
 +                        if(stride==32&&told32==1) {
 +                            printf("WOL_PAIR_MATRIX stride=32 c3[0..31]=");
 +                            for(unsigned m=0;m<32;m++)printf("%g,",words[m]);
@@ -1491,19 +1593,18 @@
 +                        glEnableVertexAttribArray(1);glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,(GLsizei)stride,base+40);
 +                    }
 +                }
-+                /* Primitive A/B (2026-10-13): the title's 6-vertex draws carry a 4-vertex quad plus two
-+                 * degenerate tail vertices - strip semantics. WOL_PAIR_PRIM=strip draws GL_TRIANGLE_STRIP,
-+                 * =quad4 draws only the first four as triangles; default keeps the current behaviour. */
-+                {   static int pp_configured,pp_mode=-1;
-+                    if(!pp_configured){const char *o=getenv("WOL_PAIR_PRIM");
-+                        /* Run 133 measured the strip semantics as correct for the title's 6-vertex
-+                         * draws (presented nonblack 460800 -> 912488, the missing half filled);
-+                         * strip is now the default, the env keeps triangles/quad4 for A/B. */
-+                        pp_mode=!o?1:(!strcmp(o,"strip")?1:(!strcmp(o,"quad4")?2:0));pp_configured=1;}
-+                    if(pp_mode==1)glDrawArrays(GL_TRIANGLE_STRIP,0,(GLsizei)count);
-+                    else if(pp_mode==2&&count>=4)glDrawArrays(GL_TRIANGLES,0,4);
-+                    else glDrawArrays(GL_TRIANGLES,0,(GLsizei)count);
-+                }
++                /* WOL_COLOR_STATE: the guest color/blend state belongs to this substituted draw.
++                 * Run 166: the sprite passes request SRC_ALPHA/ONE_MINUS_SRC_ALPHA, and the
++                 * (0,0,0,0) fullscreen sprite wiped the target black (scan 586 -> 0) while the
++                 * state was left unapplied; with blending on it is the no-op the title wants. */
++                wol_apply_color_state(nvn_render.color,nvn_render.blend[1],nvn_render.blend[0],nvn_render.mask&15U);
++                if(geometry.indices) {
++                    GLint saved_elements=0;glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING,&saved_elements);
++                    GLuint elements=0;glGenBuffers(1,&elements);glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,elements);
++                    glBufferData(GL_ELEMENT_ARRAY_BUFFER,(GLsizeiptr)(count*sizeof(uint16_t)),geometry.indices,GL_STREAM_DRAW);
++                    glDrawElements(geometry.primitive,(GLsizei)count,GL_UNSIGNED_SHORT,0);
++                    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,(GLuint)saved_elements);glDeleteBuffers(1,&elements);
++                } else glDrawArrays(geometry.primitive,0,(GLsizei)count);
 +                {   /* WOL_DUMP=1: dump the CURRENT target right after the pair draw (max 6 across the run),
 +                     * to see what the sprite/composite passes actually paint. */
 +                    static unsigned tdump;const char *o=getenv("WOL_DUMP");
@@ -1606,7 +1707,15 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1954,275 @@
+@@ -704,6 +1208,7 @@
+ #endif
+     uint64_t aw_t2=aw_setup_now();
+     nvn_render_state_epoch();nvn_render_use_program(p,program);
++    wol_apply_color_state(nvn_render.color,nvn_render.blend[1],nvn_render.blend[0],nvn_render.mask&15U);
+     nvn_uniform_begin(p,program);
+     zero_texture_storage_sampler_begin();
+ #ifdef ANIMAL_WELL_SHADERS
+@@ -1535,6 +2040,275 @@
          begin=end+1;
      }
  }
@@ -1882,7 +1991,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2250,16 @@
+@@ -1562,7 +2336,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -2093,7 +2202,7 @@
 +"void main() {\n"
 +"    v10 = a_pos;\n"
 +"    v9 = a_uv;\n"
-+"    v8 = vec4(a_col.rgb, a_pos.w * c3[35]);\n"    /* TODO(colour scale): the guest loads RGBA8 as b32 ints */
++"    v8 = vec4(a_col.rgb, a_col.a * c3[35]);\n"    /* TODO(colour scale): the guest loads RGBA8 as b32 ints */
 +"    gl_Position = m2(m1(a_pos));\n"
 +"    v7 = gl_Position;\n"
 +"}\n";
