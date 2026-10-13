@@ -981,7 +981,7 @@
      /* Native54 frame381 proves a black atlas background, RGB0 glyph vertices
       * and a transparent final overlay in the color layer; the normal target
       * still renders. Twelve samples were insufficient to observe this native
-@@ -279,6 +409,31 @@
+@@ -279,6 +409,32 @@
       * wall-clock/memory limits remain. This is not a release acceptance policy. */
      static unsigned black_limit;if(!black_limit){const char *o=getenv("COTM_BLACK_LIMIT");black_limit=o?(unsigned)strtoul(o,NULL,10):120;if(black_limit<120)black_limit=120;}
      nvn_present_receipt(nvn_present.black_streak>=black_limit?"BLACK":status,nonblack,maximum,t->draws);
@@ -990,7 +990,8 @@
 +    {   static unsigned dumps;
 +        static int dump_configured,dump_on;
 +        if(!dump_configured){const char *o=getenv("WOL_DUMP");dump_on=o&&!strcmp(o,"1");dump_configured=1;}
-+        if(dump_on && dumps<8 && nvn_present.frames%120==0) {
++        static unsigned dump_every;if(!dump_every){const char *o2=getenv("WOL_DUMP_EVERY");dump_every=o2?(unsigned)strtoul(o2,NULL,10):60;if(!dump_every)dump_every=60;}
++        if(dump_on && dumps<10 && nvn_present.frames%dump_every==0) {
 +            uint8_t *full=malloc((size_t)width*height*4);
 +            if(full) {
 +                glReadPixels(0,0,(GLsizei)width,(GLsizei)height,GL_RGBA,GL_UNSIGNED_BYTE,full);
@@ -1013,7 +1014,7 @@
      if(nvn_present.black_streak>=black_limit){free(pixels);stop("NVN_PRESENT_BLACK",nvn_caller,nvn_present.frames,22);}
      if(capture_requested&&!proof)printf("NVN_CAPTURE_ON_DEMAND_NO_CAPTURE pid=%ld run=%s frame=%u status=%s\n",
          (long)getpid(),getenv("COTM_RUN_ID"),nvn_present.frames,status);
-@@ -342,6 +497,7 @@
+@@ -342,6 +498,7 @@
      if(!nvn_present_from_job)nvn_window.acquired[index]=0;
      uint64_t now=nvn_nanoseconds();nvn_profile.present_ns+=now-started;nvn_profile.frames++;
      if(nvn_profile.start && nvn_profile.frames>=60) {
