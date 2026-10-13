@@ -705,3 +705,21 @@ diagnostics; P0: downsample; P1: shaders):
 - **Memory is the endurance blocker** (review section 5): the run died at the floor with RSS
   ~742 MiB while the load was still advancing. The next diagnostic run lowers the harness floor to
   20 MiB (bounded, self-guarding) to observe how far the loading gets past frame 163.
+
+### Run 107: the endurance run survives the full budget
+
+With the harness floor at 20 MiB the title ran the entire 1800 s budget with **no stop** (governor
+SIGTERM at the end): 420 presented frames (run 106: 163), real textures 33 -> 100 -> 128 -> 144
+(sprite atlases arriving, e.g. 2048x1024 with 12 mip levels), draws counter live (420/840/...).
+Two follow-ups found in this run:
+
+- `WOL_PRESENT_TEST` is a value-check now (`=1`); the presence-based check meant the harness value
+  `0` still enabled the marker, so run 107's present readbacks measured the marker again
+  (nonblack=4096) instead of game content.
+- The downsample view decode must read the views at RECORDING time: replay-side guest reads found
+  nothing (the command arena is recycled by replay time, measured). The record now copies both
+  36-byte views (payload 72 bytes) and the replay scans only the recorded bytes for registered
+  texture objects.
+
+Also fixed here: a leftover duplicated `if(!src||!dst)` and stray return in `wol_downsample_copy`
+from the earlier trace edit.
