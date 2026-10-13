@@ -725,6 +725,12 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-89",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 210,
+      "note": "WOL_PAIR_PIXELS: every window-texture pair draw executes (glerror 0, scissor off, depth off, FBO bound, vp 0,0,1280,720) but the center of its own target reads 0,0,0,0 right after the draw - no fragments land; run 114 ships WOL_VS_TRIVIAL (matrix-free vertex) + 5-point readback to bisect plumbing vs c3-data"
+    },
+    {
       "run": "device-88",
       "stop": "none (governor SIGTERM, exit 143)",
       "presents": 198,
