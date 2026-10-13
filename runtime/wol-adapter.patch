@@ -1230,7 +1230,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -507,8 +543,476 @@
+@@ -507,8 +543,510 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -1699,6 +1699,40 @@
 +            nvn_render.program=NULL;return;
 +        }
 +        skipped++;
++        /* Skip census (2026-10-13): rank the untranslated pairs by REAL draw counts. The bind-side
++         * PROG_BOUND lines count compute programs, so only the draw site knows which graphics
++         * pairs are actually skipped each frame. Keyed by the bound stage objects; names resolved
++         * once from the linked program's sources. */
++        {   static struct {uint64_t vo,fo,n;} pairs[64];static unsigned pairs_used;
++            uint64_t vo=wol_bound_object[0],fo=wol_bound_object[1];
++            unsigned hit=0;
++            for(unsigned i=0;i<pairs_used;i++)if(pairs[i].vo==vo&&pairs[i].fo==fo){pairs[i].n++;hit=1;break;}
++            if(!hit) {
++                unsigned vs=0,fs=0;
++                for(unsigned i=0;i<256;i++)if(nvn_programs[i].live) {
++                    if(nvn_programs[i].id==wol_bound_program_id[0])vs=nvn_programs[i].sources[0];
++                    if(nvn_programs[i].id==wol_bound_program_id[1])fs=nvn_programs[i].sources[1];
++                }
++                if(pairs_used<64) {
++                    pairs[pairs_used].vo=vo;pairs[pairs_used].fo=fo;pairs[pairs_used].n=1;pairs_used++;
++                    printf("WOL_SKIP_PAIR_NEW objects=0x%"PRIx64"/0x%"PRIx64" sources=v%u/f%u\n",vo,fo,vs,fs);
++                }
++            }
++            if(!(skipped%8192)) {
++                uint64_t tmp[64];unsigned used=pairs_used;
++                for(unsigned i=0;i<used;i++)tmp[i]=pairs[i].n;
++                printf("WOL_SKIP_TOP skipped=%"PRIu64,skipped);
++                (void)0;
++                for(unsigned rank=0;rank<8&&rank<used;rank++) {
++                    unsigned best=used;
++                    for(unsigned i=0;i<used;i++)if(tmp[i]&&(best==used||tmp[i]>tmp[best]))best=i;
++                    if(best==used)break;
++                    printf(" [0x%"PRIx64"/0x%"PRIx64"=%"PRIu64"]",pairs[best].vo,pairs[best].fo,tmp[best]);
++                    tmp[best]=0;
++                }
++                putchar('\n');
++            }
++        }
 +        if(told<6) { told++;printf("WOL_DRAW_PLACEHOLDER mode=%"PRIu64" count=%"PRIu64" sequence=%"PRIu64" action=skipped note=no-translated-program\n",r->args[0],r->args[2],skipped); }
 +        if(!(skipped%4096))printf("WOL_DRAW_PLACEHOLDER_TOTAL skipped=%"PRIu64"\n",skipped);
 +        nvn_render.program=NULL;return;
@@ -1707,7 +1741,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +1208,7 @@
+@@ -704,6 +1242,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -1715,7 +1749,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1535,6 +2040,279 @@
+@@ -1535,6 +2074,279 @@
          begin=end+1;
      }
  }
@@ -1995,7 +2029,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2340,16 @@
+@@ -1562,7 +2374,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
