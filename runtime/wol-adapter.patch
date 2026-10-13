@@ -619,7 +619,7 @@
      case NI_nvnCommandBufferSetDepthBounds:
          nvn_command_record(nvn_command_find(a[0]),id,f);return 1;
      /* Animal Well (NVN 17.x array forms): a single viewport/scissor/depth range at index 0 is the singular command;
-@@ -678,7 +707,126 @@
+@@ -678,7 +707,147 @@
                  if((i<c->command_count)!=command)stop("NVN_COMMAND_ARENA_TYPE",nvn_caller,address,24);
                  nvn_command_reuse_arena(c,p);if(command)c->current=i;return 1;
              }
@@ -727,6 +727,27 @@
 +                        printf("WOL_COMMAND_ARENA_BOUNDARY old=0x%"PRIx64"/%"PRIu64" new=0x%"PRIx64"/%"PRIu64" overlap=%"PRIu64" action=trimmed\n",
 +                            old_start,old_end-old_start,new_start,size,hi-lo);
 +                        p->size=new_start-old_start;
++                        continue;
++                    }
++                }
++                /* Run-152: the pool wraps around - the guest re-registers a span inside its OWN command
++                 * pool, largely covering the previous chunk (the earlier commands were consumed). The
++                 * overlapping entries are superseded: reduced to their uncovered tail, or retired when
++                 * fully covered. Overlaps outside the entry's own pool keep the fail-closed stop. */
++                {   uint64_t old_start=p->address,old_end=p->address+p->size,new_start=address,new_end=address+size;
++                    uint64_t lo2=old_start>new_start?old_start:new_start,hi2=old_end<new_end?old_end:new_end;
++                    if(p->pool && p->pool->size && address>=p->pool->address && new_end<=p->pool->address+p->pool->size
++                       && hi2>lo2 && new_start<=old_start && new_end<old_end) {
++                        printf("WOL_COMMAND_ARENA_POOL_RECYCLE old=0x%"PRIx64"/%"PRIu64" new=0x%"PRIx64"/%"PRIu64" overlap=%"PRIu64" action=trim-to-tail tail=0x%"PRIx64"/%"PRIu64"\n",
++                            old_start,old_end-old_start,new_start,size,hi2-lo2,new_end,old_end-new_end);
++                        p->address=new_end;p->size=old_end-new_end;
++                        continue;
++                    }
++                    if(p->pool && p->pool->size && address>=p->pool->address && address<=p->pool->address+p->pool->size
++                       && hi2>lo2 && new_start<=old_start && new_end>=old_end) {
++                        printf("WOL_COMMAND_ARENA_POOL_RECYCLE old=0x%"PRIx64"/%"PRIu64" new=0x%"PRIx64"/%"PRIu64" overlap=%"PRIu64" action=retired\n",
++                            old_start,old_end-old_start,new_start,size,hi2-lo2);
++                        p->size=0;
 +                        continue;
 +                    }
 +                }
