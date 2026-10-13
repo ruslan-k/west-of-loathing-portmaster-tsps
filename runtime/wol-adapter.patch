@@ -619,7 +619,7 @@
      case NI_nvnCommandBufferSetDepthBounds:
          nvn_command_record(nvn_command_find(a[0]),id,f);return 1;
      /* Animal Well (NVN 17.x array forms): a single viewport/scissor/depth range at index 0 is the singular command;
-@@ -678,7 +707,113 @@
+@@ -678,7 +707,126 @@
                  if((i<c->command_count)!=command)stop("NVN_COMMAND_ARENA_TYPE",nvn_caller,address,24);
                  nvn_command_reuse_arena(c,p);if(command)c->current=i;return 1;
              }
@@ -715,6 +715,19 @@
 +                            p->address=address;p->size=size;
 +                            continue;
 +                        }
++                    }
++                }
++                /* Run-151: the pool's next chunk starts 16 bytes before the old chunk's end (alignment
++                 * waste). MEASURED (run 69) as this title's own chunking; trim the old entry by that small
++                 * boundary overlap and let the new region register - anything over 0x50 stays refused.
++                 * The recorded ranges of the discarded 16 bytes were already consumed by the GPU. */
++                {   uint64_t old_start=p->address,old_end=p->address+p->size,new_start=address,new_end=address+size;
++                    uint64_t lo=old_start>new_start?old_start:new_start,hi=old_end<new_end?old_end:new_end;
++                    if(hi>lo && new_start>=old_start && new_end>old_end && (hi-lo)<=0x50) {
++                        printf("WOL_COMMAND_ARENA_BOUNDARY old=0x%"PRIx64"/%"PRIu64" new=0x%"PRIx64"/%"PRIu64" overlap=%"PRIu64" action=trimmed\n",
++                            old_start,old_end-old_start,new_start,size,hi-lo);
++                        p->size=new_start-old_start;
++                        continue;
 +                    }
 +                }
 +                /* This title re-registers its command memory with a different size while it loads
