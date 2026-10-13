@@ -2305,7 +2305,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,630 @@
+@@ -46,10 +46,631 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -2369,8 +2369,11 @@
 +"                       c3[19]*q.x+c3[23]*q.y+c3[27]*q.z+c3[31]*q.w);}\n"
 +"void main() {\n"
 +"    v10 = a_pos;\n"
-+"    v9 = a_uv;\n"
-+"    v8 = vec4(a_col.rgb, a_col.a * c3[35]);\n"    /* TODO(colour scale): the guest loads RGBA8 as b32 ints */
++/* f309b86a EXACT (2026-10-13 late): the vertex transforms the uv before exporting it -
++ * u' = u*c3[0x80] + c3[0x88], v' = v*c3[0x84] + c3[0x8c] (the atlas/screen rect). The composite
++ * fragment reads exactly these two components, so the transform must live here. */
++"    v9 = a_uv * vec2(c3[32], c3[33]) + vec2(c3[34], c3[35]);\n"
++"    v8 = vec4(a_col.rgb, a_col.a * c3[35]);\n"
 +"    gl_Position = m2(m1(a_pos));\n"
 +"    v7 = gl_Position;\n"
 +"}\n";
@@ -2378,19 +2381,14 @@
 +"#version 100\n"
 +"precision mediump float;\n"
 +"varying vec4 v7;\n"
-+"varying vec2 v8;\n"
++"varying vec2 v9;\n"
 +"uniform highp float c3f[96];\n"     /* the fragment stage reads its own constant bank on NVN */
 +"uniform sampler2D tex0;\n"
-+"void main() {\n"
-+"    float r6 = v7.w;\n"
-+"    float r0 = v8.y;\n"            /* SASS 0x68: ipa $r0 a[0x84] - v8.y is the decoded read; do not change */
-+"    float r5 = 1.0 / r6;\n"
-+"    r5 = r5 * r0;\n"
-+"    vec4 t = texture2D(tex0, vec2(r0, r5));\n"   /* TEX operand roles: u=r0, v=r5 is the natural reading, marked as such */
-+"    float r1 = t.y * c3f[0x04/4];\n"
-+"    float r2 = t.x * c3f[0x08/4];\n"
-+"    gl_FragColor = vec4(r1, r2, t.z, t.w);\n"     /* third/fourth channel: transcribe after the tail decode */
-+"}\n";
++/* f08bad2f EXACT (2026-10-13 late, full envydis decode): ipa a[0x7c]=w, ipa a[0x80]/a[0x84]=uv
++ * (perspective via rcp), ONE texs, then out = texel * c3[0x0,0x4,0x8,0xc]. The previous version
++ * sampled a degenerate uv (v8.y twice) - that produced the smeared menu layer ("black object with
++ * green"). The uv arrives already transformed by the vertex (f309b86a). */
++"void main(){ vec4 t = texture2D(tex0, v9 / v7.w); gl_FragColor = t * vec4(c3f[0], c3f[1], c3f[2], c3f[3]); }\n";
 +static const char wol_pair_fragment_v8xy_glsl[] =
 +"#version 100\n"
 +"precision mediump float;\n"
@@ -2814,7 +2812,10 @@
 +        if(pt_on){frag=wol_diag_green_glsl;testfrag=1;}
 +        else if(strstr(bf->name,"f08bad2f")) {
 +            static int cuv_configured,cuv_mode;if(!cuv_configured){const char *o=getenv("WOL_COMP_UV");
-+                cuv_mode=!o?2:(!strcmp(o,"A")?0:(!strcmp(o,"B")?1:2));cuv_configured=1;}
++                /* Default 0 = the EXACT decode (tex at the vertex-transformed uv * c3f[0..3]).
++                 * A=v8xy variant, B=v7uv variant (the old default - its vec4(t.y,t.x,..) swap turned
++                 * red content green, the menu layer's "green" artefact). */
++                cuv_mode=!o?0:(!strcmp(o,"A")?1:(!strcmp(o,"B")?2:0));cuv_configured=1;}
 +            if(cuv_mode==1)frag=wol_pair_fragment_v8xy_glsl;
 +            else if(cuv_mode==2)frag=wol_pair_fragment_v7uv_glsl;
 +        }
@@ -2937,7 +2938,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +1127,29 @@
+@@ -507,12 +1128,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -2968,7 +2969,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +1250,28 @@
+@@ -613,6 +1251,28 @@
              }
          }
  #endif
