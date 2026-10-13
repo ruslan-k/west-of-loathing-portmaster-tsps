@@ -725,6 +725,12 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-91",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 193,
+      "note": "MILESTONE: pair draws produce pixels - green (0,255,0,255) at center+3 corners of every window texture, and ALL 193 present readbacks report nonblack=460800 (half of 1280x720) = rasterized geometry through target -> window texture -> present -> readback; root cause was the stale GL_ARRAY_BUFFER binding from the fullscreen diagnostics (guest pointers read as offsets -> zero vertices -> no fragments); fixed by uploading vertices into a stream VBO and unbinding"
+    },
+    {
       "run": "device-90",
       "stop": "none (governor SIGTERM, exit 143)",
       "presents": 185,
