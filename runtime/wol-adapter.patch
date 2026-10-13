@@ -703,7 +703,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -509,6 +520,159 @@
+@@ -509,6 +520,172 @@
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
@@ -767,11 +767,15 @@
 +                 * the candidates are tried by content: each bound handle is bound and its storage read
 +                 * back once, and the first candidate with real pixels wins. A choice is a measurement. */
 +                uint64_t handle=0;unsigned tslot=128;
-+                static unsigned told_tex;
++                /* Probe each DISTINCT bound handle once: the previous process-global counter stopped all
++                 * probing after 8 candidates, so a sprite atlas created later could never be seen
++                 * (review 2026-10-13). Latched per slot value; never exhausts. */
++                static uint64_t tex_probed[128];static uint64_t tex_probes,tex_probes_nonblack;
 +                for(unsigned s=0;s<128 && !handle;s++) {
 +                    uint64_t candidate=nvn_render.texture_handles[1][s];
 +                    if(!candidate)continue;
-+                    if(told_tex>=8)break;
++                    if(tex_probed[s]==candidate)continue;
++                    tex_probed[s]=candidate;
 +                    GLint minf=0;GLenum wrap[2]={GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE};
 +                    struct nvn_texture *ct=nvn_render_sampler(candidate,3,0,0,&minf,wrap);
 +                    if(!ct)continue;
@@ -786,23 +790,32 @@
 +                            free(px);}
 +                    }
 +                    glBindFramebuffer(GL_FRAMEBUFFER,(GLuint)previous);glDeleteFramebuffers(1,&fb);
-+                    told_tex++;
-+                    printf("WOL_PAIR_TEX_CANDIDATE slot=%u id=%"PRIu64" name=%u %ux%u nonblack=%u max=%u\n",
-+                        s,ct->id,ct->name,ct->b.width,ct->b.height,nb,maxc);
++                    tex_probes++;if(nb)tex_probes_nonblack++;
++                    printf("WOL_PAIR_TEX_CANDIDATE slot=%u id=%"PRIu64" name=%u %ux%u nonblack=%u max=%u probe=%"PRIu64" nonblack-total=%"PRIu64"\n",
++                        s,ct->id,ct->name,ct->b.width,ct->b.height,nb,maxc,tex_probes,tex_probes_nonblack);
 +                    if(!handle && nb) {handle=candidate;tslot=s;}
 +                }
 +                if(!handle && nvn_render.target && nvn_render.target->b.width==1920 && nvn_render.target->b.height==1080) {
 +                    /* Scene pass (renders into the 1920x1080 camera target). Its sprite textures are not
 +                     * visible through the per-stage slots this hook can see, so the live table is searched
 +                     * for the LARGEST pixel-bearing texture that is not a screen-sized target and not a
-+                     * default fill: the sprite atlas. Every probe is measured and printed. */
-+                    static unsigned told_live;
++                     * default fill: the sprite atlas. Every probe is measured and printed. Per-texture
++                     * latch + a periodic full rescan, so an atlas created later is still seen (review
++                     * 2026-10-13: the old process-global 48-probe budget could exhaust before it existed). */
++                    static uint8_t live_probed[4096];static uint64_t live_probes,live_nonblack;static unsigned live_scan_frame;static const unsigned live_period=300;
++                    if(nvn_replay.last_frame>=live_scan_frame+live_period || nvn_replay.last_frame<live_scan_frame) {
++                        memset(live_probed,0,sizeof live_probed);live_scan_frame=nvn_replay.last_frame;
++                        printf("WOL_TEX_LIVE_SCAN frame=%u scope=periodic-%u live=%u probes-total=%"PRIu64" nonblack-total=%"PRIu64"\n",
++                            (unsigned)nvn_replay.last_frame,live_period,(unsigned)nvn_textures_high,live_probes,live_nonblack);
++                    }
 +                    struct nvn_texture *best=NULL;unsigned best_pixels=0;
-+                    for(unsigned i=0;i<nvn_textures_high&&i<4096&&told_live<48;i++) {
++                    for(unsigned i=0;i<nvn_textures_high&&i<4096;i++) {
 +                        struct nvn_texture *ct=&nvn_textures[i];
 +                        if(!ct->live||ct->b.levels!=1||ct->b.target>4)continue;
++                        if(live_probed[i])continue;
 +                        if((ct->b.width==1920&&ct->b.height==1080)||(ct->b.width==1280&&ct->b.height==720))continue;
 +                        if(!ct->b.width||!ct->b.height)continue;
++                        live_probed[i]=1;live_probes++;
 +                        GLint previous=0;glGetIntegerv(GL_FRAMEBUFFER_BINDING,&previous);
 +                        GLuint fb=0;glGenFramebuffers(1,&fb);glBindFramebuffer(GL_FRAMEBUFFER,fb);
 +                        glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,ct->name,0);
@@ -814,9 +827,9 @@
 +                                free(px);}
 +                        }
 +                        glBindFramebuffer(GL_FRAMEBUFFER,(GLuint)previous);glDeleteFramebuffers(1,&fb);
-+                        told_live++;
-+                        if(told_live<=8)printf("WOL_PAIR_TEX_LIVE id=%"PRIu64" name=%u %ux%u format=0x%x nonblack=%u max=%u\n",
-+                            ct->id,ct->name,ct->b.width,ct->b.height,ct->b.format,nb,maxc);
++                        if(nb)live_nonblack++;
++                        if(nb||live_probes<=8)printf("WOL_PAIR_TEX_LIVE id=%"PRIu64" name=%u %ux%u format=0x%x nonblack=%u max=%u frame=%u probe=%"PRIu64"\n",
++                            ct->id,ct->name,ct->b.width,ct->b.height,ct->b.format,nb,maxc,(unsigned)nvn_replay.last_frame,live_probes);
 +                        if(nb && ct->b.width>=64 && ct->b.height>=64) {
 +                            unsigned pixels=ct->b.width*ct->b.height;
 +                            if(!best||pixels>best_pixels){best=ct;best_pixels=pixels;}
@@ -863,7 +876,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -1535,6 +1699,193 @@
+@@ -1535,6 +1712,193 @@
          begin=end+1;
      }
  }
@@ -1057,7 +1070,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +1913,16 @@
+@@ -1562,7 +1926,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }

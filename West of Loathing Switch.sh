@@ -5,7 +5,7 @@ cd "$GAMEDIR" || exit 1
 mkdir -p logs save-laboratory
 LOG="$GAMEDIR/logs/latest.log"
 exec >"$LOG" 2>&1
-printf 'WOL_LAUNCH native-horizon diagnostic-budget=%ss shader-catalogue=absent\n' "${WOL_PROBE_SECONDS:-90}"
+printf 'WOL_LAUNCH native-horizon diagnostic-budget=%ss shader-catalogue=absent\n' "${WOL_PROBE_SECONDS:-900}"
 printf 'WOL_BUILD_ID sha256=%s\n' "$(sha256sum ./wol-horizon 2>/dev/null | cut -d ' ' -f1)"
 # Spruce normally offlines the cluster to which this recovered runtime pins its threads.
 # The runtime pins its threads to the cluster Spruce normally offlines. Remember each file's original
@@ -40,10 +40,11 @@ export COTM_RUN_ID=$(date +%s)
 # read. The staging peak may be transient, so let the load finish inside the same bounded run:
 # WOL_PROBE_SECONDS=35 restores the shorter diagnostic budget.
 export MEGAMAN_PROBE_SECONDS="${WOL_PROBE_SECONDS:-900}"
-# The 64 MiB floor was a bounded diagnostic (it demonstrated 120 presents and swap engagement); it is
-# NOT a safe default now that graphics will really allocate GPU memory, which VmRSS does not show. The
-# conservative 140 MiB floor is the default again; WOL_MEMORY_FLOOR_MIB=64 restores the diagnostic value.
-export T2_MEMORY_FLOOR_MIB="${WOL_MEMORY_FLOOR_MIB:-32}"
+# The 64/32 MiB floors are bounded diagnostics (they demonstrated 120-600 presents and swap engagement);
+# they are NOT safe defaults now that graphics really allocate GPU memory, which VmRSS does not show. The
+# conservative 140 MiB floor is the default; the device test harness passes WOL_MEMORY_FLOOR_MIB=32
+# explicitly for bounded diagnostic runs, and that value is the floor's lower bound (never below 32 MiB).
+export T2_MEMORY_FLOOR_MIB="${WOL_MEMORY_FLOOR_MIB:-140}"
 export COTM_BLACK_LIMIT="${WOL_BLACK_LIMIT:-4000}"
 export WOL_PAIR_CHECK="${WOL_PAIR_CHECK:-1}"
 
