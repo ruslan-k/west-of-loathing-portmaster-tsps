@@ -723,3 +723,19 @@ Two follow-ups found in this run:
 
 Also fixed here: a leftover duplicated `if(!src||!dst)` and stray return in `wol_downsample_copy`
 from the earlier trace edit.
+
+### Run 108: honest content readback and the pair-draw question
+
+With the marker genuinely off (`=1` value check) all 433 present readbacks are black again - the
+title's own content does not reach the presented window textures 30/31/32 yet. Measured layout of
+this run's draws: the translated pair issues ~1 draw per frame into each of 30/31/32
+(145/144/144 = 433, one per present) plus most of its draws into 280/269/457. The downsample view
+words now decode to `0x0000010d_d4f5544d` / `0x0000010e_d4f5544d` - the high halves are texture
+ids 269/270; the view scanner gained an id-based lookup for that measured flavour (the low word
+0xd4f5544d is a constant tag). Two faults of the quiet texture path were also confirmed fixed
+(`WOL_PAIR_TEX quiet-slot=0` binds a real sampler handle).
+
+Next instrumentation sent with run 109: `WOL_PAIR_TEST=1` paints the translated pair solid green
+while keeping its real vertex - if the green reaches the presented texture, geometry and target
+routing are fine and the remaining problem is texture/sampling; if not, the pair's geometry or
+render-target attachment is the break.
