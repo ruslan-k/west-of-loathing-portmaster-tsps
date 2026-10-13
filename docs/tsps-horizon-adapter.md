@@ -783,3 +783,15 @@ c3[16..31]), the CPU probe replicates the same math, and the same GLSL/register 
 varyings (v8 = (a_extra.x*c3[32]+c3[34], a_pos.z), v7 = gl_Position). Run 112 carries the fix with
 the green fragment still on: if the unit quad now paints the window textures, the presentation
 readback turns green and the geometry chapter is closed.
+
+### Run 112: the quad is geometrically correct - the loss is now downstream of the draw
+
+The fixed transform verified on the device: `WOL_PAIR_MATH v=0..3 clip=-1,-1 .. 1,1, z=-0.982,
+w=1` - the unit quad exactly fills the viewport, still with the green fragment. But the run's 198
+present readbacks are all black, while the pair issued 594 draws, one per frame into each window
+texture (66/66/66 into 30/31/32). The draw therefore executes with correct clip coordinates and
+the pixels still do not survive to the presentation sample. Run 113 adds the decisive probe:
+immediately after each pair draw into a window texture, a center-pixel readback of the bound
+target plus the render state that could swallow it (scissor box + enable, depth test + func,
+viewport, FBO binding). If the center pixel is green at draw time, the loss is between the target
+and the present (clear/ordering/binding); if it is black, the draw itself is being discarded.

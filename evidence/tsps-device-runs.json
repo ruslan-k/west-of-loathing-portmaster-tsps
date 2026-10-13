@@ -725,6 +725,12 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-88",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 198,
+      "note": "matrix fix verified on device: pair clip = (-1..1, -1..1, -0.98, w=1) - unit quad fills the viewport; still green fragment, still 594 draws (1/frame into each window texture), still all-black present -> the loss is downstream of the draw; run 113 adds WOL_PAIR_PIXELS (center-pixel readback + scissor/depth/viewport/FBO state right after the draw)"
+    },
+    {
       "run": "device-87",
       "stop": "none (governor SIGTERM, exit 143)",
       "presents": 182,
