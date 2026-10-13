@@ -738,6 +738,12 @@
       "note": "repacked bundle (payload 603.2MB, padded to original size, patched in place at section+0x4DB0D0): textures 247 (was 128), object ids past 740, AUDIO ALIVE (nonzero-total 916868 vs 0 always before) - the user heard sound with a black screen"
     },
     {
+      "run": "device-109",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 386,
+      "note": "STRIP CONFIRMED: the user's 'half black half gray' = 6-vertex strip draws drawn as triangles; WOL_PAIR_PRIM=strip gives presented nonblack 912488 vs 460800 (exactly double, the half filled, 99% of frame), frame 386 = record, textures 251, audio 1.46M; strip is now the default; coherence A/B re-confirmed STALE-OVERWRITE (897->0) with the fix"
+    },
+    {
       "run": "device-107",
       "stop": "none (governor SIGTERM, exit 143)",
       "presents": 310,
