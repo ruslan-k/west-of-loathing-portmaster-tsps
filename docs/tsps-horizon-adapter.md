@@ -1008,3 +1008,23 @@ zram first eats the free-RAM margin on a 963 MiB device, while a file swap on UD
 frees pages. The measured ordering for this device is therefore: **UDISK swapfile first (internal
 storage, frees RAM, faster than SD), SD second, zram last**. Reprioritised and verified (UDISK 100
 / SD 40 / zram -2); run 128 measures that configuration.
+
+### Run 128 + the storage truth: one eMMC, and a 1.1 GiB guest heap
+
+Run 128 (UDISK-first) survived the full budget with the swap-in rate down (majflt 15575 -> 6181 at
+the equal early sample) but progressed LESS far (169 presents / 44 textures vs 196 / 128 on the
+SD-first baseline). Then `lsblk` settled the comparison: `/mnt/sdcard/mmcblk1p1` is mmcblk0p4 and
+`/mnt/UDISK` is mmcblk0p6 - **both swap areas are partitions of the same 7.3 GiB eMMC**, so
+"SD vs UDISK" is a coin toss; the observed difference is run variance. The firmware's priority
+ordering was restored as the baseline (SD 40 / UDISK -2 / zram -3, verified).
+
+The `WOL_MEM_SPLIT` line delivers the hard number: by the early samples the process is
+rss 636 MB with anon 627 MB and swap 462 MB - a **~1.1 GiB anonymous guest heap (Unity's
+decompressed assets) on a 963 MiB device**. That is why the loading crawls: every asset the
+loader touches forces swap I/O on a working set two orders of magnitude beyond RAM. No swap
+configuration fixes a 1.1 GiB working set; the levers are the guest heap itself, the load's
+chunking, and the constant factors (zero-mip path, BC decode, RT sizes).
+
+Run 129 (launched with this analysis) is the maximum-budget endurance test - 7200 s - to answer
+the practical question directly: does the loading phase ever complete and reach the menu's
+drawing phase at all.
