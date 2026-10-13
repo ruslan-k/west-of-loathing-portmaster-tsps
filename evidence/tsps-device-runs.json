@@ -725,6 +725,12 @@
       "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
     },
     {
+      "run": "device-98",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 196,
+      "note": "f191-draft textured sprites: WOL_SPRITE_SCAN content varies per draw (10840/10750/5751, max 255/205) - real UVs sampling the bound texture with real vertex tint; windows stay black via pair-1's faithful single-texel fills; run 123 = 3600s endurance (loader cap 7200) to see how far the load gets"
+    },
+    {
       "run": "device-97",
       "stop": "none (governor SIGTERM, exit 143)",
       "presents": 193,
