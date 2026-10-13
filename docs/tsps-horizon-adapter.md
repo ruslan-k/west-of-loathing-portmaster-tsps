@@ -924,3 +924,17 @@ undecoded instruction family. The new `f191-draft` fragment keeps the decoded pa
 sprite draws now show real per-vertex UVs sampling the game's bound texture, with the real vertex
 colour as tint. Marked TEST-DRAFT; the two undecoded ALU lines are the remaining gap to a full
 translation.
+
+### Run 122: the sprites turn textured (draft), and the endurance budget doubles
+
+`WOL_SPRITE_SCAN` content changes per draw now (10840 / 10750 / 5751, max 255 / 205): the
+f191-draft fragment samples the game's bound texture with the REAL per-vertex UVs and tints it with
+the real vertex colour - target 280 carries textured sprite draws instead of uniform magenta. The
+presented windows remain black because the pair-1 composite faithfully paints its single-texel
+fills (black during loading); no content path into 30/31/32 exists for the scene yet.
+
+A deliberate reverting note: a proposed A/B that read the texcoord from v8.x was dropped before
+running - the SASS line `0x68 ipa $r0 a[0x84]` (v8.y) is decoded ground truth, and un-decoded
+guesses do not replace decoded reads. Run 123 doubles the diagnostic budget to 3600 s (loader cap
+raised to 7200): the loading pipeline keeps advancing (134+ real textures, BC atlases), and the
+longer window is the honest way to see how far it gets and whether the menu phase starts drawing.

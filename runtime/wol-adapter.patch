@@ -384,7 +384,7 @@
 -        if(!*budget || *end || (seconds<1 && strcmp(budget,"0")) || seconds>900)stop("INVALID_PROBE_TIME_BUDGET",0,seconds,24);
 +        /* Diagnostic cap raised 900 -> 1800 s (2026-10-13): run 100 showed the title still loading at the
 +     * 900 s governor; the memory floor remains the active guard for the longer window. */
-+    if(!*budget || *end || (seconds<1 && strcmp(budget,"0")) || seconds>1800)stop("INVALID_PROBE_TIME_BUDGET",0,seconds,24);
++    if(!*budget || *end || (seconds<1 && strcmp(budget,"0")) || seconds>7200)stop("INVALID_PROBE_TIME_BUDGET",0,seconds,24);
          probe_seconds=(unsigned)seconds;
      }
      printf("NATIVE_PROBE_TIME_BUDGET seconds=%u\n",probe_seconds);
@@ -1689,7 +1689,7 @@
 +"uniform sampler2D tex0;\n"
 +"void main() {\n"
 +"    float r6 = v7.w;\n"
-+"    float r0 = v8.y;\n"
++"    float r0 = v8.y;\n"            /* SASS 0x68: ipa $r0 a[0x84] - v8.y is the decoded read; do not change */
 +"    float r5 = 1.0 / r6;\n"
 +"    r5 = r5 * r0;\n"
 +"    vec4 t = texture2D(tex0, vec2(r0, r5));\n"   /* TEX operand roles: u=r0, v=r5 is the natural reading, marked as such */
