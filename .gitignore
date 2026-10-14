@@ -20,3 +20,4 @@ nvn-wol-shader-*.bin
 wol-horizon
 owner-horizon-image/
 horizon-build*/
+evidence/**/runtime.log
