@@ -82,3 +82,23 @@ The review's item 3 (attribute locations) was the root cause of the menu's green
 - **gfx224** (half + TEXID=493): every menu-atlas draw writes (6018..141687 px, was 0) and the physical screen shows the real menu - hanging sign WEST OF / LOATHING, CONTINUE / NEW GAME planks on chains, the XXX jug and bottles, crisp text (evidence/gfx224). The uv*0.5 sample without the /w divide is what matches the art.
 - **gfx223** (top2 A/B, WOL_MASK_HIGHNIB=1): with the gate every other top2 draw writes a flat grey-127 panel (49585 px, RT274 407..641/347..557 -> screen 271..428/231..372); candidate menu plank. The guest mask word 0xfffffff0 vs 0xffffffff needs an honest decode before the gate can be a default.
 - Open: (a) the /w divide - the awfully consistent SASS rcp(a[0x7c]) is empirically wrong for these draws (raw-all and half-all A/B runs: gfx225 baseline, gfx226 raw-all, next half-all); (b) generalising the uv correction beyond id 493; (c) bundle-side repack exclusion (restore the UI atlases) as the by-design repair; (d) top2 mask decode.
+
+
+## 2026-10-14 (afternoon): default-half validation + pair2-family negative result
+
+- **gfx228** (build-208, NO env uv set): default path selects `top-f-uvhalf` for every top draw - the
+  good picture reproduces without any env (validated: WOL_TOP_UV_SELECT mode=half texid=0 x8 in the
+  live log; frame compares to gfx227 within run-to-run jitter, sign region 13.5% / desert 10.8%).
+  User verdict on gfx227/228 state: "в целом остальное более-менее нормально"; remaining gaps:
+  WANTED-poster character figure missing, bottom-right control box missing its button icons.
+- **gfx229** (build-209): extended the same treatment to the pair2 family (f191/f191-real/f268/
+  f268-exact/pair2b+kill+diag sample `v9*0.5`, vertex back to raw `v9=a_uv`). RESULT: mass change
+  across the whole frame (diff up to 66% per region); user: "сейчас как-то все приближено стало"
+  (everything zoomed ~2x). => The pair2-family sampling is NOT the top pair's form; the *0.5 there
+  samples half-range = zoom. REVERTED in build-210 (shader strings byte-identical to build-208,
+  verified by strings-diff; deployed to the device).
+- Correct model so far: the uv doubling ((repack) affects the TOP pair's world/UI sprites; the
+  pair2-family elements that still render (text etc.) sample differently - their remaining broken
+  pieces (poster character, button icons, f191/f268 corner-sampled fills) need a per-class diagnosis,
+  NOT a blanket *0.5. Next: identify the exact draws for the missing icons/character (trace + atlas
+  content match), then a targeted A/B.
