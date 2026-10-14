@@ -2,6 +2,11 @@
 # Experimental WoL Switch runtime. Launch only through Spruce/PortMaster principal flow.
 GAMEDIR=/mnt/SDCARD/Roms/PORTS/wol-switch
 cd "$GAMEDIR" || exit 1
+# TEMP-DIAG (2026-10-14 remote verification): UV diagnostics during the investigation.
+# NOTE: on the device the same block is live; harmless defaults, all overridable.
+export COTM_INPUT_DIAGNOSTIC=${COTM_INPUT_DIAGNOSTIC:-1}
+export WOL_RECT_TRACE=${WOL_RECT_TRACE:-480,440,1060,720}
+export WOL_RECT_TRACE_LIMIT=${WOL_RECT_TRACE_LIMIT:-90000}
 mkdir -p logs save-laboratory
 LOG="$GAMEDIR/logs/latest.log"
 exec >"$LOG" 2>&1
