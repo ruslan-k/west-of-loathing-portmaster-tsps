@@ -1372,7 +1372,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -507,8 +674,802 @@
+@@ -507,8 +674,808 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -1460,7 +1460,13 @@
 +         * current behaviour. Selection is per draw and printed (bounded). */
 +        int wol_f_sel=wol_active_cat[1];
 +        {   static int uv_conf;static const char *uv_mode;static long uv_texid;static unsigned uv_told;
-+            if(!uv_conf){const char *o=getenv("WOL_TOP_UV");uv_mode=o;const char *t=getenv("WOL_TOP_TEXID");uv_texid=t?atol(t):0;uv_conf=1;}
++            if(!uv_conf){const char *o=getenv("WOL_TOP_UV");
++                /* 2026-10-14: the user-verified state (menu + world + WANTED poster "normal" - gfx227)
++                 * = sample v9*0.5 without the /w divide: the memory repack halved every atlas the
++                 * runtime computes sprite uvs against, so raw uv are 2x and the SASS-visible divide is
++                 * not part of a working sample. Default On; WOL_TOP_UV=legacy restores the old path. */
++                uv_mode=(!o||!*o)?"half":o;if(!strcmp(uv_mode,"legacy"))uv_mode=NULL;
++                const char *t=getenv("WOL_TOP_TEXID");uv_texid=t?atol(t):0;uv_conf=1;}
 +            if(uv_mode&&wol_active_cat[1]>=0&&
 +               !strcmp(wol_cat_bindings[wol_active_cat[1]].name,"top-f-draft")) {
 +                int uv_ok=1;long uv_hit=0;
@@ -2175,7 +2181,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +1665,7 @@
+@@ -704,6 +1671,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -2183,7 +2189,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1535,6 +2497,288 @@
+@@ -1535,6 +2503,288 @@
          begin=end+1;
      }
  }
@@ -2472,7 +2478,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2806,16 @@
+@@ -1562,7 +2812,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -2618,7 +2624,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,769 @@
+@@ -46,10 +46,774 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -2687,6 +2693,11 @@
 + * the per-draw w-scale). With v9 = the RAW attribute the divide collapsed every lookup to the atlas
 + * corner (measured gfx215/217: raw uv 0.568/1.613 over w 1237 -> 0.0005), so the sign never sampled
 + * its art and the premultiplied blend left the target untouched. */
++/* 2026-10-14 afternoon: the v9*0.5 pair2-family treatment is REVERTED. Tested on device (gfx229):
++ * applying the top pair's fix to f191/f268/pair2b zoomed their elements ~2x on screen ("всё
++ * приближено" - user) - their sampling form is NOT the same as the top pair's and needs its own
++ * diagnosis (remaining gaps: WANTED-poster character, control-box button icons). State restored to
++ * the 208-verified baseline: vertex pre-scale + fragments as before. */
 +"    v9 = a_uv * vec2(c3[32], c3[33]);\n"
 +"    v8 = vec4(a_col.rgb, a_col.a * c3[35]);\n"
 +"    gl_Position = m2(m1(a_pos));\n"
@@ -3389,7 +3400,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +1266,29 @@
+@@ -507,12 +1271,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -3420,7 +3431,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +1389,28 @@
+@@ -613,6 +1394,28 @@
              }
          }
  #endif
