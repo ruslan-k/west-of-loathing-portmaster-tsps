@@ -2544,7 +2544,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,709 @@
+@@ -46,10 +46,715 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -2607,7 +2607,13 @@
 +"                       c3[18]*q.x+c3[22]*q.y+c3[26]*q.z+c3[30]*q.w,\n"
 +"                       c3[19]*q.x+c3[23]*q.y+c3[27]*q.z+c3[31]*q.w);}\n"
 +"void main() {\n"
-+"    v9 = a_uv;\n"
++/* 2026-10-14 (review-5 + disasm v-d88c64a6): the SASS multiplies the uv attribute by the c3[0x80..]
++ * pair before storing v9 (fmul $r10, $r10, c3[0x84] -> st a[0x84]; symmetric for the .x side), and
++ * the fragment divides by v7.w - the pair is the game's own perspective-scale (c3[32]/c3[33] carry
++ * the per-draw w-scale). With v9 = the RAW attribute the divide collapsed every lookup to the atlas
++ * corner (measured gfx215/217: raw uv 0.568/1.613 over w 1237 -> 0.0005), so the sign never sampled
++ * its art and the premultiplied blend left the target untouched. */
++"    v9 = a_uv * vec2(c3[32], c3[33]);\n"
 +"    v8 = vec4(a_col.rgb, a_col.a * c3[35]);\n"
 +"    gl_Position = m2(m1(a_pos));\n"
 +/* 2026-10-13 late, decode fix: the SASS stores the TRANSFORMED position to the guard varyings
@@ -3255,7 +3261,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +1206,29 @@
+@@ -507,12 +1212,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -3286,7 +3292,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +1329,28 @@
+@@ -613,6 +1335,28 @@
              }
          }
  #endif
@@ -3356,15 +3362,15 @@
  static void nvn_texture_parameters(struct nvn_texture *t,GLint min,GLint mag,GLint s,GLint v) {
      t=zero_texture_storage_state(t);
 +    /* Review 2026-10-14 / measured gfx215: the menu atlas (id 493) carries NVN sampler
-+     * min=0x2703 (NEAREST_MIPMAP_NEAREST) while the runtime stores only level 0. A GLES texture
-+     * whose min filter demands a mip chain it does not have is INCOMPLETE: every fetch returns
-+     * zero, the premultiplied ONE/ONE_MINUS_SRC_ALPHA blend then turns the whole pass into a
-+     * no-op (measured: target_alpha_nz unchanged across the sign draws). Downgrade the min
-+     * filter to its non-mip equivalent when the chain is missing - standard emulator practice. */
-+    if(t && t->b.levels<=1) {
-+        if(min==0x2700||min==0x2702)min=GL_NEAREST;      /* NEAREST_MIPMAP_* -> NEAREST */
-+        else if(min==0x2701||min==0x2703)min=GL_LINEAR;  /* LINEAR_MIPMAP_*  -> LINEAR  */
-+    }
++     * min=0x2703 (NEAREST_MIPMAP_NEAREST) while this runtime stores only level 0 (b.levels is the
++     * guest's DECLARED count, not the stored one - the first version of this fix keyed on it and
++     * never fired, verified gfx217). A GLES texture whose min filter demands a mip chain it does
++     * not have is INCOMPLETE: every fetch returns zero, the premultiplied ONE/ONE_MINUS_SRC_ALPHA
++     * blend then turns the whole pass into a no-op (measured: target_alpha_nz unchanged across the
++     * sign draws). Since no texture in this runtime ever has mips, downgrade the min filter to its
++     * non-mip equivalent unconditionally - standard emulator practice. */
++    if(min==0x2700||min==0x2702)min=GL_NEAREST;      /* NEAREST_MIPMAP_* -> NEAREST */
++    else if(min==0x2701||min==0x2703)min=GL_LINEAR;  /* LINEAR_MIPMAP_*  -> LINEAR  */
      pthread_once(&nvn_texture_parameter_once,nvn_texture_parameter_configure);
      const GLenum names[4]={GL_TEXTURE_MIN_FILTER,GL_TEXTURE_MAG_FILTER,GL_TEXTURE_WRAP_S,GL_TEXTURE_WRAP_T};
      const GLint values[4]={min,mag,s,v};
