@@ -1191,7 +1191,7 @@
  static GLenum nvn_blend_equation(unsigned value) {
      if(value==1)return GL_FUNC_ADD;
      if(value==2)return GL_FUNC_SUBTRACT;
-@@ -210,6 +212,160 @@
+@@ -210,6 +212,172 @@
      }
  #endif
      stop("NVN_BLEND_EQUATION_REQUIRED",nvn_caller,value,20);return 0;
@@ -1247,10 +1247,22 @@
 +static int wol_trace_match(const char *name) {
 +    return wol_trace_on(name)||wol_trace_texid_hit();
 +}
++/* WOL_TRACE_STRIDE=<n> / WOL_TRACE_FIRST=<n>: restrict the trace to draws with that shape (the
++ * per-draw identifiers, since pair name alone matches every member of the family).
++ * 2026-10-14: target exactly the name34 portrait batch (stride 60, first 4). */
++static int wol_trace_shape_ok(uint64_t stride,uint64_t first) {
++    static int conf;static long ws=-1,wf=-1;
++    if(!conf){conf=1;const char *s=getenv("WOL_TRACE_STRIDE"),*f=getenv("WOL_TRACE_FIRST");
++        if(s&&*s)ws=atol(s);
++        if(f&&*f)wf=atol(f);}
++    if(ws>=0&&(long)stride!=ws)return 0;
++    if(wf>=0&&(long)first!=wf)return 0;
++    return 1;
++}
 +/* Review 2026-10-14: before/after must belong to the SAME draw - a single flag decided in the
 + * before-block and consumed by the after-block (the old separate counter could pair different draws). */
 +static unsigned wol_trace_this;
-+static unsigned wol_trace_limit(void){static int v=-1;if(v<0){const char*o=getenv("WOL_TRACE_LIMIT");v=o?atoi(o):12;if(v<1||v>64)v=12;}return (unsigned)v;}
++static int wol_skip_139_this;static unsigned wol_trace_limit(void){static int v=-1;if(v<0){const char*o=getenv("WOL_TRACE_LIMIT");v=o?atoi(o):12;if(v<1||v>64)v=12;}return (unsigned)v;}
 +static void wol_trace_tex_state(void) {
 +    GLint name=0;glGetIntegerv(GL_TEXTURE_BINDING_2D,&name);
 +    if(!name){printf("WOL_TRACE tex=none\n");return;}
@@ -1352,7 +1364,7 @@
  }
  static GLenum nvn_stencil_operation(unsigned value) {
      static const GLenum operations[]={0,GL_KEEP,GL_ZERO,GL_REPLACE,GL_INCR,GL_DECR,GL_INVERT,GL_INCR_WRAP,GL_DECR_WRAP};
-@@ -312,8 +468,19 @@
+@@ -312,8 +480,19 @@
       * sampler2D shaders never evaluate; both are admitted once-logged. Reduction/anisotropy/bias stay closed. */
      {static unsigned aw_sampler_reported;
       if((b->compare || b->lod_min<0) && !aw_sampler_reported++)printf("AW_SAMPLER_ADMIT compare=%u lod-min=%g shaders=sampler2D-only\n",b->compare,b->lod_min);}
@@ -1372,7 +1384,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -507,8 +674,808 @@
+@@ -507,8 +686,929 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -1627,6 +1639,17 @@
 +            glUseProgram(wol_pair_program);
 +            if(wol_pair_c3_loc>=0)glUniform1fv(wol_pair_c3_loc,96,words);
 +            if(wol_pair_c3f_loc>=0)glUniform1fv(wol_pair_c3f_loc,96,fwords);
++{   /* 2026-10-14: the top2 pair's first-resolving slot is the 4x4 white dummy; print every nonzero
++     * recorded fragment-stage slot for the first few top2 draws so the real texture slot (the
++     * poster-portrait / glyph hunt) becomes a measurement. Bounded. */
++    static unsigned t2td2;
++    const char *fname0=wol_cat_cur&&wol_cat_cur->f>=0?wol_cat_bindings[wol_cat_cur->f].name:"";
++    if(t2td2<3&&strstr(fname0,"top2-f")){t2td2++;unsigned shown=0;printf("WOL_TOP2_SLOTS");
++        for(unsigned s=0;s<24&&shown<12;s++){uint64_t c=nvn_render.texture_handles[1][s];if(!c)continue;shown++;
++            GLint mf0=0;GLenum wr0[2]={GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE};struct nvn_texture *ct=nvn_render_sampler(c,0,0,0,&mf0,wr0);
++            if(ct&&ct->live)printf(" s%u=id%llu/%ux%u",s,(unsigned long long)ct->id,ct->b.width,ct->b.height);
++            else printf(" s%u=unres",s);}
++        printf("\n");}}
 +            {   /* the fragment samples one 2D texture. Which bound slot it is has not been decoded yet, so
 +                 * the candidates are tried by content: each bound handle is bound and its storage read
 +                 * back once, and the first candidate with real pixels wins. A choice is a measurement. */
@@ -1744,10 +1767,21 @@
 +                    glActiveTexture(GL_TEXTURE0);glUniform1i(wol_pair_tex_loc,0);
 +                    static unsigned tt_told;if(tt_told<4){tt_told++;printf("WOL_FS_TESTTEX gradient-uv bound=1 note=TEST-ONLY\n");}
 +                } else if(handle&&wol_pair_tex_loc>=0) {
++                    /* WOL_FORCE_WRAP="repeat"|"mirror"|"clamp": override the GL wrap for pair-draw
++                     * textures (A/B). 2026-10-14: the name34 poster-portrait draws carry uvs >1
++                     * (u=1.55..1.73) while the pair path leaves the texture clamped, so the portrait
++                     * samples the blank texture edge. Repeat/mirror reveal the authored art. */
++                    static int fw_conf;static GLenum fw_val;
++                    if(!fw_conf){fw_conf=1;const char *o=getenv("WOL_FORCE_WRAP");
++                        if(o){if(!strcmp(o,"repeat"))fw_val=GL_REPEAT;else if(!strcmp(o,"mirror"))fw_val=GL_MIRRORED_REPEAT;else if(!strcmp(o,"clamp"))fw_val=GL_CLAMP_TO_EDGE;}}
 +                    GLint minf=0;GLenum wrap[2]={GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE};
 +                    struct nvn_texture *t=nvn_render_sampler(handle,0,0,0,&minf,wrap);
 +                    if(t){glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,t->name);glUniform1i(wol_pair_tex_loc,0);
-+                        printf("WOL_PAIR_TEX slot=%u handle=0x%llx name=%u %ux%u\n",tslot,(unsigned long long)handle,(unsigned)t->name,t->b.width,t->b.height);}
++                        if(fw_val){
++                            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,(GLint)fw_val);
++                            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,(GLint)fw_val);
++                            static unsigned fw_told;if(fw_told<4){fw_told++;printf("WOL_FORCE_WRAP applied wrap=0x%x name=%u\n",(unsigned)fw_val,(unsigned)t->name);}}
++                        printf("WOL_PAIR_TEX slot=%u handle=0x%llx name=%u %ux%u\n",tslot,(unsigned long long)handle,(unsigned)t->name,t->b.width,t->b.height);}if(t->name==139u){static int s139;static unsigned s139on;if(!s139){const char*o=getenv("WOL_SKIP_TEX139");s139on=o&&!strcmp(o,"1");s139=1;}wol_skip_139_this=s139on?1:0;}else wol_skip_139_this=0;
 +                    /* Second sampler (f268 draft): bind the next resolvable recorded handle to unit 1. */
 +                    {int t1loc=wol_cat_cur&&wol_cat_cur->tex1>=0?wol_cat_cur->tex1:wol_pair_tex1_loc;
 +                    if(t1loc>=0) {
@@ -1763,6 +1797,39 @@
 +                            glActiveTexture(GL_TEXTURE0);}
 +                    }}
 +                } else printf("WOL_PAIR_TEX none=1\n");
++            }
++            /* WOL_TEXDUMP_GLNAME="n1,n2,...": dump listed GL texture names once each (PAM, alpha kept)
++             * wherever they are bound - the pair-scoped WOL_TEXDUMP_ID misses textures drawn by pairs
++             * the recorder is not armed for. 2026-10-14: hunt for the button-icon/poster textures. */
++            {static int gn_conf;static unsigned gn_want[16],gn_n,gn_got;
++             if(!gn_conf){gn_conf=1;const char *o=getenv("WOL_TEXDUMP_GLNAME");
++                if(o){const char *p=o;while(*p&&gn_n<16){unsigned v=(unsigned)strtoul(p,(char **)&p,10);if(v)gn_want[gn_n++]=v;if(*p==',')p++;}}}
++             if(gn_n) {
++                static unsigned gn_seen[16];
++                GLint cn=0;glGetIntegerv(GL_TEXTURE_BINDING_2D,&cn);
++                for(unsigned gi=0;gi<gn_n;gi++) {
++                    if(gn_seen[gi]||(unsigned)cn!=gn_want[gi])continue;
++                    for(unsigned i=0;i<4096;i++)if(nvn_textures[i].live&&nvn_textures[i].name==(GLuint)cn&&nvn_textures[i].b.width&&nvn_textures[i].b.height&&nvn_textures[i].b.width<=2048&&nvn_textures[i].b.height<=2048) {
++                        struct nvn_texture *t=&nvn_textures[i];
++                        gn_seen[gi]=1;gn_got++;
++                        GLint prev=0;glGetIntegerv(GL_FRAMEBUFFER_BINDING,&prev);
++                        GLuint fb=0;glGenFramebuffers(1,&fb);glBindFramebuffer(GL_FRAMEBUFFER,fb);
++                        glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,(GLuint)cn,0);
++                        if(glCheckFramebufferStatus(GL_FRAMEBUFFER)==GL_FRAMEBUFFER_COMPLETE) {
++                            uint8_t *px=malloc((size_t)t->b.width*t->b.height*4);
++                            if(px){glReadPixels(0,0,(GLsizei)t->b.width,(GLsizei)t->b.height,GL_RGBA,GL_UNSIGNED_BYTE,px);
++                                char path[128];snprintf(path,sizeof path,"wol-gln-%u-id%llu-%ux%u.pam",(unsigned)cn,(unsigned long long)t->id,t->b.width,t->b.height);
++                                FILE *fp=fopen(path,"wb");
++                                if(fp){fprintf(fp,"P7\nWIDTH %u\nHEIGHT %u\nDEPTH 4\nMAXVAL 255\nTUPLTYPE RGB_ALPHA\nENDHDR\n",t->b.width,t->b.height);
++                                    for(unsigned y=0;y<t->b.height;y++)fwrite(px+(size_t)(t->b.height-1-y)*t->b.width*4,1,(size_t)t->b.width*4,fp);
++                                    fclose(fp);printf("WOL_GLNAME_DUMP name=%u id=%llu %ux%u file=%s\n",(unsigned)cn,(unsigned long long)t->id,t->b.width,t->b.height,path);}
++                                free(px);}
++                        }
++                        glBindFramebuffer(GL_FRAMEBUFFER,(GLuint)prev);glDeleteFramebuffers(1,&fb);
++                        break;
++                    }
++                }
++             }
 +            }
 +            struct wol_draw_geometry geometry;
 +            /* Late texture dump (independent of the once-per-fragment slot report above): at draws>6000
@@ -1875,6 +1942,71 @@
 +                        }}
 +                    }
 +                }
++                /* WOL_RECT_TRACE="sx0,sy0,sx1,sy1": print every draw whose transformed quad bbox
++                 * (screen px, 1280x720, origin top-left) intersects the rect - pair/stride/count/bbox/
++                 * uv0/c3uv/texture. 2026-10-14: locate the exact draw class of a screen element (the
++                 * WANTED-poster portrait) without guessing. Same M1/M2 maths as WOL_PAIR_MATH; the RT is
++                 * 1920x1080 so screen = clip*960*2/3 (scaled to 1280). Bounded; test-only. */
++                {   static int rt_conf;static float rt[4];static unsigned rt_lim=300,rt_hits;
++                    if(!rt_conf){rt_conf=1;const char *o=getenv("WOL_RECT_TRACE");
++                        if(o&&sscanf(o,"%f,%f,%f,%f",&rt[0],&rt[1],&rt[2],&rt[3])==4){rt_conf=2;
++                            const char *s=getenv("WOL_RECT_TRACE_LIMIT");if(s)rt_lim=(unsigned)atoi(s);}}
++                    if(rt_conf==2&&avail>=32*4&&count<=96&&rt_hits<rt_lim) {
++                        float x0=1e9f,y0=1e9f,x1=-1e9f,y1=-1e9f;int any=0;
++                        for(unsigned k=0;k<vertex_count&&k<96;k++) {
++                            const float *v=(const float *)(base+(size_t)k*stride);
++                            float p0=v[0],p1=v[1],p2=v[2],p3=1.0f;
++                            float q0=words[0]*p0+words[4]*p1+words[8]*p2+words[12]*p3;
++                            float q1=words[1]*p0+words[5]*p1+words[9]*p2+words[13]*p3;
++                            float q2=words[2]*p0+words[6]*p1+words[10]*p2+words[14]*p3;
++                            float q3=words[3]*p0+words[7]*p1+words[11]*p2+words[15]*p3;
++                            float c0=words[16]*q0+words[20]*q1+words[24]*q2+words[28]*q3;
++                            float c1=words[17]*q0+words[21]*q1+words[25]*q2+words[29]*q3;
++                            float c3w=words[19]*q0+words[23]*q1+words[27]*q2+words[31]*q3;
++                            if(c3w==0.0f)continue;
++                            float scrx=(c0/c3w+1.0f)*640.0f;
++                            float scry=(1.0f-c1/c3w)*360.0f;
++                            if(scrx<x0)x0=scrx;
++                            if(scrx>x1)x1=scrx;
++                            if(scry<y0)y0=scry;
++                            if(scry>y1)y1=scry;
++                            any=1;
++                        }
++                        if(any&&x1>=rt[0]&&x0<=rt[2]&&y1>=rt[1]&&y0<=rt[3]) {
++                            rt_hits++;
++                            const float *v0=(const float *)(base);
++                            printf("WOL_RECT_HIT #%u f=%s v=%s stride=%llu count=%llu first=%llu screen=%.0f,%.0f,%.0f,%.0f uv0=%g,%g c3uv=%g,%g,%g,%g target=%llu\n",
++                                rt_hits,wol_cat_bindings[wol_cat_cur->f].name,wol_cat_bindings[wol_cat_cur->v].name,
++                                (unsigned long long)stride,(unsigned long long)count,(unsigned long long)first,
++                                x0,y0,x1,y1,v0[4],v0[5],words[32],words[33],words[34],words[35],
++                                (unsigned long long)(nvn_render.target?nvn_render.target->id:0));
++                            wol_trace_tex_state();
++                        }
++                    }
++                }
++                /* WOL_VDATA="substr": for the first 40 pair draws whose binding name contains substr,
++                 * print stride/count/first, the raw words of vertex 0 (12 floats) and the guest
++                 * attribute words (packed + decoded). 2026-10-14: the WANTED-poster portrait draw
++                 * (f191/name34) renders blank paper - this measurement names the actual vertex layout
++                 * and UV values instead of guessing from a stale note. Test-only, bounded. */
++                {   static int vd_conf;static char vd_pat[64];static int vd_stride=-1;static unsigned vd_n;
++                    if(!vd_conf){vd_conf=1;const char *o=getenv("WOL_VDATA");if(o&&*o)snprintf(vd_pat,sizeof vd_pat,"%s",o);
++                        const char *s=getenv("WOL_VDATA_STRIDE");if(s)vd_stride=atoi(s);}
++                    if(vd_conf==1&&vd_pat[0]&&vd_n<200) {
++                        const char *vd_name=wol_cat_cur&&wol_cat_cur->f>=0?wol_cat_bindings[wol_cat_cur->f].name:"";
++                        if(strstr(vd_name,vd_pat)&&(vd_stride<0||(int)stride==vd_stride)) {
++                        vd_n++;
++                        printf("WOL_VDATA #%u pair=%s stride=%llu count=%llu first=%llu tex-bound:",vd_n,vd_name,(unsigned long long)stride,(unsigned long long)count,(unsigned long long)first);
++                        {GLint cn=0;glGetIntegerv(GL_TEXTURE_BINDING_2D,&cn);printf(" gl=%d",(int)cn);}
++                        for(unsigned q=0;q<count&&q<72;q++){const float *vv=(const float *)(base+(size_t)q*stride);
++                            if(q%6==0)printf(" p%u=(%g,%g)|%g,%g",q/6,vv[0],vv[1],vv[7],vv[8]);
++                            else if(q%6<4)printf("|%g,%g",vv[7],vv[8]);}
++                        printf(" attribs=%u:",(unsigned)nvn_render.attrib_count);
++                        for(unsigned a=0;a<nvn_render.attrib_count&&a<4;a++){uint32_t w=nvn_render.attrib[a];printf(" {w=0x%x s=%u f=%u off=%u}",w,w&31,(w>>21)&1023,(w>>7)&16383);}
++                        printf("\n");
++                        }
++                    }
++                }
 +                if(pair_vbo) {
 +                    /* Bind attributes from the GUEST's descriptors (review 2026-10-14): the hardcoded
 +                     * 24/32-byte layouts misread stride-60 sprites (measured: color@24, uv@28), starving
@@ -1946,7 +2078,7 @@
 +                {   static unsigned traced,seen;static int sk;static unsigned skipn;
 +                    if(!sk){const char *o=getenv("WOL_TRACE_SKIP");skipn=o?(unsigned)atoi(o):0;sk=1;}
 +                    wol_trace_this=0;
-+                    if(wol_trace_match(wol_cat_bindings[wol_cat_cur->f].name)) {
++                    if(wol_trace_match(wol_cat_bindings[wol_cat_cur->f].name)&&wol_trace_shape_ok(stride,first)) {
 +                        seen++;
 +                        if(seen>skipn && traced<wol_trace_limit()) {
 +                        wol_trace_this=1;
@@ -2027,13 +2159,14 @@
 +                        glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
 +                    }
 +                }
-+                if(geometry.indices) {
++                if(wol_skip_139_this){static unsigned s139told;if(s139told<4){s139told++;printf("WOL_SKIP_TEX139 draw skipped name=139\n");}}
++                else if(geometry.indices) {
 +                    GLint saved_elements=0;glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING,&saved_elements);
 +                    GLuint elements=0;glGenBuffers(1,&elements);glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,elements);
 +                    glBufferData(GL_ELEMENT_ARRAY_BUFFER,(GLsizeiptr)(count*sizeof(uint16_t)),geometry.indices,GL_STREAM_DRAW);
 +                    glDrawElements(geometry.primitive,(GLsizei)count,GL_UNSIGNED_SHORT,0);
 +                    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,(GLuint)saved_elements);glDeleteBuffers(1,&elements);
-+                } else glDrawArrays(geometry.primitive,0,(GLsizei)count);
++                } else if(!wol_skip_139_this) glDrawArrays(geometry.primitive,0,(GLsizei)count);
 +                if(p2solid){if(p2_saved_blend)glEnable(GL_BLEND);else glDisable(GL_BLEND);
 +                            if(p2_saved_scissor)glEnable(GL_SCISSOR_TEST);else glDisable(GL_SCISSOR_TEST);
 +                            if(p2_saved_depth)glEnable(GL_DEPTH_TEST);else glDisable(GL_DEPTH_TEST);
@@ -2181,7 +2314,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +1671,7 @@
+@@ -704,6 +1804,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -2189,7 +2322,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1535,6 +2503,288 @@
+@@ -1535,6 +2636,288 @@
          begin=end+1;
      }
  }
@@ -2478,7 +2611,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2812,16 @@
+@@ -1562,7 +2945,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -2624,7 +2757,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,774 @@
+@@ -46,10 +46,789 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -2877,7 +3010,9 @@
 + * v9 (uv) and v8 (colour) and samples tex0 once, but two ALU lines in its chain are still part of
 + * the undecoded instruction family. This draft keeps only the decoded, certain parts: sample at the
 + * real per-vertex uv, multiply by the real vertex colour. Marked TEST-DRAFT - not a translation. */
-+"void main(){ vec4 t=texture2D(tex0, v9); gl_FragColor=vec4(t.rgb*v8.rgb, t.a*v8.a); }\n";
++"/* page/tiled uv convention: fract() folds out-of-range lookups so the sprite pieces tile; */\n"
++"/* in-range lookups are the identity, so the frame/icons are unchanged. */\n"
++"void main(){ vec4 t=texture2D(tex0, fract(v9)); gl_FragColor=vec4(t.rgb*v8.rgb, t.a*v8.a); }\n";
 +/* UV-gradient probe for the f191 pair (review 2026-10-13): WOL_F191_UV=grad paints the uv instead of
 + * sampling - if the gradient spreads across the sprite shape (not a constant colour), the uv source
 + * is the right one. TEST-ONLY. */
@@ -2895,6 +3030,16 @@
 + * c3[4..7] folded into alpha (the source has no kil - the guard multiplies the alpha). The predicate
 + * combine (lop3) and the exact add/mul register pairing are still the uncertain part; opt-in via
 + * WOL_F191_REAL=1 for a device A/B against the draft. */
++static const char wol_f191_texa_fragment_glsl[] =
++"#version 100\n"
++"precision mediump float;\n"
++"varying vec4 v7;\n"
++"varying vec4 v8;\n"
++"varying vec2 v9;\n"
++"varying vec4 v10;\n"
++"uniform sampler2D tex0;\n"
++/* 2026-10-14: sample-result visualiser - ALWAYS opaque: white = texel alpha 1, blue = texel alpha 0, magenta = partial. TEST-ONLY. */
++"void main(){ vec4 t=texture2D(tex0, v9); float a=t.a; gl_FragColor=vec4(a, 1.0-a, 1.0-step(0.5,a), 1.0); }\n";
 +static const char wol_f191_real_fragment_glsl[] =
 +"#version 100\n"
 +"precision mediump float;\n"
@@ -3278,22 +3423,25 @@
 +     * v10.xy, v8.xy, or grad (uv-gradient probe). This block applies to the f191 entry regardless of
 +     * its diag flag; the older copy inside the !bf->diag block never reached the diag draft entry. */
 +    {static int uv2_configured,uv2_mode;if(!uv2_configured){const char *o=getenv("WOL_F191_UV");
-+        uv2_mode=!o?0:(!strcmp(o,"v10")?1:(!strcmp(o,"yz")?2:(!strcmp(o,"xy")?3:(!strcmp(o,"grad")?4:0))));uv2_configured=1;}
++        uv2_mode=!o?0:(!strcmp(o,"v10")?1:(!strcmp(o,"yz")?2:(!strcmp(o,"xy")?3:(!strcmp(o,"grad")?4:(!strcmp(o,"texa")?5:0)))));uv2_configured=1;}
 +     if(strstr(bf->name,"f191")){
 +        if(uv2_mode==1)frag=wol_f191_draft_v10_fragment_glsl;
 +        else if(uv2_mode==2)frag=wol_f191_draft_yz_fragment_glsl;
 +        else if(uv2_mode==3)frag=wol_f191_draft_xy_fragment_glsl;
-+        else if(uv2_mode==4)frag=wol_f191_uvgrad_fragment_glsl;}}
++        else if(uv2_mode==4)frag=wol_f191_uvgrad_fragment_glsl;
++        else if(uv2_mode==5)frag=wol_f191_texa_fragment_glsl;}}
 +    /* WOL_F191_REAL=1: the real f191 translation candidate (tex + c3 colour offsets + v10 rect guard
 +     * in alpha) for a device A/B against the draft. TEST-ONLY until the A/B confirms the predicate. */
 +    {static int fr;static unsigned fon;
 +     if(!fr){const char *o=getenv("WOL_F191_REAL");fon=o&&!strcmp(o,"1");fr=1;}
 +     if(fon&&strstr(bf->name,"f191"))frag=wol_f191_real_fragment_glsl;}
-+    /* WOL_F268_EXACT=1: the decoded single-texture f268 (rect/kill driven by the bank flags) as an
-+     * A/B against the two-sampler draft. */
-+    {static int fe;static unsigned feon;
-+     if(!fe){const char *o=getenv("WOL_F268_EXACT");feon=o&&!strcmp(o,"1");fe=1;}
-+     if(feon&&strstr(bf->name,"f268"))frag=wol_f268_exact_fragment_glsl;}
++    /* f268 fragment selection (measured gfx232 vs gfx233, 2026-10-14): the two-sampler DRAFT draws
++     * misplaced mini-sign copies + a solid black bar (artifacts); the single-texture EXACT leaves the
++     * frame clean, so EXACT is the default. WOL_F268_DRAFT=1 restores the draft for A/B;
++     * WOL_F268_EXACT=1 is still accepted (no-op, kept for the probe scripts). */
++    {static int fe;static unsigned fe_draft;
++     if(!fe){const char *o=getenv("WOL_F268_DRAFT");fe_draft=o&&!strcmp(o,"1");fe=1;}
++     if(!fe_draft&&strstr(bf->name,"f268"))frag=wol_f268_exact_fragment_glsl;}
 +    /* WOL_PAIR2_KILL=1: the strict alpha cutout for the menu-UI fragment (f8e1b018 top2 pair). Default
 +     * leaves alpha to blending - with the cutout the menu elements never appeared on screen. */
 +    {static int pk;static unsigned pkon;
@@ -3400,7 +3548,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +1271,29 @@
+@@ -507,12 +1286,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -3431,7 +3579,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +1394,28 @@
+@@ -613,6 +1409,28 @@
              }
          }
  #endif

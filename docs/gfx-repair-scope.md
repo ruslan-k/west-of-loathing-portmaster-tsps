@@ -102,3 +102,28 @@ The review's item 3 (attribute locations) was the root cause of the menu's green
   pieces (poster character, button icons, f191/f268 corner-sampled fills) need a per-class diagnosis,
   NOT a blanket *0.5. Next: identify the exact draws for the missing icons/character (trace + atlas
   content match), then a targeted A/B.
+
+## 2026-10-14 (evening): the f191 blind spot - probe-tool default + tiled-uv fold (poster figure and control icons land)
+
+- **Root cause of the "WANTED figure + button icons missing" verdict**: `tools/wol_gfx_probe.py` had
+  carried `WOL_F191_UV=xy` in its BASE env since the variant experiments on 2026-10-13. The xy variant
+  samples `vec2(v8.x, v8.y)` - v8 is the vertex COLOUR lane, opaque white on these draws - so every
+  nominally-production run sampled the whole f191 family at the constant (1,1) corner texel: the poster
+  pieces, the control-box glyphs and the name text flat-blanked with the sample never touching the art.
+  Measured proof: same build, `WOL_F191_UV=''` run (gfx251) shows the elements; the corner sample is a
+  per-draw constant. The tool default is now `''` (the true draft); experiment selectors go via `--set`.
+- **The f191 sprites use the page/tiled uv convention** (u 1.28..1.80, v 0..1.43 - the same
+  "out-of-range = another page" scheme as the repack halving). The default f191 draft folds the lookup
+  with `fract(v9)`: out-of-range coordinates tile, in-range lookups (frame outline, icons) are the
+  identity. Verified twice: gfx251 (env forcing GL repeat) and gfx252 (NO env override at all) render the
+  same poster ink (2634 / 2632 px below luminance 120) and the same control-box ink (2618 / 2627 px).
+- **State after build-227** (sha256
+  `d776be3d79044c2043a9344889607e4272974683b4c91bb272f1633d00f26772`): the WANTED poster contains the
+  drawn character (face + hat) and the name "Wynona Carson"; the bottom-right box shows MOVE / AIM /
+  FIRE with button glyphs; the sign, planks, fence and desert are unchanged vs the accepted gfx230
+  (cross-run stable-difference map ~0 - the menu's own animation explains every per-frame delta).
+- **Open polish items** (small, for user judgment against their reference): the control-box glyph
+  identities read ambiguous at 24 px zoom; a leaf illustration + small ink marks sit near the poster
+  name (6x zoom shows a deliberate drawing with veins and a stem, not noise); a scribble-like mass
+  near the OPTIONS plank. Classify each as game art vs mis-sampled draft element before touching the
+  drafts again.
