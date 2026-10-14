@@ -1191,7 +1191,7 @@
  static GLenum nvn_blend_equation(unsigned value) {
      if(value==1)return GL_FUNC_ADD;
      if(value==2)return GL_FUNC_SUBTRACT;
-@@ -210,6 +212,196 @@
+@@ -210,6 +212,240 @@
      }
  #endif
      stop("NVN_BLEND_EQUATION_REQUIRED",nvn_caller,value,20);return 0;
@@ -1286,6 +1286,50 @@
 +    }
 +    glBindFramebuffer(GL_FRAMEBUFFER,(GLuint)prev);glDeleteFramebuffers(1,&fb);
 +    return res;
++}
++/* build-242 (user: the farm player's body AND the room's bird cage are pieces of atlases whose
++ * regions needed OPPOSITE uv scales - one texture serves repacked and never-repacked pieces).
++ * The decision therefore moves from per-texture to per-piece: one full-sheet readback per texture
++ * (cached, <=4M px), then a 3x3 ink grid inside the piece's own uv rect decides raw vs halved. */
++struct wol_sm_sheet { uint64_t id; unsigned w,h; unsigned char *px; };
++static struct wol_sm_sheet wol_sm_sheets[24]; static unsigned wol_sm_sheets_n;
++static struct wol_sm_sheet *wol_sm_sheet_get(struct nvn_texture *t) {
++    if(!t||!t->name||!t->b.width||!t->b.height)return NULL;
++    for(unsigned i=0;i<wol_sm_sheets_n;i++)if(wol_sm_sheets[i].id==t->id)return &wol_sm_sheets[i];
++    unsigned w=t->b.width,h=t->b.height;
++    if((uint64_t)w*h>4ull*1024ull*1024ull)return NULL;
++    if(wol_sm_sheets_n>=24)return NULL;
++    unsigned char *buf=malloc((size_t)w*h*4);
++    if(!buf)return NULL;
++    GLint prev=0;glGetIntegerv(GL_FRAMEBUFFER_BINDING,&prev);
++    GLuint fb=0;glGenFramebuffers(1,&fb);glBindFramebuffer(GL_FRAMEBUFFER,fb);
++    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,t->name,0);
++    int ok=(glCheckFramebufferStatus(GL_FRAMEBUFFER)==GL_FRAMEBUFFER_COMPLETE);
++    if(ok)glReadPixels(0,0,(GLsizei)w,(GLsizei)h,GL_RGBA,GL_UNSIGNED_BYTE,buf);
++    glBindFramebuffer(GL_FRAMEBUFFER,(GLuint)prev);glDeleteFramebuffers(1,&fb);
++    if(!ok){free(buf);return NULL;}
++    struct wol_sm_sheet *s=&wol_sm_sheets[wol_sm_sheets_n++];
++    s->id=t->id;s->w=w;s->h=h;s->px=buf;
++    printf("WOL_TOP_SMART sheet id=%llu %ux%u fetched=%u\n",(unsigned long long)t->id,w,h,wol_sm_sheets_n);
++    return s;
++}
++static float wol_sm_sheet_ink(struct wol_sm_sheet *s,float u,float v) {
++    if(!s)return 0.0f;
++    if(u<0.0f)u=0.0f;
++    if(u>1.0f)u=1.0f;
++    if(v<0.0f)v=0.0f;
++    if(v>1.0f)v=1.0f;
++    int cx=(int)(u*(float)(s->w-1)),cy=(int)(v*(float)(s->h-1));
++    int px=cx-4<0?0:cx-4,py=cy-4<0?0:cy-4;
++    float res=0.0f;unsigned n=0;
++    for(unsigned y=0;y<8;y++)for(unsigned x=0;x<8;x++){
++        unsigned xx=(unsigned)(px+(int)x),yy=(unsigned)(py+(int)y);
++        if(xx>=s->w||yy>=s->h)continue;
++        const unsigned char *p=s->px+((size_t)yy*s->w+xx)*4;
++        float a=p[3]/255.0f,l=(p[0]+p[1]+p[2])/765.0f;
++        res+=a*(0.2f+0.8f*(1.0f-l));n++;
++    }
++    return n?res/(float)n:0.0f;
 +}
 +static void wol_trace_tex_state(void) {
 +    GLint name=0;glGetIntegerv(GL_TEXTURE_BINDING_2D,&name);
@@ -1388,7 +1432,7 @@
  }
  static GLenum nvn_stencil_operation(unsigned value) {
      static const GLenum operations[]={0,GL_KEEP,GL_ZERO,GL_REPLACE,GL_INCR,GL_DECR,GL_INVERT,GL_INCR_WRAP,GL_DECR_WRAP};
-@@ -312,8 +504,19 @@
+@@ -312,8 +548,19 @@
       * sampler2D shaders never evaluate; both are admitted once-logged. Reduction/anisotropy/bias stay closed. */
      {static unsigned aw_sampler_reported;
       if((b->compare || b->lod_min<0) && !aw_sampler_reported++)printf("AW_SAMPLER_ADMIT compare=%u lod-min=%g shaders=sampler2D-only\n",b->compare,b->lod_min);}
@@ -1408,7 +1452,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -507,8 +710,1077 @@
+@@ -507,8 +754,1122 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -1982,16 +2026,19 @@
 +                 * The repack halves texture dims (promote mip1 -> level0), so the guest computes
 +                 * uv = pixel/current_dims and the correct sample is uv*0.5 on repacked atlases; a
 +                 * texture that was never repacked (orig width < repack floor 512) carries already
-+                 * normal uvs (scale 1). Decision per texture id, cached:
++                 * normal uvs (scale 1). Decision per PIECE (build-242: texture id + the piece's
++                 * own uv rect, cached; one atlas serves both repacked and raw pieces), rules:
 +                 *   1) any uv component > 1 in this draw -> 0.5 (pixel beyond current dims = proof);
 +                 *   2) texture width < 256 -> 1.0 (can never have been halved);
-+                 *   3) else content probe: raw vs halved rect centre of THIS draw (8x8 readback
-+                 *      each) - art on the halved side means repacked.
++                 *   3) else 3x3 ink grid inside the piece's uv rect on a full-sheet readback:
++                 *      art at the halved coords means repacked (raw kept on ties; falls back to the
++                 *      centre probe when the sheet exceeds the 4M px readback cap).
 +                 * Applies only when the half program (13) is bound; WOL_TOP_SMART=0 disables.
 +                 * Evidence bounded; reversible. */
 +                if(1){
 +                    static int sm_conf,sm_on=1;static unsigned sm_told;
-+                    static struct { uint64_t id; float k; } sm_box[64];static unsigned sm_n;
++                    static struct { uint64_t id; int q[4]; float k; } sm_piece[512];static unsigned sm_pn;
++                    static struct { uint64_t id; float k; } sm_tex[96];static unsigned sm_tn;
 +                    if(!sm_conf){sm_conf=1;const char *o=getenv("WOL_TOP_SMART");if(o)sm_on=atoi(o);}
 +                    if(sm_on&&wol_f_sel==WOL_TOP_UV_HALF&&wol_pair_uvk_loc>=0){
 +                        struct nvn_texture *st=NULL;
@@ -2023,23 +2070,65 @@
 +                            }
 +                            float k=-1.0f;const char *why="";
 +                            int cached=0;
-+                            for(unsigned ci=0;ci<sm_n;ci++)if(sm_box[ci].id==st->id){k=sm_box[ci].k;cached=1;break;}
-+                            if(!cached&&have_uv){
++                            /* build-242: per-piece cache - the key is the piece's own uv rect
++                             * (quantised 1/512) in addition to the texture id, because one atlas
++                             * serves both repacked and never-repacked pieces (measured). */
++                            int qa[4]={0,0,0,0};
++                            qa[0]=(int)lrintf(mn_u*512.0f);qa[1]=(int)lrintf(mx_u*512.0f);
++                            qa[2]=(int)lrintf(mn_v*512.0f);qa[3]=(int)lrintf(mx_v*512.0f);
++                            if(have_uv)for(unsigned ci=0;ci<sm_pn;ci++)
++                                if(sm_piece[ci].id==st->id&&sm_piece[ci].q[0]==qa[0]&&sm_piece[ci].q[1]==qa[1]
++                                   &&sm_piece[ci].q[2]==qa[2]&&sm_piece[ci].q[3]==qa[3]){k=sm_piece[ci].k;cached=1;break;}
++                            float sc_raw=0.0f,sc_half=0.0f;
++                            /* build-243: a draw batching several quads spans a huge uv area - the
++                             * per-piece grid is only valid for compact rects; batches fall back to
++                             * the texture-level centre probe (cached per texture id). */
++                            int compact=have_uv&&(mx_u-mn_u)<=0.6f&&(mx_v-mn_v)<=0.6f;
++                            if(!cached&&have_uv&&!compact){
++                                for(unsigned ci=0;ci<sm_tn;ci++)if(sm_tex[ci].id==st->id){k=sm_tex[ci].k;cached=1;why="tex-cached";break;}
++                                if(!cached){
++                                    if(mx>1.001f){k=0.5f;why="uv>1";}
++                                    else if(st->b.width<256){k=1.0f;why="w<256";}
++                                    else {
++                                        float cu=(mn_u+mx_u)*0.5f,cv=(mn_v+mx_v)*0.5f;
++                                        float a=wol_uv_patch_content(st,cu,cv);
++                                        float b=wol_uv_patch_content(st,cu*0.5f,cv*0.5f);
++                                        sc_raw=a;sc_half=b;
++                                        k=(b>a)?0.5f:1.0f;why=(b>a)?"probe:half":"probe:raw";
++                                    }
++                                    if(sm_tn<96){sm_tex[sm_tn].id=st->id;sm_tex[sm_tn].k=k;sm_tn++;}
++                                }
++                            }
++                            if(!cached&&have_uv&&compact){
 +                                if(mx>1.001f){k=0.5f;why="uv>1";}
 +                                else if(st->b.width<256){k=1.0f;why="w<256";}
 +                                else {
-+                                    float cu=(mn_u+mx_u)*0.5f,cv=(mn_v+mx_v)*0.5f;
-+                                    float a=wol_uv_patch_content(st,cu,cv);
-+                                    float b=wol_uv_patch_content(st,cu*0.5f,cv*0.5f);
-+                                    k=(b>a)?0.5f:1.0f;why=(b>a)?"probe:half":"probe:raw";
++                                    struct wol_sm_sheet *sheet=wol_sm_sheet_get(st);
++                                    if(sheet){
++                                        static const float fr[7]={0.125f,0.25f,0.375f,0.5f,0.625f,0.75f,0.875f};
++                                        for(unsigned gi=0;gi<7;gi++)for(unsigned gj=0;gj<7;gj++){
++                                            float uu=mn_u+fr[gi]*(mx_u-mn_u),vv=mn_v+fr[gj]*(mx_v-mn_v);
++                                            sc_raw+=wol_sm_sheet_ink(sheet,uu,vv);
++                                            sc_half+=wol_sm_sheet_ink(sheet,uu*0.5f,vv*0.5f);
++                                        }
++                                        if(sc_half>sc_raw*1.05f){k=0.5f;why="piece:half";}
++                                        else {k=1.0f;why="piece:raw";}
++                                    } else {
++                                        float cu=(mn_u+mx_u)*0.5f,cv=(mn_v+mx_v)*0.5f;
++                                        float a=wol_uv_patch_content(st,cu,cv);
++                                        float b=wol_uv_patch_content(st,cu*0.5f,cv*0.5f);
++                                        sc_raw=a;sc_half=b;
++                                        k=(b>a)?0.5f:1.0f;why=(b>a)?"probe:half":"probe:raw";
++                                    }
 +                                }
-+                                if(sm_n<64){sm_box[sm_n].id=st->id;sm_box[sm_n].k=k;sm_n++;}
++                                if(sm_pn<512){sm_piece[sm_pn].id=st->id;sm_piece[sm_pn].q[0]=qa[0];sm_piece[sm_pn].q[1]=qa[1];
++                                    sm_piece[sm_pn].q[2]=qa[2];sm_piece[sm_pn].q[3]=qa[3];sm_piece[sm_pn].k=k;sm_pn++;}
 +                            }
 +                            if(k<0.0f)k=0.5f;
 +                            glUniform1f(wol_pair_uvk_loc,k);
 +                            if(!cached&&sm_told<160){sm_told++;
-+                                printf("WOL_TOP_SMART texid=%llu k=%g reason=%s uvmax=%g w=%u cached=%d\n",
-+                                    (unsigned long long)st->id,k,why,mx,(unsigned)st->b.width,cached);}
++                                printf("WOL_TOP_SMART texid=%llu k=%g reason=%s uvrect=(%.4f..%.4f, %.4f..%.4f) ink raw=%.2f half=%.2f w=%u pieces=%u\n",
++                                    (unsigned long long)st->id,k,why,mn_u,mx_u,mn_v,mx_v,sc_raw,sc_half,(unsigned)st->b.width,sm_pn);}
 +                        }
 +                    }
 +                }
@@ -2486,7 +2575,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +1976,7 @@
+@@ -704,6 +2065,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -2494,7 +2583,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1535,6 +2808,288 @@
+@@ -1535,6 +2897,288 @@
          begin=end+1;
      }
  }
@@ -2783,7 +2872,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +3117,16 @@
+@@ -1562,7 +3206,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -2929,7 +3018,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,867 @@
+@@ -46,10 +46,870 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -3659,7 +3748,10 @@
 +         * head becomes a closed faceted polygon (not an open diamond) and gains a closed hand, the
 +         * mother's head becomes round with hanging hair strands instead of a pointed blob.
 +         * WOL_F191_UV=halfgt restores the old behaviour for A/B. */
-+        if(!o||!*o)uv2_mode=8;
++        /* 2026-10-14: reverted to 7 (halfgt) - the device-verified default (gfx254/257/259/261).
++         * The WANTED poster figure and the top-right control icons regressed under the 8
++         * (halfcomp) flip; the variant stays available via WOL_F191_UV=halfcomp for A/B. */
++        if(!o||!*o)uv2_mode=7;
 +        else if(!strcmp(o,"off")||!strcmp(o,"none")||!strcmp(o,"draft"))uv2_mode=0;
 +        else if(!strcmp(o,"v10"))uv2_mode=1;
 +        else if(!strcmp(o,"yz"))uv2_mode=2;
@@ -3798,7 +3890,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +1364,29 @@
+@@ -507,12 +1367,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -3829,7 +3921,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +1487,28 @@
+@@ -613,6 +1490,28 @@
              }
          }
  #endif
