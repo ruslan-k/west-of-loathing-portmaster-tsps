@@ -127,3 +127,38 @@ The review's item 3 (attribute locations) was the root cause of the menu's green
   name (6x zoom shows a deliberate drawing with veins and a stem, not noise); a scribble-like mass
   near the OPTIONS plank. Classify each as game art vs mis-sampled draft element before touching the
   drafts again.
+
+## 2026-10-14 (day): the per-texture raw lists - OPTIONS sign, BEANS can, locator arrows (gfx257-262)
+
+- **The mixed-family model, measured**: WOL_RECT_HIT hits now print the bound texture via the
+  tex_state line (gl name + id + size). The traces show BOTH draw families mix repacked and
+  never-repacked textures:
+  - repacked (bundle width >= 512 -> halved at runtime -> uvs 2x): menu atlas id493, fence id513,
+    landscape id543, poster art id499, piece sheet id313, ...
+  - never-repacked (uvs already normalized or page-tiled): OPTIONS sign part id494 (434x186),
+    beans can id556 (128x256), locator arrows id468 (300x300), font id630, frame id510, tuft id582.
+- **Fixes for the three user reports** (all device-verified):
+  - OPTIONS sign "partial letters + tangle" (gfx257): the universal top-half sampled the sign's
+    already-normalized uvs at half range = the left half of the texture. Fix: WOL_TOP_RAWID - the
+    listed ids sample raw v9 (top-f-uvraw); everything else keeps half. OPTIONS fully readable.
+  - "the beans can has no label" (gfx257/261): the can (id556) was half-sampled; raw restores the
+    BEANS label. The label's last letter was additionally covered by a mis-sampled locator arrow;
+    both clean after the arrow fix.
+  - the left locator arrow on the bottle label rendered as a dense scribble (gfx259 trace: the
+    arrow quads come from the f191 pair, id468, with out-of-range page-tiled uvs; halfgt wrongly
+    halved them into the wrong region). Fix: the new "f191-nofold" catalog entry (fract fold, a
+    distinct name so the WOL_F191_UV override skips it) + WOL_F191_NOFOLDID="468" (gfx261).
+- **Regression registered (gfx260)**: the experiment "base half + nofold {468,510,630,582}" visibly
+  destroyed the control box and font draws - the f191 family is MOSTLY never-repacked, so halfgt
+  (in-range lookup = identity) is the correct base; per-id handling narrows to the actual
+  difference-maker id468. Reverted to halfgt + nofold {468}.
+- **Production defaults baked (build-235, ELF sha256 06cc0b078df691382e13c98787093ad1344e4ec234be1c98272364041765aaba)**:
+  WOL_TOP_RAWID unset/empty = {494,556}; WOL_F191_UV unset/empty = halfgt; WOL_F191_NOFOLDID
+  unset/empty = {468}. Explicit "none"/"off"/"draft" values keep the experiment-free paths for A/B.
+- **Verified final state (gfx262, NO env overrides)**: WEST OF / LOATHING, CONTINUE, NEW GAME,
+  OPTIONS, BEANS, L MOVE / R AIM / ZL / ZR FIRE all readable; poster name readable; props and
+  scenery clean; no scribble masses (the wire coil at far left is intentional scenery).
+- **Open**: the WANTED figure. Our save renders "Wynona Carson"; the user's reference frame is
+  "Gaylord Ninny III" (hat + sword) - different characters, so the figure's limb assembly must be
+  judged against the real Wynona poster, not against that reference. Awaiting the user's ground
+  truth photo before touching the piece assembly.
