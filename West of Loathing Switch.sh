@@ -40,11 +40,13 @@ export COTM_RUN_ID=$(date +%s)
 # read. The staging peak may be transient, so let the load finish inside the same bounded run:
 # WOL_PROBE_SECONDS=35 restores the shorter diagnostic budget.
 export MEGAMAN_PROBE_SECONDS="${WOL_PROBE_SECONDS:-900}"
-# The 64/32 MiB floors are bounded diagnostics (they demonstrated 120-600 presents and swap engagement);
-# they are NOT safe defaults now that graphics really allocate GPU memory, which VmRSS does not show. The
-# conservative 140 MiB floor is the default; the device test harness passes WOL_MEMORY_FLOOR_MIB=32
-# explicitly for bounded diagnostic runs, and that value is the floor's lower bound (never below 32 MiB).
-export T2_MEMORY_FLOOR_MIB="${WOL_MEMORY_FLOOR_MIB:-140}"
+# The 64/32 MiB floors are bounded diagnostics (they demonstrated 120-600 presents and swap engagement).
+# 2026-10-14 (menu launch, production path): measured floor trips during the RomFS load staging -
+# floor 140 tripped at ~130 MiB available (detail=0x82), 64 at ~55 (detail=0x37), 32 at ~31
+# (detail=0x1f - less than 1 MiB of margin). All day the bounded harness ran the full load plus
+# hours of presents at floor 20 without a single floor stop, so the available-memory dip stays
+# above 20 but below 32; 20 is the only demonstrated-survivable value on this device.
+export T2_MEMORY_FLOOR_MIB="${WOL_MEMORY_FLOOR_MIB:-20}"
 export COTM_BLACK_LIMIT="${WOL_BLACK_LIMIT:-4000}"
 export WOL_PAIR_CHECK="${WOL_PAIR_CHECK:-1}"
 
