@@ -5,7 +5,7 @@ cd "$GAMEDIR" || exit 1
 mkdir -p logs save-laboratory
 LOG="$GAMEDIR/logs/latest.log"
 exec >"$LOG" 2>&1
-printf 'WOL_LAUNCH native-horizon diagnostic-budget=%ss shader-catalogue=absent\n' "${WOL_PROBE_SECONDS:-900}"
+printf 'WOL_LAUNCH native-horizon diagnostic-budget=%ss shader-catalogue=absent\n' "${WOL_PROBE_SECONDS:-0}"
 printf 'WOL_BUILD_ID sha256=%s\n' "$(sha256sum ./wol-horizon 2>/dev/null | cut -d ' ' -f1)"
 # Spruce normally offlines the cluster to which this recovered runtime pins its threads.
 # The runtime pins its threads to the cluster Spruce normally offlines. Remember each file's original
@@ -39,7 +39,16 @@ export COTM_RUN_ID=$(date +%s)
 # A/B (wol-39 -> wol-40): the load hit the memory floor after 32 frames while staging the 191 MiB RomFS
 # read. The staging peak may be transient, so let the load finish inside the same bounded run:
 # WOL_PROBE_SECONDS=35 restores the shorter diagnostic budget.
-export MEGAMAN_PROBE_SECONDS="${WOL_PROBE_SECONDS:-900}"
+# 2026-10-14 (the "crash"): the 900 s diagnostic budget stopped a real play session with
+# STOP status=TIME_LIMIT (exit 22). The packaged runtime treats an explicit 0 as "no alarm"
+# (loader.c: "Explicit zero cancels the diagnostic alarm for the packaged runtime") - the default
+# is now 0, and every bounded diagnostic passes WOL_PROBE_SECONDS=<seconds> explicitly.
+export MEGAMAN_PROBE_SECONDS="${WOL_PROBE_SECONDS:-0}"
+# 2026-10-14 (performance): the not-quiet path runs full-texture GPU->CPU readback probes per
+# unresolved draw plus the per-call IPC trace - measured at ~5 presents/s for this title. WOL_QUIET=1
+# is the runtime's speed path ("removes the per-draw texture content probing from the hot path");
+# the shader substitution, banks and counters stay intact. Diagnostics pass WOL_QUIET=0 explicitly.
+export WOL_QUIET="${WOL_QUIET:-1}"
 # The 64/32 MiB floors are bounded diagnostics (they demonstrated 120-600 presents and swap engagement).
 # 2026-10-14 (menu launch, production path): measured floor trips during the RomFS load staging -
 # floor 140 tripped at ~130 MiB available (detail=0x82), 64 at ~55 (detail=0x37), 32 at ~31
