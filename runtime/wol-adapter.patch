@@ -1384,7 +1384,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -507,8 +686,929 @@
+@@ -507,8 +686,1002 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -1472,35 +1472,85 @@
 +         * current behaviour. Selection is per draw and printed (bounded). */
 +        int wol_f_sel=wol_active_cat[1];
 +        {   static int uv_conf;static const char *uv_mode;static long uv_texid;static unsigned uv_told;
++            static long uv_rawid[24];static int uv_rawn;
 +            if(!uv_conf){const char *o=getenv("WOL_TOP_UV");
 +                /* 2026-10-14: the user-verified state (menu + world + WANTED poster "normal" - gfx227)
 +                 * = sample v9*0.5 without the /w divide: the memory repack halved every atlas the
 +                 * runtime computes sprite uvs against, so raw uv are 2x and the SASS-visible divide is
 +                 * not part of a working sample. Default On; WOL_TOP_UV=legacy restores the old path. */
 +                uv_mode=(!o||!*o)?"half":o;if(!strcmp(uv_mode,"legacy"))uv_mode=NULL;
-+                const char *t=getenv("WOL_TOP_TEXID");uv_texid=t?atol(t):0;uv_conf=1;}
-+            if(uv_mode&&wol_active_cat[1]>=0&&
-+               !strcmp(wol_cat_bindings[wol_active_cat[1]].name,"top-f-draft")) {
-+                int uv_ok=1;long uv_hit=0;
-+                if(uv_texid>0) {
-+                    /* narrowed to one texture (review isolation); unset = apply to every top draw */
-+                    uv_ok=0;
-+                    uint64_t h=nvn_render.texture_handles[1][0];
-+                    if(h){GLint minf=0;GLenum wrap[2]={GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE};
-+                        struct nvn_texture *ct=nvn_render_sampler(h,0,0,0,&minf,wrap);
-+                        if(ct){uv_hit=(long)ct->id;if((long)ct->id==uv_texid)uv_ok=1;}}
++                const char *t=getenv("WOL_TOP_TEXID");uv_texid=t?atol(t):0;
++                /* 2026-10-28 gfx256 measurement (user: OPTIONS sign partial + tuft "tangle" blob + beans
++                 * can label missing): the measured vertex catalogue shows the small sprites that were
++                 * NOT repacked (sign id494, grass tuft id582, beans can id556) carry ALREADY-normalized
++                 * uvs - the 0.5 must not apply to them. WOL_TOP_RAWID="id,id,..." lists the texture ids
++                 * that again sample raw v9 (the family's raw variant 12, same tint/premult form). */
++                const char *r=getenv("WOL_TOP_RAWID");uv_rawn=0;
++                if(r&&*r&&strcmp(r,"none")){char rb[256];snprintf(rb,sizeof rb,"%s",r);char *tok=strtok(rb,",");
++                    while(tok&&uv_rawn<24){uv_rawid[uv_rawn++]=(long)atol(tok);tok=strtok(NULL,",");}}
++                else if(!r||!*r) {
++                    /* Gfx257/gfx261-verified production default: the never-repacked top sprites whose
++                     * already-normalized uvs the universal half was corrupting (OPTIONS sign id494,
++                     * beans can id556). An explicit WOL_TOP_RAWID="none" disables the list for A/B. */
++                    uv_rawid[uv_rawn++]=494;uv_rawid[uv_rawn++]=556;
 +                }
-+                if(uv_ok) {
-+                    int want=-1;
-+                    if(!strcmp(uv_mode,"raw"))want=WOL_TOP_UV_RAW;
-+                    else if(!strcmp(uv_mode,"half"))want=WOL_TOP_UV_HALF;
-+                    else if(!strcmp(uv_mode,"fract"))want=WOL_TOP_UV_FRACT;
-+                    else if(!strcmp(uv_mode,"mag"))want=WOL_TOP_UV_MAG;
-+                    if(want>=0) {
-+                        wol_f_sel=want;
-+                        if(uv_told<8){uv_told++;
-+                            printf("WOL_TOP_UV_SELECT mode=%s f=%s texid=%ld\n",uv_mode,wol_cat_bindings[want].name,uv_hit);}
++                uv_conf=1;}
++            if(wol_active_cat[1]>=0&&
++               !strcmp(wol_cat_bindings[wol_active_cat[1]].name,"top-f-draft")) {
++                long uv_hit=0;int have=0;
++                uint64_t h=nvn_render.texture_handles[1][0];
++                if(h){GLint minf=0;GLenum wrap[2]={GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE};
++                    struct nvn_texture *ct=nvn_render_sampler(h,0,0,0,&minf,wrap);
++                    if(ct){uv_hit=(long)ct->id;have=1;}}
++                int israw=0;if(have){int ri;for(ri=0;ri<uv_rawn;ri++)if(uv_rawid[ri]==uv_hit){israw=1;break;}}
++                if(israw) {
++                    wol_f_sel=WOL_TOP_UV_RAW;
++                    if(uv_told<48){uv_told++;
++                        printf("WOL_TOP_UV_SELECT mode=rawid f=%s texid=%ld\n",wol_cat_bindings[WOL_TOP_UV_RAW].name,uv_hit);}
++                } else if(uv_mode) {
++                    int uv_ok=1;
++                    if(uv_texid>0)uv_ok=(have&&uv_hit==uv_texid);
++                    if(uv_ok) {
++                        int want=-1;
++                        if(!strcmp(uv_mode,"raw"))want=WOL_TOP_UV_RAW;
++                        else if(!strcmp(uv_mode,"half"))want=WOL_TOP_UV_HALF;
++                        else if(!strcmp(uv_mode,"fract"))want=WOL_TOP_UV_FRACT;
++                        else if(!strcmp(uv_mode,"mag"))want=WOL_TOP_UV_MAG;
++                        if(want>=0) {
++                            wol_f_sel=want;
++                            if(uv_told<48){uv_told++;
++                                printf("WOL_TOP_UV_SELECT mode=%s f=%s texid=%ld\n",uv_mode,wol_cat_bindings[want].name,uv_hit);}
++                        }
 +                    }
++                }
++            }
++            else if(wol_active_cat[1]>=0&&
++               !strcmp(wol_cat_bindings[wol_active_cat[1]].name,"f191-draft")) {
++                /* 2026-10-14 gfx259 (measured: the id468 locator-arrow quads + font/frame/tuft draws
++                 * render wrong under the family-wide halfgt): the halving is not uniform inside the
++                 * f191 family either - the repacked piece/poster textures (id313, id499) need v9*0.5
++                 * while the never-repacked ones (font id630, frame id510, arrows id468, tuft id582)
++                 * need the fract fold. WOL_F191_NOFOLDID="id,..." routes those ids to the dedicated
++                 * "f191-nofold" entry (same fold as the draft, distinct name so the WOL_F191_UV
++                 * override skips it). Reversible: unset env = current behaviour. */
++                static long nf_id[24];static int nf_n;static unsigned nf_told;
++                long tid=0;int have=0;
++                uint64_t h=nvn_render.texture_handles[1][0];
++                if(h){GLint minf=0;GLenum wrap[2]={GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE};
++                    struct nvn_texture *ct=nvn_render_sampler(h,0,0,0,&minf,wrap);
++                    if(ct){tid=(long)ct->id;have=1;}}
++                { static int nf_conf;
++                  if(!nf_conf){nf_conf=1;const char *r=getenv("WOL_F191_NOFOLDID");
++                      if(r&&*r&&strcmp(r,"none")){char rb[256];snprintf(rb,sizeof rb,"%s",r);char *tok=strtok(rb,",");
++                          while(tok&&nf_n<24){nf_id[nf_n++]=(long)atol(tok);tok=strtok(NULL,",");}}
++                      else if(!r||!*r){ /* gfx261-verified default: the locator arrows (id468) tile, not halve */
++                          nf_id[nf_n++]=468;}}
++                  if(have){int ri,nofold=0;
++                      for(ri=0;ri<nf_n;ri++)if(nf_id[ri]==tid){nofold=1;break;}
++                      if(nofold){wol_f_sel=WOL_F191_NOFOLD;
++                          if(nf_told<24){nf_told++;
++                              printf("WOL_F191_UV_SELECT mode=nofold f=%s texid=%ld\n",
++                                  wol_cat_bindings[WOL_F191_NOFOLD].name,tid);}}}
 +                }
 +            }
 +        }
@@ -1990,20 +2040,43 @@
 +                 * (f191/name34) renders blank paper - this measurement names the actual vertex layout
 +                 * and UV values instead of guessing from a stale note. Test-only, bounded. */
 +                {   static int vd_conf;static char vd_pat[64];static int vd_stride=-1;static unsigned vd_n;
++                    /* 2026-10-29 (user report: OPTIONS sign / beans can wrong): the old per-vertex print read
++                     * floats 7,8 as the uv, which is only right for stride-60 layouts. Sprite draws
++                     * (stride 24/32) carry uv at byte 16 (measured layout pos 3f@0, colour@12, uv 2f@16),
++                     * so the dump printed the next vertex's fields as "uvs" and the top-family catalogue was
++                     * unreadable. Now: uv from the guest descriptors when present, else the stride rule, and
++                     * a per-count instance cap (3) so one run catalogues every distinct quad structure with
++                     * true coordinates instead of burning the budget on repeats. */
++                    static unsigned vd_cc[24],vd_cn[24],vd_cnum;
 +                    if(!vd_conf){vd_conf=1;const char *o=getenv("WOL_VDATA");if(o&&*o)snprintf(vd_pat,sizeof vd_pat,"%s",o);
 +                        const char *s=getenv("WOL_VDATA_STRIDE");if(s)vd_stride=atoi(s);}
 +                    if(vd_conf==1&&vd_pat[0]&&vd_n<200) {
 +                        const char *vd_name=wol_cat_cur&&wol_cat_cur->f>=0?wol_cat_bindings[wol_cat_cur->f].name:"";
 +                        if(strstr(vd_name,vd_pat)&&(vd_stride<0||(int)stride==vd_stride)) {
++                        unsigned ci,found=0,cap=0;
++                        for(ci=0;ci<vd_cnum;ci++)if(vd_cc[ci]==(unsigned)count){cap=vd_cn[ci];found=1;break;}
++                        if(!found||cap<3) {
++                        if(found)vd_cn[ci]=cap+1;
++                        else if(vd_cnum<24){vd_cc[vd_cnum]=(unsigned)count;vd_cn[vd_cnum]=1;vd_cnum++;}
++                        int vd_uoff=-1;
++                        for(unsigned ai=0;ai<(unsigned)nvn_device.attributes&&ai<4;ai++){
++                            uint32_t aw=nvn_render.attrib[ai];
++                            if(ai>=nvn_render.attrib_count||!(aw&64))continue;
++                            unsigned fmt=(aw>>21)&1023,off=(aw>>7)&16383;
++                            struct nvn_vertex_format vf=nvn_vertex_format_decode(fmt);
++                            if(vf.components==2&&vf.type==GL_FLOAT&&off+8<=stride){vd_uoff=(int)off;break;}}
++                        if(vd_uoff<0)vd_uoff=(stride==24||stride==32)?16:28;
 +                        vd_n++;
-+                        printf("WOL_VDATA #%u pair=%s stride=%llu count=%llu first=%llu tex-bound:",vd_n,vd_name,(unsigned long long)stride,(unsigned long long)count,(unsigned long long)first);
++                        printf("WOL_VDATA #%u pair=%s stride=%llu count=%llu first=%llu uvoff=%d tex-bound:",vd_n,vd_name,(unsigned long long)stride,(unsigned long long)count,(unsigned long long)first,vd_uoff);
 +                        {GLint cn=0;glGetIntegerv(GL_TEXTURE_BINDING_2D,&cn);printf(" gl=%d",(int)cn);}
 +                        for(unsigned q=0;q<count&&q<72;q++){const float *vv=(const float *)(base+(size_t)q*stride);
-+                            if(q%6==0)printf(" p%u=(%g,%g)|%g,%g",q/6,vv[0],vv[1],vv[7],vv[8]);
-+                            else if(q%6<4)printf("|%g,%g",vv[7],vv[8]);}
++                            const float *vu=(const float *)(base+(size_t)q*stride+vd_uoff);
++                            if(q%6==0)printf(" p%u=(%g,%g)|%g,%g",q/6,vv[0],vv[1],vu[0],vu[1]);
++                            else if(q%6<4)printf("|%g,%g",vu[0],vu[1]);}
 +                        printf(" attribs=%u:",(unsigned)nvn_render.attrib_count);
 +                        for(unsigned a=0;a<nvn_render.attrib_count&&a<4;a++){uint32_t w=nvn_render.attrib[a];printf(" {w=0x%x s=%u f=%u off=%u}",w,w&31,(w>>21)&1023,(w>>7)&16383);}
 +                        printf("\n");
++                        }
 +                        }
 +                    }
 +                }
@@ -2314,7 +2387,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +1804,7 @@
+@@ -704,6 +1877,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -2322,7 +2395,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1535,6 +2636,288 @@
+@@ -1535,6 +2709,288 @@
          begin=end+1;
      }
  }
@@ -2611,7 +2684,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +2945,16 @@
+@@ -1562,7 +3018,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -2757,7 +2830,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,789 @@
+@@ -46,10 +46,846 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -3012,6 +3085,46 @@
 + * real per-vertex uv, multiply by the real vertex colour. Marked TEST-DRAFT - not a translation. */
 +"/* page/tiled uv convention: fract() folds out-of-range lookups so the sprite pieces tile; */\n"
 +"/* in-range lookups are the identity, so the frame/icons are unchanged. */\n"
++"void main(){ vec4 t=texture2D(tex0, fract(v9)); gl_FragColor=vec4(t.rgb*v8.rgb, t.a*v8.a); }\n";
++/* 2026-10-14 (user report: WANTED figure scrambled, photo of device): the repack halving affects
++ * this family's piece uvs too (pieces u 1.28..1.80 = exactly 2x of 0.64..0.90, same signature as
++ * the menu atlas). "half" = v9*0.5 (the same form as the accepted TOP-pair fix); "halfgt" halves
++ * ONLY out-of-range lookups (max(v9)>1) so in-range elements (frame outline, icons, font) stay raw.
++ * Selected via WOL_F191_UV=half|halfgt; TEST-ONLY until a device capture confirms the assembly. */
++static const char wol_f191_uvhalf_fragment_glsl[] =
++"#version 100\n"
++"precision mediump float;\n"
++"varying vec4 v7;\n"
++"varying vec4 v8;\n"
++"varying vec2 v9;\n"
++"varying vec4 v10;\n"
++"uniform sampler2D tex0;\n"
++"void main(){ vec4 t=texture2D(tex0, v9*0.5); gl_FragColor=vec4(t.rgb*v8.rgb, t.a*v8.a); }\n";
++static const char wol_f191_uvhalfgt_fragment_glsl[] =
++"#version 100\n"
++"precision mediump float;\n"
++"varying vec4 v7;\n"
++"varying vec4 v8;\n"
++"varying vec2 v9;\n"
++"varying vec4 v10;\n"
++"uniform sampler2D tex0;\n"
++"void main(){ vec2 uv=(max(v9.x,v9.y)>1.0)? v9*0.5 : v9; vec4 t=texture2D(tex0, uv); gl_FragColor=vec4(t.rgb*v8.rgb, t.a*v8.a); }\n";
++/* 2026-10-14 gfx259 (user report: the left locator arrow on the bottle label renders as a dense
++ * scribble): the repack halving is PER TEXTURE, not per family. The f191 pair draws pieces from
++ * BOTH repacked textures (pieces id313, poster art id499 - uvs measured 2x, need v9*0.5) and
++ * textures the repack never touched (font id630, frame id510, locator arrows id468, grass tuft
++ * id582 - uvs already normalized / page-tiled, need the fract fold). WOL_F191_NOFOLDID="id,..."
++ * lists the not-repacked ids: those draws link THIS entry instead (same fract fold as the draft,
++ * but a distinct NAME so the WOL_F191_UV override skips it). Per-texture maps measured by the
++ * WOL_RECT_HIT tex_state traces; test-only until a device capture confirms. */
++static const char wol_f191_nofold_fragment_glsl[] =
++"#version 100\n"
++"precision mediump float;\n"
++"varying vec4 v7;\n"
++"varying vec4 v8;\n"
++"varying vec2 v9;\n"
++"varying vec4 v10;\n"
++"uniform sampler2D tex0;\n"
 +"void main(){ vec4 t=texture2D(tex0, fract(v9)); gl_FragColor=vec4(t.rgb*v8.rgb, t.a*v8.a); }\n";
 +/* UV-gradient probe for the f191 pair (review 2026-10-13): WOL_F191_UV=grad paints the uv instead of
 + * sampling - if the gradient spreads across the sprite shape (not a constant colour), the uv source
@@ -3284,7 +3397,7 @@
 +    const char *name,*glsl; /* glsl=NULL: not translated yet */
 +    unsigned char code_hash[32],control_hash[32];
 +};
-+#define WOL_CAT_COUNT 16
++#define WOL_CAT_COUNT 17
 +static const struct wol_shader_binding wol_cat_bindings[WOL_CAT_COUNT]={
 +    /*0*/ {1024,0x848,0,0,"v189(d88c64a6)",wol_pair2_vertex_glsl,
 +           {0xd8,0x8c,0x64,0xa6,0xae,0x67,0x55,0x4a,0xbf,0x48,0xae,0x0b,0xc3,0xd6,0xc1,0x5e,0x4c,0xb1,0x82,0x63,0xa7,0xfa,0xea,0x39,0x19,0xb7,0xe8,0x35,0x90,0xb3,0x47,0xb5},
@@ -3329,8 +3442,10 @@
 +    /*13*/ { 512,0x848,1,0,"top-f-uvhalf",wol_top_uvhalf_fragment_glsl,{0},{0}},
 +    /*14*/ { 512,0x848,1,0,"top-f-uvfract",wol_top_uvfract_fragment_glsl,{0},{0}},
 +    /*15*/ { 512,0x848,1,0,"top-f-uvmag",wol_top_uvmag_fragment_glsl,{0},{0}},
++    /*16*/ { 512,0x848,1,1,"f191-nofold",wol_f191_nofold_fragment_glsl,{0},{0}},
 +};
 +#define WOL_TOP_UV_RAW 12
++#define WOL_F191_NOFOLD 16
 +#define WOL_TOP_UV_HALF 13
 +#define WOL_TOP_UV_FRACT 14
 +#define WOL_TOP_UV_MAG 15
@@ -3423,13 +3538,28 @@
 +     * v10.xy, v8.xy, or grad (uv-gradient probe). This block applies to the f191 entry regardless of
 +     * its diag flag; the older copy inside the !bf->diag block never reached the diag draft entry. */
 +    {static int uv2_configured,uv2_mode;if(!uv2_configured){const char *o=getenv("WOL_F191_UV");
-+        uv2_mode=!o?0:(!strcmp(o,"v10")?1:(!strcmp(o,"yz")?2:(!strcmp(o,"xy")?3:(!strcmp(o,"grad")?4:(!strcmp(o,"texa")?5:0)))));uv2_configured=1;}
-+     if(strstr(bf->name,"f191")){
++        /* Production default (gfx254/257/259/261-verified): halfgt - the repacked piece/poster uvs
++         * (out-of-range, measured 2x) halve while the never-repacked in-range elements stay raw.
++         * WOL_F191_UV=off|none|draft restores the plain fract draft for A/B; an explicit mode wins. */
++        if(!o||!*o)uv2_mode=7;
++        else if(!strcmp(o,"off")||!strcmp(o,"none")||!strcmp(o,"draft"))uv2_mode=0;
++        else if(!strcmp(o,"v10"))uv2_mode=1;
++        else if(!strcmp(o,"yz"))uv2_mode=2;
++        else if(!strcmp(o,"xy"))uv2_mode=3;
++        else if(!strcmp(o,"grad"))uv2_mode=4;
++        else if(!strcmp(o,"texa"))uv2_mode=5;
++        else if(!strcmp(o,"half"))uv2_mode=6;
++        else if(!strcmp(o,"halfgt"))uv2_mode=7;
++        else uv2_mode=0;
++        uv2_configured=1;}
++     if(strstr(bf->name,"f191")&&!strstr(bf->name,"nofold")){
 +        if(uv2_mode==1)frag=wol_f191_draft_v10_fragment_glsl;
 +        else if(uv2_mode==2)frag=wol_f191_draft_yz_fragment_glsl;
 +        else if(uv2_mode==3)frag=wol_f191_draft_xy_fragment_glsl;
 +        else if(uv2_mode==4)frag=wol_f191_uvgrad_fragment_glsl;
-+        else if(uv2_mode==5)frag=wol_f191_texa_fragment_glsl;}}
++        else if(uv2_mode==5)frag=wol_f191_texa_fragment_glsl;
++        else if(uv2_mode==6)frag=wol_f191_uvhalf_fragment_glsl;
++        else if(uv2_mode==7)frag=wol_f191_uvhalfgt_fragment_glsl;}}
 +    /* WOL_F191_REAL=1: the real f191 translation candidate (tex + c3 colour offsets + v10 rect guard
 +     * in alpha) for a device A/B against the draft. TEST-ONLY until the A/B confirms the predicate. */
 +    {static int fr;static unsigned fon;
@@ -3548,7 +3678,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +1286,29 @@
+@@ -507,12 +1343,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -3579,7 +3709,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +1409,28 @@
+@@ -613,6 +1466,28 @@
              }
          }
  #endif
