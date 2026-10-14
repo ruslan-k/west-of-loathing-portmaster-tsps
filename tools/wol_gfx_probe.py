@@ -100,7 +100,7 @@ def main():
     options={'WOL_PROBE_SECONDS':str(a.seconds),'WOL_MEMORY_FLOOR_MIB':'20',
              'WOL_QUIET':'1','WOL_PRESENT_TEST':'0','WOL_PAIR_TEST':'0',
              'WOL_FS_TESTTEX':'0','WOL_PAIR_MATH':'1','WOL_VS_TRIVIAL':'0',
-             'WOL_COHERENCE':'0','WOL_DUMP':'0','WOL_F191_UV':'xy',
+             'WOL_COHERENCE':'0','WOL_DUMP':'0','WOL_F191_UV':'',
              'WOL_COMPOSITE_PROBE':'0','COTM_PRESENT_READBACK_60':'1',
              'COTM_READBACK_PERIOD':'600','COTM_CAPTURE_PERIOD':'600',
              'WOL_CAPTURE_MARKS':'15,45,90'}
