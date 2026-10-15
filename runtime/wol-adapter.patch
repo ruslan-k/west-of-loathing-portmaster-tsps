@@ -154,7 +154,29 @@
  }
 --- a/native/ipc.h
 +++ b/native/ipc.h
-@@ -452,6 +452,18 @@
+@@ -19,7 +19,7 @@
+     EP_VIBRATION_LIST, EP_SETTINGS, EP_AUDREN_MANAGER, EP_AUDREN, EP_AUDIO_DEVICE,
+     EP_FRIENDS_CREATOR, EP_FRIENDS_SERVICE, EP_FRIENDS_NOTIFICATIONS, EP_FRIENDS_DAEMON,
+     EP_ZERO_CONTROLLER, EP_ZERO_APP_STORAGE, EP_ZERO_APP_ACCESSOR, EP_AW_STUB, EP_AW_AUDOUT_LIST,
+-    EP_AUDOUT_MANAGER, EP_AUDOUT, EP_SAVE_DIR };
++    EP_AUDOUT_MANAGER, EP_AUDOUT, EP_SAVE_DIR, EP_PL_STUB };
+ static void endpoint_destroy(enum endpoint endpoint,unsigned state);
+ static void nv_destroy(unsigned state);
+ static void bsd_destroy(unsigned state);
+@@ -305,6 +305,12 @@
+     /* MOMODORA: FMOD plays through AudioOut (docs/AUDIO.md), so the real audout:u is wired, not the
+      * device-list stub the Animal Well trunk needed. */
+     if(!memcmp(name,"audout:u",8))found=EP_AUDOUT_MANAGER;
++    /* WoL: the SDK initializes the shared font manager (nn::pl::detail::ISharedFontManager) on the
++     * first UI path that wants the platform font; observed once as the first pl:u request of the
++     * session, at a battle scene, and the fail-closed stop aborted the run. The laboratory carries
++     * no system shared font, so every command succeeds with zeroed outputs ("font not loaded")
++     * instead of stopping, and the request itself is logged for the record. */
++    if(!memcmp(name,"pl:u\0\0\0\0",8))found=EP_PL_STUB;
+     return found;
+ }
+ static unsigned sm_permitted(const char *name) {
+@@ -452,6 +458,18 @@
          if(trace && endpoint==EP_HID && req.command==201 && ++aw_vibration_logged>16)trace=0;
      }
  #endif
@@ -173,6 +195,90 @@
      if(trace) {
          struct line b={0};text(&b,"IPC handle=");hex(&b,handle);text(&b," endpoint=");hex(&b,endpoint);
          text(&b," type=");hex(&b,req.type);text(&b," command=");hex(&b,req.command);
+@@ -523,6 +541,83 @@
+     if(endpoint==EP_AW_STUB) {
+         struct line stub={0};text(&stub,"AW_STUB_SERVICE command=");hex(&stub,req.command);text(&stub," data=");hex(&stub,req.data_size);emit(&stub);
+         if(req.command==0){ipc_child(buffer,s,&req,EP_AW_STUB,pc);return;}
++        ipc_reply(buffer,req.token,0,NULL,0,0,req.domain);return;
++    }
++    if(endpoint==EP_PL_STUB) {
++        /* WoL: the SDK's shared-font manager is first polled from a battle-scene UI path,
++         * right after a 1920x1080 capture-sized texture. The poller (see the SDK accessor
++         * and its vtable wrappers: u32 in, u32 out of a 12-byte scratch) retries forever
++         * when command 1 answers empty - an empty reply keeps reading as "not loaded".
++         * Command 1 therefore answers "loaded" (configurable via WOL_PL_CMD1_REPLY for
++         * one-variable A/B: default u32:1, modes u32:0, raw12, empty). Every request is
++         * logged sampled, first payload bytes included, so the command set stays on the
++         * record without flooding the run log. Other commands answer success with all
++         * caller output buffers zeroed ("no font loaded"). */
++        static unsigned pl_trace_count;
++        unsigned trace=pl_trace_count<8 || !(pl_trace_count&255);
++        if(trace) {
++            struct line pl={0};text(&pl,"PL_SERVICE command=");hex(&pl,req.command);text(&pl," data=");hex(&pl,req.data_size);
++            text(&pl," in=");hex(&pl,req.num_inputs);text(&pl," out=");hex(&pl,req.num_outputs);text(&pl," bytes=");
++            for(unsigned i=0;i<req.data_size&&i<12;i++){char b[4];snprintf(b,sizeof(b),"%02x",req.data[i]);text(&pl,b);}
++            emit(&pl);
++        }
++        pl_trace_count++;
++        if(req.command==1) {
++            static unsigned pl_reply_configured,pl_reply_mode; /* 0=u32:1 default,1=u32:0,2=raw12,3=empty */
++            if(!pl_reply_configured) {
++                pl_reply_configured=1;
++                const char *o=getenv("WOL_PL_CMD1_REPLY");
++                pl_reply_mode=(o&&!strcmp(o,"u32:0"))?1:(o&&!strcmp(o,"raw12"))?2:(o&&!strcmp(o,"empty"))?3:0;
++                struct line cfg={0};text(&cfg,"PL_CMD1_REPLY mode=");hex(&cfg,pl_reply_mode);
++                text(&cfg," source=");text(&cfg,o?o:"default");emit(&cfg);
++            }
++            if(pl_reply_mode==1){uint32_t v=0;ipc_reply(buffer,req.token,0,&v,4,0,req.domain);return;}
++            if(pl_reply_mode==2){uint32_t v[3]={1,0,0};ipc_reply(buffer,req.token,0,v,12,0,req.domain);return;}
++            if(pl_reply_mode==3){ipc_reply(buffer,req.token,0,NULL,0,0,req.domain);return;}
++            uint32_t v=1;ipc_reply(buffer,req.token,0,&v,4,0,req.domain);return;
++        }
++        if(req.command==4) {
++            /* GetSharedMemoryNativeHandle: the SDK maps the returned handle at a fixed guest
++             * address with size 0x1100000 and read permission (observed SVC 0x13
++             * arg1=0x5a1a04000 arg2=0x1100000 arg3=1 right after this command). The first
++             * attempt moved the handle in the reply descriptor (the shape the sm GetService
++             * uses, same machinery) and the client still read 0 - it consumes this command's
++             * output like command 1's u32, from the reply data. Reply shape is therefore
++             * switchable by env (WOL_PL_CMD4_REPLY): data (u32 handle in reply data, default),
++             * data8 (handle + u32 1), handle-move (previous), handle-copy, handle-move+data,
++             * handle-copy+data. The region is created once at the exact size/permission the
++             * guest maps; contents stay zero. */
++            static unsigned pl_shared_id=~0u,pl_cmd4_mode=~0u,pl_cmd4_attempt,pl_cmd4_cycle;
++            if(pl_cmd4_mode==~0u) {
++                const char *o=getenv("WOL_PL_CMD4_REPLY");
++                pl_cmd4_cycle=o&&!strcmp(o,"cycle");
++                /* Default = handle-copy: measured 2026-10-15 in the battle scene, the copy
++                 * descriptor is the shape the client adopts (handle reached MapSharedMemory
++                 * and the mapping completed). The move descriptor, though the sm GetService
++                 * shape, left the client with handle 0. */
++                pl_cmd4_mode=pl_cmd4_cycle?2:(o&&!strcmp(o,"data8"))?5:(o&&!strcmp(o,"handle-move"))?1:
++                    (o&&!strcmp(o,"handle-copy+data"))?4:(o&&!strcmp(o,"handle-move+data"))?3:(o&&!strcmp(o,"data"))?0:2;
++                struct line cfg={0};text(&cfg,"PL_CMD4_REPLY mode=");hex(&cfg,pl_cmd4_mode);text(&cfg," cycle=");hex(&cfg,pl_cmd4_cycle);text(&cfg," source=");text(&cfg,o?o:"default");emit(&cfg);
++            }
++            /* cycle: one mode per request, untested shapes first, so a single run sweeps formats. */
++            if(pl_cmd4_cycle){static const unsigned order[6]={2,4,5,0,1,3};pl_cmd4_mode=order[pl_cmd4_attempt%6];pl_cmd4_attempt++;}
++            if(pl_shared_id==~0u) {
++                pl_shared_id=shared_create(0x1100000ULL,1,pc);
++                struct line sl={0};text(&sl,"PL_SHARED_CREATE size=");hex(&sl,0x1100000);text(&sl," id=");hex(&sl,pl_shared_id);emit(&sl);
++            }
++            uint32_t shm_handle=session_new(EP_SHARED,pc);session_get(shm_handle,pc)->initialized=pl_shared_id;
++            struct line shl={0};text(&shl,"PL_SHARED_HANDLE handle=");hex(&shl,shm_handle);text(&shl," mode=");hex(&shl,pl_cmd4_mode);emit(&shl);
++            if(pl_cmd4_mode==0){ipc_reply(buffer,req.token,0,&shm_handle,4,0,req.domain);return;}
++            if(pl_cmd4_mode==5){uint32_t out[2]={shm_handle,1};ipc_reply(buffer,req.token,0,out,8,0,req.domain);return;}
++            if(pl_cmd4_mode==3){ipc_reply(buffer,req.token,0,&shm_handle,4,shm_handle,0);return;}
++            if(pl_cmd4_mode==4){ipc_reply(buffer,req.token,0,&shm_handle,4,0,req.domain);
++                put32(buffer+4,read32(buffer+4)|0x80000000U);put32(buffer+8,1U<<1);put32(buffer+12,shm_handle);return;}
++            if(pl_cmd4_mode==2){ipc_reply(buffer,req.token,0,NULL,0,0,0);
++                put32(buffer+4,read32(buffer+4)|0x80000000U);put32(buffer+8,1U<<1);put32(buffer+12,shm_handle);return;}
++            ipc_reply(buffer,req.token,0,NULL,0,shm_handle,0);return;
++        }
++        for(unsigned i=0;i<req.num_outputs;i++)
++            if(req.outputs[i].size)memset((void *)(uintptr_t)req.outputs[i].address,0,req.outputs[i].size);
+         ipc_reply(buffer,req.token,0,NULL,0,0,req.domain);return;
+     }
+     if(aud_dispatch(buffer,s,&req,endpoint,state,pc))return;
 --- a/native/loader.c
 +++ b/native/loader.c
 @@ -8,6 +8,7 @@
@@ -347,7 +453,23 @@
          uint64_t requested=r[1];
          if(requested%(2ULL<<20) || requested>HEAP_LIMIT)stop("HEAP_REQUEST_OUTSIDE_EXPERIMENT_LIMIT",pc,requested,20);
          /* The first allocation and same-size queries are supported. Growing or
-@@ -571,7 +651,7 @@
+@@ -539,7 +619,14 @@
+         emit_svc(&b,svc);stack_alias(r[0],r[1],r[2],svc==5,pc);r[0]=0;ctx->uc_mcontext.pc+=4;return;
+     }
+     if(svc==0x13) {
+-        emit_svc(&b,svc);struct session *s=session_get(r[0],pc);
++        emit_svc(&b,svc);
++        /* Handle 0 is never valid. The pl:u font client (battle scene) passes the handle value it
++         * received; while the reply shape does not yet match its expectation it passes 0, and a
++         * fail-closed stop would kill the whole run at every attempt. Answer 0xE01 (invalid
++         * handle) so the failed mapping stays survivable and observable. Every other invalid
++         * handle keeps the fail-closed stop below. */
++        if(!r[0]){r[0]=0xe01;ctx->uc_mcontext.pc+=4;return;}
++        struct session *s=session_get(r[0],pc);
+         if(s->endpoint!=EP_SHARED)stop("INVALID_SHARED_MEMORY_HANDLE",pc,r[0],24);
+         shared_map(s->initialized,r[1],r[2],r[3],pc);r[0]=0;ctx->uc_mcontext.pc+=4;return;
+     }
+@@ -571,7 +658,7 @@
              struct line w={0};text(&w,"MOMO_WAIT_KEY thread=");hex(&w,guest_thread_index);
              text(&w," key=");hex(&w,r[0]);text(&w," mutex=");hex(&w,r[1]);text(&w," tag=");hex(&w,r[2]);
              text(&w," timeout=");hex(&w,r[3]);emit(&w);
@@ -356,7 +478,7 @@
          }
          r[0]=key_wait(r[0],r[1],r[2],(int64_t)r[3],pc);ctx->uc_mcontext.pc+=4;return;
      }
-@@ -598,7 +678,7 @@
+@@ -598,7 +685,7 @@
      if(svc==0x33) {
          emit_svc(&b,svc);r[0]=messenger_thread_context(r[0],r[1],pc);ctx->uc_mcontext.pc+=4;return;
      }
@@ -365,7 +487,7 @@
      if(svc==0x26) {
          emit_svc(&b,svc);stop("GUEST_SVC_BREAK",pc,guest_terminate_result?guest_terminate_result:r[0],25);
      }
-@@ -621,14 +701,19 @@
+@@ -621,14 +708,19 @@
              struct line b={0};text(&b,"MOMO_SAMPLE thread=");hex(&b,guest_thread_index);
              text(&b," in-kernel=");hex(&b,signal_handler_depth);text(&b," pc=");
              location(&b,ctx->uc_mcontext.pc);emit(&b);
@@ -387,7 +509,7 @@
      ucontext_t *ctx=opaque;uint32_t instruction=bridge_instruction(ctx->uc_mcontext.pc);
      /* These instructions access only the interrupted thread's virtual register
       * state and the monotonic clock. They cannot wake a waiter or modify kernel
-@@ -695,7 +780,7 @@
+@@ -695,7 +787,7 @@
  }
  int main(int argc,char **argv) {
      (void)argv;if(argc!=1){fprintf(stderr,"Run from the verified native image directory, without arguments.\n");return 1;}
@@ -396,7 +518,7 @@
      nvn_platform_argv=argv;
      t2_runtime_health_capture();
      if(t2_video_init())return 24;
-@@ -726,7 +811,7 @@
+@@ -726,7 +818,7 @@
      struct rlimit no_core={0,0};setrlimit(RLIMIT_CORE,&no_core);
      struct rlimit address_limit={HOST_ADDRESS_LIMIT,HOST_ADDRESS_LIMIT};
      if(setrlimit(RLIMIT_AS,&address_limit)){perror("diagnostic memory quota");return 1;}
@@ -405,7 +527,7 @@
      FILE *random=fopen("/dev/urandom","rb");
      if(!random || fread(entropy,1,sizeof(entropy),random)!=sizeof(entropy)){fprintf(stderr,"entropy unavailable\n");return 1;}
      fclose(random);
-@@ -815,7 +900,9 @@
+@@ -815,7 +907,9 @@
      const char *budget=getenv("MEGAMAN_PROBE_SECONDS");
      if(budget) {
          char *end=NULL;unsigned long seconds=strtoul(budget,&end,10);
@@ -416,7 +538,7 @@
          probe_seconds=(unsigned)seconds;
      }
      printf("NATIVE_PROBE_TIME_BUDGET seconds=%u\n",probe_seconds);
-@@ -826,7 +913,7 @@
+@@ -826,7 +920,7 @@
      guest_profile_configure();
      hid_host_initialize();aud_host_initialize();t2_memwatch_start();
      t2_gzram_start(); /* Frente J */
@@ -497,6 +619,20 @@
  #endif
  #endif
 +#endif
+--- a/native/memory.h
++++ b/native/memory.h
+@@ -103,7 +103,10 @@
+     aliases[naliases++]=(struct stack_alias_record){dest,source,size,original.perm,original.attr};
+ }
+ static unsigned shared_create(uint64_t size,unsigned permission,uint64_t pc) {
+-    if(nshared==16 || !size || size%PAGE || size>(16U<<20))stop("INVALID_SHARED_REGION",pc,size,24);
++    /* 32 MiB bound: the WoL shared-font region (pl:u GetSharedMemoryNativeHandle) is
++     * exactly 0x1100000 = 16.25 MiB, just past the old 16 MiB guard. HID (0x40000) and
++     * the clock page stay far below; this is a sanity bound, not a policy. */
++    if(nshared==16 || !size || size%PAGE || size>(32U<<20))stop("INVALID_SHARED_REGION",pc,size,24);
+     char name[]="/tmp/cotm-switch-shm-XXXXXX";int fd=mkstemp(name);
+     if(fd<0)stop("SHARED_BACKING_FAILED",pc,errno,21);
+     unlink(name);fcntl(fd,F_SETFD,FD_CLOEXEC);
 --- a/native/nvn_bridge.h
 +++ b/native/nvn_bridge.h
 @@ -25,6 +25,11 @@
