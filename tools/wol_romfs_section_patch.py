@@ -47,10 +47,12 @@ def main():
         raise SystemExit(f"unexpected section size {len(data)}")
     core = a.core_bundle.read_bytes()
 
-    # Validate the size field location before writing anything.
+    # Validate the size field location before writing anything. The declared
+    # size may already be smaller than the historical maximum (a previous
+    # shrink); the location and file name must still match.
     stored_off, stored_size = struct.unpack_from("<QQ", data, ENTRY_SIZE_OFF - 8)
     name = bytes(data[ENTRY_SIZE_OFF + 8 + 8:ENTRY_SIZE_OFF + 8 + 8 + 4])
-    if stored_off != ENTRY_OFF_FIELD or stored_size != DECLARED_SIZE or name != b"core":
+    if stored_off != ENTRY_OFF_FIELD or name != b"core" or not 0 < stored_size <= DECLARED_SIZE:
         raise SystemExit(f"FileEntry no longer matches the documented contract: "
                          f"off={stored_off:#x} size={stored_size} name={name!r}")
     if len(core) > DECLARED_SIZE:
@@ -60,7 +62,7 @@ def main():
     data[CORE_OFF + len(core):CORE_OFF + DECLARED_SIZE] = b"\0" * (DECLARED_SIZE - len(core))
 
     if a.entry_size == "keep":
-        new_size = DECLARED_SIZE
+        new_size = stored_size
     elif a.entry_size == "auto":
         new_size = len(core)
     else:
