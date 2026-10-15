@@ -2943,14 +2943,16 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1535,6 +3012,298 @@
+@@ -1535,6 +3012,387 @@
          begin=end+1;
      }
  }
 +#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
 +/* This title copies colour targets (RGBA8 -> RGBA8, one level, identical extents) between its own
 + * CPU-backed textures. The storage holds the authoritative bytes, so the copy is a byte move plus a
-+ * dirty mark; the host copy follows on the next refresh. Depth copies keep the zero-family path. */
++ * dirty mark; the host copy follows on the next refresh. Depth copies keep the zero-family path.
++ * The GPU region blit helper is defined below near the resolve blit; forward-declare it here. */
++static unsigned wol_blit_region(struct nvn_texture *src,const uint32_t from[6],struct nvn_texture *dst,const uint32_t to[6],unsigned flip_v);
 +static unsigned wol_color_texture_copy(const struct nvn_record *r) {
 +    const uint64_t *a=r->args;
 +    if(!a[0] || !a[3])return 0;
@@ -2981,7 +2983,18 @@
 +    uint8_t *d=nvn_pointer(dst->pool->address+dst->b.offset,dst_bytes,PROT_READ|PROT_WRITE);
 +    static unsigned told;
 +    unsigned fw=from[3],fh=from[4],tw=to[3],th=to[4];
++    static int copy_gpu_conf,copy_gpu_on,copy_gpu_flip;
++    if(!copy_gpu_conf){const char *o=getenv("WOL_COPY_GPU");copy_gpu_on=o&&!strcmp(o,"1");
++        const char *f=getenv("WOL_COPY_GPU_FLIP");copy_gpu_flip=f&&!strcmp(f,"1");copy_gpu_conf=1;
++        if(copy_gpu_on)printf("WOL_COPY_GPU enabled=1 mode=region-blit flip_v=%d\n",copy_gpu_flip);}
++    int gpu_done=0;
 +    if(fw==tw && fh==th) {
++        /* 1:1 region. GPU-mode preconditions: no pending CPU writes on either side (else the GL
++         * textures are stale and only the CPU path can honour the guest's bytes). */
++        if(copy_gpu_on && !__atomic_load_n(&src->zero_cpu_dirty,__ATOMIC_ACQUIRE) &&
++                          !__atomic_load_n(&dst->zero_cpu_dirty,__ATOMIC_ACQUIRE))
++            gpu_done=wol_blit_region(src,from,dst,to,(unsigned)copy_gpu_flip);
++        if(!gpu_done) {
 +        /* The region is copied one to one; Unity lifts the visible 1280x720 area out of a larger
 +         * render target this way. */
 +        for(unsigned y=0;y<th;y++) {
@@ -2991,6 +3004,13 @@
 +        }
 +        if(told++<4)printf("WOL_COLOR_COPY source=%"PRIu64" destination=%"PRIu64" region=%ux%u@%u,%u->%u,%u mode=copy-1:1\n",
 +            src->id,dst->id,fw,fh,from[0],from[1],to[0],to[1]);
++        }
++        else {
++            static unsigned gpu_told;
++            if(gpu_told<4){gpu_told++;
++                printf("WOL_COPY_GPU blit src=%"PRIu64" dst=%"PRIu64" region=%ux%u@%u,%u->%u,%u mode=gpu-region cpu-mirror=not-synchronised\n",
++                    src->id,dst->id,fw,fh,from[0],from[1],to[0],to[1]);}
++        }
 +    } else {
 +        /* Different extents need a scale; with no translated blit shader yet the storage is resampled
 +         * with a box average - a documented approximation, revisited with the real blit. */
@@ -3017,7 +3037,16 @@
 +        if(told++<4)printf("WOL_COLOR_COPY source=%"PRIu64" destination=%"PRIu64" region=%ux%u->%ux%u filter=box-average note=approximation-until-blit-shader\n",
 +            src->id,dst->id,fw,fh,tw,th);
 +    }
-+    dst->zero_cpu_dirty=1;
++    if(!gpu_done)dst->zero_cpu_dirty=1;
++    {   /* PROFDIAG (2026-10-15): per-destination colour-copy attribution, bounded to 8 ids. */
++        static struct {uint64_t id,calls,bytes;} cc[8];static unsigned ccn;
++        uint64_t pd_bytes=(uint64_t)to[3]*to[4]*bpp;
++        unsigned k;for(k=0;k<ccn;k++)if(cc[k].id==dst->id)break;
++        if(k==ccn&&ccn<8){cc[ccn]=(typeof(cc[0])){dst->id,0,0};ccn++;k=ccn-1;}
++        if(k<ccn){cc[k].calls++;cc[k].bytes+=pd_bytes;
++            if(!(cc[k].calls&255))printf("WOL_COLOR_COPY_STATS dst=%"PRIu64" calls=%"PRIu64" bytes=%"PRIu64" mode=%s\n",
++                cc[k].id,cc[k].calls,cc[k].bytes,(fw==tw&&fh==th)?"copy-1:1":"box-average");}
++    }
 +    return 1;
 +}
 +#endif
@@ -3048,6 +3077,66 @@
 +    if(!ok){log[0]=0;glGetProgramInfoLog(pr,sizeof log,NULL,log);printf("WOL_BLIT_REALIZE stage=link ok=0 log=%s\n",log);return 0;}
 +    wol_blit_program=pr;wol_blit_tex=glGetUniformLocation(pr,"tex");
 +    printf("WOL_BLIT_REALIZE ok=1 program=%u tex=%d\n",(unsigned)pr,(int)wol_blit_tex);
++    return 1;
++}
++/* Region blit for the per-frame 1:1 colour copy (nvnCommandBufferCopyTextureToTexture):
++ * the CPU path memcpy'ed 3.69 MB per frame and then re-uploaded the same bytes through
++ * zero_texture_refresh (measured 2026-10-15: 2560 copies + 2560 full-texture uploads in one
++ * ~134 s run). The blit reads the source GL texture and writes the destination region
++ * directly. Same shader pair as the resolve blit, with explicit per-corner UVs and a
++ * texel-centre offset for an exact 1:1 mapping; WOL_COPY_GPU_FLIP=1 flips the V mapping
++ * for the empirical orientation A/B. WOL_COPY_GPU=1 selects it; default stays the CPU copy. */
++static GLuint wol_rblit_program;static GLint wol_rblit_tex=-1;
++static unsigned wol_rblit_realize(void) {
++    if(wol_rblit_program)return 1;
++    static const char *vs="attribute vec2 p;attribute vec2 t;varying vec2 uv;void main(){uv=t;gl_Position=vec4(p,0.0,1.0);}\n";
++    static const char *fs="precision mediump float;varying vec2 uv;uniform sampler2D tex;void main(){gl_FragColor=texture2D(tex,uv);}\n";
++    GLint ok=0;char log[512];
++    GLuint v=glCreateShader(GL_VERTEX_SHADER),f=glCreateShader(GL_FRAGMENT_SHADER);
++    glShaderSource(v,1,&vs,NULL);glCompileShader(v);glGetShaderiv(v,GL_COMPILE_STATUS,&ok);
++    if(!ok){log[0]=0;glGetShaderInfoLog(v,sizeof log,NULL,log);printf("WOL_RBLIT_REALIZE stage=vertex ok=0 log=%s\n",log);return 0;}
++    glShaderSource(f,1,&fs,NULL);glCompileShader(f);glGetShaderiv(f,GL_COMPILE_STATUS,&ok);
++    if(!ok){log[0]=0;glGetShaderInfoLog(f,sizeof log,NULL,log);printf("WOL_RBLIT_REALIZE stage=fragment ok=0 log=%s\n",log);return 0;}
++    GLuint pr=glCreateProgram();glAttachShader(pr,v);glAttachShader(pr,f);
++    glBindAttribLocation(pr,0,"p");glBindAttribLocation(pr,1,"t");glLinkProgram(pr);glGetProgramiv(pr,GL_LINK_STATUS,&ok);
++    if(!ok){log[0]=0;glGetProgramInfoLog(pr,sizeof log,NULL,log);printf("WOL_RBLIT_REALIZE stage=link ok=0 log=%s\n",log);return 0;}
++    wol_rblit_program=pr;wol_rblit_tex=glGetUniformLocation(pr,"tex");
++    printf("WOL_RBLIT_REALIZE ok=1 program=%u tex=%d\n",(unsigned)pr,(int)wol_rblit_tex);
++    return 1;
++}
++static unsigned wol_blit_region(struct nvn_texture *src,const uint32_t from[6],struct nvn_texture *dst,const uint32_t to[6],unsigned flip_v) {
++    if(!wol_rblit_realize())return 0;
++    GLint previous=0;glGetIntegerv(GL_FRAMEBUFFER_BINDING,&previous);
++    GLuint fb=0;glGenFramebuffers(1,&fb);glBindFramebuffer(GL_FRAMEBUFFER,fb);
++    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,dst->name,0);
++    if(glCheckFramebufferStatus(GL_FRAMEBUFFER)!=GL_FRAMEBUFFER_COMPLETE) {
++        glBindFramebuffer(GL_FRAMEBUFFER,(GLuint)previous);glDeleteFramebuffers(1,&fb);return 0; }
++    glViewport(0,0,(GLsizei)dst->b.width,(GLsizei)dst->b.height);
++    glDisable(GL_BLEND);glDisable(GL_DEPTH_TEST);glDisable(GL_SCISSOR_TEST);
++    glUseProgram(wol_rblit_program);
++    glActiveTexture(GL_TEXTURE1);glBindTexture(GL_TEXTURE_2D,src->name);
++    glActiveTexture(GL_TEXTURE0);
++    if(wol_rblit_tex>=0)glUniform1i(wol_rblit_tex,1);
++    float x0=(float)to[0]/(float)dst->b.width*2.0f-1.0f,x1=(float)(to[0]+to[3])/(float)dst->b.width*2.0f-1.0f;
++    float y0=(float)to[1]/(float)dst->b.height*2.0f-1.0f,y1=(float)(to[1]+to[4])/(float)dst->b.height*2.0f-1.0f;
++    float u0=(float)from[0]/(float)src->b.width,u1=(float)(from[0]+from[3])/(float)src->b.width;
++    float v0=(float)from[1]/(float)src->b.height,v1=(float)(from[1]+from[4])/(float)src->b.height;
++    /* Texel-centre alignment for an exact 1:1 mapping. */
++    float du=(u1-u0)/(float)from[3]*0.5f,dv=(v1-v0)/(float)from[4]*0.5f;
++    u0+=du;u1-=du;v0+=dv;v1-=dv;
++    if(flip_v){float t=v0;v0=v1;v1=t;}
++    GLfloat quad[16]={x0,y0,u0,v0, x1,y0,u1,v0, x0,y1,u0,v1, x1,y1,u1,v1};
++    glEnableVertexAttribArray(0);glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,16,quad);
++    glEnableVertexAttribArray(1);glVertexAttribPointer(1,2,GL_FLOAT,GL_FALSE,16,quad+2);
++    glDrawArrays(GL_TRIANGLE_STRIP,0,4);
++    glDisableVertexAttribArray(0);glDisableVertexAttribArray(1);
++    GLenum err=glGetError();
++    glBindFramebuffer(GL_FRAMEBUFFER,(GLuint)previous);glDeleteFramebuffers(1,&fb);
++    /* The blit toggled GL state behind the caches' back (same as the resolve blit): invalidate the
++     * slots it touched so the next cache user re-syncs; the low-level scissor is re-applied. */
++    nvn_render_state.valid&=~((1u<<NCS_BLEND_ENABLE)|(1u<<NCS_DEPTH_ENABLE));
++    nvn_low.scissor_known=0;
++    if(err){static unsigned told;if(told<8){told++;printf("WOL_BLIT_REGION_GLERROR glerror=0x%x src=%"PRIu64" dst=%"PRIu64"\n",(unsigned)err,src->id,dst->id);}return 0;}
 +    return 1;
 +}
 +
@@ -3242,7 +3331,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +3331,16 @@
+@@ -1562,7 +3420,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -4508,7 +4597,27 @@
  static void zero_record_target_view(uint64_t object,const uint8_t *view,unsigned attachment) {
      struct nvn_texture *t=object?nvn_texture_find(object):NULL;
  #ifdef MOMO_SHADERS
-@@ -473,9 +494,26 @@
+@@ -465,17 +486,44 @@
+ }
+ static void zero_texture_pool_flushed(struct nvn_pool *pool,uint64_t offset,uint64_t bytes) {
+     if(!bytes)return;
++    /* PROFDIAG (2026-10-15): attribute the per-frame re-uploads. Aggregated counters only,
++     * one bounded line per 256 calls; no behaviour change. */
++    static uint64_t pd_calls,pd_bytes,pd_marked;
++    pd_calls++;pd_bytes+=bytes;
++    unsigned pd_hits=0;
+     for(unsigned i=0;i<4096;i++) {
+         struct nvn_texture *t=&nvn_textures[i];
+-        if(t->live && t->pool==pool && offset<t->b.offset+t->size && t->b.offset<offset+bytes)
++        if(t->live && t->pool==pool && offset<t->b.offset+t->size && t->b.offset<offset+bytes) {
+             __atomic_store_n(&zero_texture_storage_state(t)->zero_cpu_dirty,1,__ATOMIC_RELEASE);
+-    }
++            pd_hits++;
++        }
++    }
++    pd_marked+=pd_hits;
++    if(!(pd_calls&255))printf("ZERO_POOL_FLUSH_STATS calls=%"PRIu64" bytes=%"PRIu64" marked=%"PRIu64" last=off:%"PRIu64"/bytes:%"PRIu64" hits=%u\n",
++        pd_calls,pd_bytes,pd_marked,offset,bytes,pd_hits);
  }
  static void zero_texture_bc_pixels(struct nvn_texture *t,unsigned level,const uint32_t *box,void *pixels,size_t bytes) {
      struct zero_bc_level m;
@@ -4537,7 +4646,7 @@
      unsigned x=box?box[0]/4:0,y=box?box[1]/4:0,width=box?box[3]:m.width,height=box?box[4]:m.height;
      unsigned nx=(width+3)/4,ny=(height+3)/4;size_t linear_bytes=(size_t)nx*ny*m.bytes;
      uint8_t *linear=malloc(linear_bytes);if(!linear)stop("ZERO_BC_LINEAR_MEMORY",nvn_caller,linear_bytes,21);
-@@ -492,7 +530,11 @@
+@@ -492,7 +540,11 @@
      if(t->composition_target_seen || t->draws || t->depth_buffer || t->b.target!=1 ||
         t->host_scaled || t->host_half || t->packaged_lazy || t->b.packaged_layout)
          stop("ZERO_TEXTURE_CPU_GPU_COHERENCE_REQUIRED",nvn_caller,t->id,20);
@@ -4550,7 +4659,7 @@
      unsigned type=nvn_cpu_image_upload_type(t),output_bpp=nvn_texture_upload_bytes(type);
      glBindTexture(GL_TEXTURE_2D,t->name);GLint alignment;glGetIntegerv(GL_UNPACK_ALIGNMENT,&alignment);glPixelStorei(GL_UNPACK_ALIGNMENT,1);
      for(unsigned level=0;level<t->b.levels;level++) {
-@@ -503,7 +545,10 @@
+@@ -503,7 +555,10 @@
          const uint8_t *source=nvn_pointer(t->pool->address+t->b.offset+t->levels[level],stride*rows,PROT_READ);
          size_t bytes=(size_t)width*height*output_bpp;uint8_t *pixels=malloc(bytes);
          if(!pixels)stop("ZERO_TEXTURE_REFRESH_MEMORY",nvn_caller,bytes,21);
@@ -4562,16 +4671,24 @@
              zero_texture_bc_pixels(t,level,NULL,pixels,bytes);
          } else for(unsigned y=0;y<height;y++)if(!nvn_texture_decode_upload(t->b.format,t->b.swizzle,type,pixels+(size_t)y*width*output_bpp,source+y*stride,width))
              stop("ZERO_TEXTURE_REFRESH_FORMAT",nvn_caller,t->b.format,20);
-@@ -513,7 +558,7 @@
+@@ -513,7 +568,15 @@
      }
      glPixelStorei(GL_UNPACK_ALIGNMENT,alignment);
      GLenum error=glGetError();if(error)stop("ZERO_TEXTURE_REFRESH_GL",nvn_caller,error,21);
 -    printf("ZERO_TEXTURE_FLUSH_UPLOADED id=%"PRIu64" format=0x%x native-cpu-bytes=preserved before-sampler\n",t->id,t->b.format);
++    {   /* PROFDIAG (2026-10-15): per-texture refresh attribution, bounded to 8 ids. */
++        static struct {uint64_t id,calls,bytes;} zr[8];static unsigned zrn;
++        unsigned k;for(k=0;k<zrn;k++)if(zr[k].id==t->id)break;
++        if(k==zrn&&zrn<8){zr[zrn]=(typeof(zr[0])){t->id,0,0};zrn++;k=zrn-1;}
++        if(k<zrn){zr[k].calls++;zr[k].bytes+=t->size;
++            if(!(zr[k].calls&255))printf("ZERO_REFRESH_STATS id=%"PRIu64" calls=%"PRIu64" uploaded-bytes=%"PRIu64" tex-size=%"PRIu64"\n",
++                zr[k].id,zr[k].calls,zr[k].bytes,t->size);}
++    }
 +    printf("ZERO_TEXTURE_FLUSH_UPLOADED id=%"PRIu64" format=0x%x native-cpu-bytes=preserved before-sampler rgba8-copy-levels=%u\n",t->id,t->b.format,copied);
  }
  #include "zero_texture_writes.h"
  static unsigned nvn_texture_dispatch(unsigned id,struct nvn_frame *f,uint64_t *result) {
-@@ -739,6 +784,7 @@
+@@ -739,6 +802,7 @@
              printf("MOMO_TEXTURE_IDENTITY id=%"PRIu64" object=0x%"PRIx64" pool=0x%"PRIx64" offset=0x%"PRIx64" bytes=%"PRIu64" size=%ux%u format=0x%x flags=0x%x levels=%u target=%u\n",
                  t->id,a[0],b.pool,b.offset,size,b.width,b.height,b.format,b.flags,b.levels,b.target);
          printf("NVN_TEXTURE_REAL object=0x%"PRIx64" format=0x%x size=%ux%u levels=%u bytes=%"PRIu64" texture=%u depth=%u gpu-storage=%s no-draw\n",a[0],b.format,b.width,b.height,b.levels,size,t->name,t->depth_buffer,t->zero_backend_deferred?"unavailable-native-backing-retained":t->packaged_lazy?"deferred":"allocated");

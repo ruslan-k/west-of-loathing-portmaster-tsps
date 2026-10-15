@@ -51,6 +51,16 @@ Runtime `d3a4ce6a…` (build `wol-horizon-build-pairring`); owner section unchan
 family out as the next FPS lever; the measured frame split (replay ~28-33 ms, finish
 ~11-16 ms per slow frame) points at replay/CPU work and the per-submit finish instead.
 
+## FPS profiling and the per-frame texture-copy chain (2026-10-15, later)
+
+An `AW_PROFILE=1` sampling run plus three bounded attribution counters found the real per-frame
+chain: one `CopyTextureToTexture` of 3.69 MB runs every frame into texture `460`, implemented as
+a CPU row copy plus a full-texture re-upload (measured 9.44 GB copied and 9.44 GB uploaded in one
+run). Replacing it with a GPU region blit (`WOL_COPY_GPU=1`) removed the whole chain and kept the
+picture correct, but measured **slower** (menu 26.74 -> 21.51 presents/s; finish 12.6 -> 18.3 ms):
+the mid-frame blit serialises GPU work more than the overlapped CPU copies cost. Default stays
+`WOL_COPY_GPU=0`. Details: [fps-gpu-copy](../evidence/fps-gpu-copy/README.md).
+
 Code, scene coverage, cleanup receipts, exact artifact hashes and limitations:
 [measurement documentation](memory-benchmark.md). Game binaries, owner bundles,
 texture bytes and saves are not published.
