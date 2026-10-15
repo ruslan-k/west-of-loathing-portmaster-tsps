@@ -13,8 +13,10 @@ start = source.index('                if(pair_vbo) {\n                    /* Bin
 end = source.index('                /* WOL_COLOR_STATE:', start)
 binding = source[start:end]
 helper = ''
+if '/* WOL_PAIR_RING_BEGIN */' in source:
+    helper += source.split('/* WOL_PAIR_RING_BEGIN */', 1)[1].split('/* WOL_PAIR_RING_END */', 1)[0]
 if '/* WOL_PAIR_STREAMS_BEGIN */' in source:
-    helper = source.split('/* WOL_PAIR_STREAMS_BEGIN */', 1)[1].split('/* WOL_PAIR_STREAMS_END */', 1)[0]
+    helper += source.split('/* WOL_PAIR_STREAMS_BEGIN */', 1)[1].split('/* WOL_PAIR_STREAMS_END */', 1)[0]
 preamble = r'''
 #include <assert.h>
 #include <stdint.h>
@@ -81,6 +83,7 @@ void exercise(int direct) {
     unsigned long long stride=40;
     const uint8_t *base=positions+first*stride;
     GLuint pair_vbo=direct?0:7;
+    unsigned pair_ring_slot=0;
     GLuint pair_stream_vbo[32]={0};pair_stream_vbo[0]=pair_vbo;
     (void)pair_stream_vbo;(void)first;(void)vertex_count;
     glBindBuffer(GL_ARRAY_BUFFER,pair_vbo);
@@ -99,7 +102,19 @@ void exercise(int direct) {
         puts("PASS VBO multistream: UVs uploaded from stream 1 with baseVertex");
     }
 }
-int main(void) {exercise(0);exercise(1);return 0;}
+int main(void) {
+    /* Rotation contract for the reusable pair buffers: six distinct slots, then wrap.
+       WOL_PAIR_RING=0 is exercised in a second process (the mode latches at first use). */
+    const char *o=getenv("WOL_PAIR_RING");
+    if(o&&!strcmp(o,"0")) {
+        assert(wol_pair_ring_mode()==0 && "WOL_PAIR_RING=0 must select per-draw gen/delete");
+    } else {
+        assert(wol_pair_ring_mode()==1 && "ring default-on; WOL_PAIR_RING=0 restores per-draw gen/delete");
+        for(unsigned i=0;i<6;i++)assert(wol_pair_ring_next()==i);
+        assert(wol_pair_ring_next()==0 && "rotation must wrap after the slot count");
+    }
+    exercise(0);exercise(1);return 0;
+}
 '''.replace('BINDING', binding)
 with tempfile.TemporaryDirectory(prefix='wol-streams-', dir=os.environ.get('TMPDIR')) as tmp:
     c = Path(tmp)/'streams.c'
@@ -107,4 +122,6 @@ with tempfile.TemporaryDirectory(prefix='wol-streams-', dir=os.environ.get('TMPD
     exe = Path(tmp)/'streams'
     subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Werror','-O1',str(c),'-o',str(exe)],check=True)
     subprocess.run([str(exe)],check=True)
+    off=dict(os.environ);off['WOL_PAIR_RING']='0'
+    subprocess.run([str(exe)],check=True,env=off)
 print('PASS actual hook binds the guest descriptor stream, not only its offset')
