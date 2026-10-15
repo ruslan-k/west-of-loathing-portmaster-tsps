@@ -1,20 +1,36 @@
 #!/usr/bin/env python3
-"""WoL memory repack: promote mip level 1 to level 0 for Texture2D assets with m_Width >= 512.
+"""WoL memory repack.
 
-The Switch bundle (StreamingAssets/core, 200,367,356 bytes) carries 4411 Texture2D whose
-decompressed payload totals ~1900 MB - more than the TSPS's 963 MiB RAM, which is why the title
-thrashes swap and never finishes loading. Every texture stores a full mip chain, so level 1 (a
-properly box-filtered half-resolution copy) already exists in the bytes: re-slicing the chain and
-halving m_Width/m_Height/m_MipCount shrinks the payload with **zero re-encoding** and no format
-change. Measured on the title's bundle: 1450 textures modified, payload 1899.7 -> 603.2 MB.
+Two independent, combinable passes over the owner's UnityFS bundle:
 
-The repacked bundle is OWNER DATA: keep inputs/outputs local, never publish them. The deploy
-contract (measured): the UnityFS bundle starts at section offset 0x4DB0D0 (0x78000 romfs offset +
-0x4630d0 file offset); the runtime verifies the section by SIZE only, the guest parses its own
-RomFS metadata, and pad the repacked file with zeros back to exactly 200,367,356 bytes so the
-RomFS file entry stays valid.
+1. mip promotion (default, `--min-width`): promote mip level 1 to level 0 for
+   Texture2D assets with m_Width >= 512. The Switch bundle (original
+   StreamingAssets/core, 200,367,356 bytes) carries 4411 Texture2D whose
+   decompressed payload totals ~1900 MB - more than the TSPS's 963 MiB RAM. Every
+   texture stores a full mip chain, so level 1 (a box-filtered half-resolution
+   copy) already exists in the bytes: re-slicing the chain and halving
+   m_Width/m_Height/m_MipCount shrinks the payload with zero re-encoding.
+   Measured: 1450 textures modified, payload 1899.7 -> 603.2 MB. This is the
+   currently deployed baseline; its Sprite RenderData corrections are part of it.
+
+2. `--max-mip-levels N`: drop every mip level beyond the first N (N=1 keeps
+   only level 0). Dimensions do not change, so Sprite RenderData stays valid:
+   the mip tail is only addressing data inside the same texture. Savings are the
+   shrink of the remaining chains (~25% of a full chain for N=1, computed per
+   texture, block-aligned per level). Only exact-length, single-image,
+   non-streamed chains are touched; everything else is reported and skipped.
+   `--dry-run` writes no output; `--manifest FILE` records every decision.
+
+The repacked bundle is OWNER DATA: keep inputs/outputs local, never publish
+them. The deploy contract (measured): the UnityFS bundle starts at section
+offset 0x4DB0D0 (0x78000 romfs offset + 0x4630d0 file offset); the runtime
+verifies the section by SIZE only, the guest parses its own RomFS metadata, and
+the repacked file may be padded with zeros back to exactly 200,367,356 bytes so
+the RomFS file entry stays valid (the deployed baseline uses that padding; a
+smaller logical RomFS size is a separate experiment).
 
 Usage: python3 wol_memory_repack.py <core> <out_dir> [--min-width 512]
+    [--repair-sprites] [--max-mip-levels 1] [--dry-run] [--manifest FILE]
 """
 import argparse
 import pathlib
@@ -29,6 +45,7 @@ BLOCK = {"DXT1": 8, "BC4": 8, "DXT5": 16, "BC5": 16, "BC6H": 16, "BC7": 16}
 
 
 def level0_size(w, h, fmt):
+    """Byte size of one mip level with the given dimensions (Unity block rules)."""
     if fmt in BLOCK:
         return max(1, (w + 3) // 4) * max(1, (h + 3) // 4) * BLOCK[fmt]
     if fmt in ("ARGB4444", "RGBA4444", "RGB565"):
@@ -44,6 +61,17 @@ def level0_size(w, h, fmt):
         # (review 2026-10-14) and would mis-slice the level-0 data on such textures.
         return w * h * 2
     return None
+
+
+def mip_chain_size(w, h, fmt, mips):
+    """Exact byte size of the first `mips` levels; None for unknown formats."""
+    total = 0
+    for i in range(mips):
+        s = level0_size(max(1, w >> i), max(1, h >> i), fmt)
+        if s is None:
+            return None
+        total += s
+    return total
 
 
 def scale_sprite_pixel_metadata(sprite, scale, *, ui=False):
@@ -101,13 +129,24 @@ def main():
                     help="experimental: scale dependent sprite pixel metadata too")
     ap.add_argument("--keep-texture-id", type=int, action="append", default=[],
                     help="preserve this owner-bundle texture and its sprite metadata verbatim")
+    ap.add_argument("--max-mip-levels", type=int, default=0,
+                    help="keep at most N mip levels per texture (1 = level 0 only); 0 disables")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="report the outcome without writing the bundle")
+    ap.add_argument("--manifest", type=pathlib.Path,
+                    help="write a TSV of every strip decision")
     a = ap.parse_args()
     keep_ids = set(a.keep_texture_id)
     t0 = time.time()
-    a.out_dir.mkdir(parents=True, exist_ok=True)
+    if not a.dry_run:
+        a.out_dir.mkdir(parents=True, exist_ok=True)
     env = UnityPy.load(str(a.core))
     before = after = mod = 0
     changed_textures = set()
+    strip_rows = []
+    strip_stripped = strip_skipped = 0
+    strip_before = strip_after = 0
+    strip_reasons = {}
     for x in env.objects:
         if x.type.name != "Texture2D":
             continue
@@ -117,6 +156,7 @@ def main():
         except Exception:
             f = str(d.m_TextureFormat)
         before += d.m_CompleteImageSize
+        dirt = False
         if should_promote_texture(d.m_Width, d.m_MipCount, d.m_ImageCount,
                                   x.path_id, keep_ids, a.min_width):
             l0 = level0_size(d.m_Width, d.m_Height, f)
@@ -127,12 +167,55 @@ def main():
                 d.m_Height //= 2
                 d.m_MipCount -= 1
                 d.m_CompleteImageSize = len(raw) - l0
-                d.save()
                 changed_textures.add((id(x.assets_file), x.path_id))
                 mod += 1
-                after += d.m_CompleteImageSize
-                continue
+                dirt = True
+        if a.max_mip_levels > 0 and d.m_MipCount > a.max_mip_levels:
+            mips_before = d.m_MipCount
+            payload_before = d.m_CompleteImageSize
+            raw = bytes(d.image_data)
+            keep_size = 0
+            reason = None
+            if x.path_id in keep_ids:
+                reason = "keep-id"
+            else:
+                keep_size = mip_chain_size(d.m_Width, d.m_Height, f, a.max_mip_levels) or 0
+                full = mip_chain_size(d.m_Width, d.m_Height, f, mips_before)
+                if d.m_ImageCount != 1:
+                    reason = "multi-image"
+                elif getattr(d.m_StreamData, "size", 0):
+                    reason = "streamed"
+                elif not keep_size or full is None:
+                    reason = "unknown-format"
+                elif len(raw) != full:
+                    reason = "length-mismatch"
+                elif keep_size >= len(raw):
+                    reason = "no-gain"
+            if reason is None:
+                d.image_data = raw[:keep_size]
+                d.m_MipCount = a.max_mip_levels
+                d.m_CompleteImageSize = keep_size
+                dirt = True
+                strip_stripped += 1
+                strip_before += payload_before
+                strip_after += keep_size
+                action = "strip"
+            else:
+                strip_skipped += 1
+                strip_reasons[reason] = strip_reasons.get(reason, 0) + 1
+                action = "skip:" + reason
+            strip_rows.append((x.path_id, d.m_Name, f, d.m_Width, d.m_Height,
+                               mips_before, d.m_MipCount, payload_before,
+                               d.m_CompleteImageSize, action))
+        if dirt and not a.dry_run:
+            d.save()
         after += d.m_CompleteImageSize
+    if a.max_mip_levels > 0 and a.manifest:
+        header = ("path_id\tname\tformat\twidth\theight\tmips_before\tmips_after"
+                  "\tpayload_before\tpayload_after\taction\n")
+        lines = [header] + ["\t".join(str(c) for c in r) + "\n" for r in strip_rows]
+        a.manifest.write_text("".join(lines))
+        print(f"manifest rows={len(strip_rows)} -> {a.manifest}")
     sprites_fixed = 0
     if a.repair_sprites:
         ui_sprites = set()
@@ -155,9 +238,19 @@ def main():
             ui = ((id(x.assets_file), x.path_id) in ui_sprites
                   or is_dynamic_map_ui_sprite(sprite['m_Name']))
             scale_sprite_pixel_metadata(sprite, 0.5, ui=ui)
-            x.save_typetree(sprite)
+            if not a.dry_run:
+                x.save_typetree(sprite)
             sprites_fixed += 1
     print(f"modified={mod} sprite_metadata_repaired={sprites_fixed} payload {before/1048576:.1f} -> {after/1048576:.1f} MB")
+    if a.max_mip_levels > 0:
+        why = " ".join(f"{k}={v}" for k, v in sorted(strip_reasons.items()))
+        print(f"mip-strip max_levels={a.max_mip_levels} stripped={strip_stripped} skipped={strip_skipped} "
+              f"tail payload {strip_before/1048576:.1f} -> {strip_after/1048576:.1f} MB "
+              f"(saved {(strip_before-strip_after)/1048576:.1f} MB) {why}".strip())
+    if a.dry_run:
+        print("DRY-RUN: nothing written")
+        print(f"done in {time.time()-t0:.0f}s")
+        return 0
     env.save(pack="lz4", out_path=str(a.out_dir))
     for f in a.out_dir.iterdir():
         print(f"OUT {f.name} {f.stat().st_size} bytes")
