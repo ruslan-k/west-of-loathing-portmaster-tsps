@@ -1,10 +1,12 @@
 # West of Loathing — experimental Switch-to-Linux ARM64 port
 
-**Status: early native-runtime bring-up, not a playable PortMaster release.**
+**Status: experimental native runtime with real menu/gameplay frames; not a validated PortMaster release.**
+
+Latest device evidence: [gfx265](evidence/gfx265/README.md). Skinned PC/Cactus Bill bodies and the WANTED portrait mask are restored. The map paper-size repair is installed, but marker/title overlap remains open. Code, tests, hashes, physical captures and a measured resource baseline are recorded together. [Next resource-optimization tests](docs/resource-optimization.md) are candidates, not claimed gains.
 
 This project explores executing the owner's Nintendo Switch ARM64/IL2CPP build on Linux ARM64, rather than repeating the previous x64/Box64 path. No game code, assets, keys, saves, NSP/NSZ or third-party runtime binaries are distributed here.
 
-## Proven frontier
+## Independent minimal-probe frontier (historical baseline)
 
 - Base Switch release inspected: Unity **5.6.5p1**, AArch64, IL2CPP; four NSO modules.
 - Local data-stage mapping: 49.613 MiB; 215,921 relocations applied and read back by the independent Python preflight.
@@ -13,15 +15,15 @@ This project explores executing the owner's Nintendo Switch ARM64/IL2CPP build o
 - Native-probe/QEMU bounded stop: `UNIMPLEMENTED_SERVICE`, requested service **lm**, `sdk+0xa9d94`, 42 SVC calls after segment-permission hardening. See `evidence/native-run-12.log` (the earlier run is retained separately).
 - The full local suite passes **22 tests** with owner inputs present: 15 native tests, two preparation integration tests and five parser/preflight tests. Without owner inputs, 17 pass and five integration tests skip explicitly.
 
-**Not proven:** completed Unity application startup, visible NVN rendering, audio, controls, scene-transition memory usage or gameplay. QEMU execution is a bring-up test, not a handheld-performance benchmark.
+These minimal-probe tests do not prove application rendering or performance. The recovered adapter below has progressed further; QEMU is not a handheld-performance benchmark.
 
-## Native TSPS adapter milestone
+## Native TSPS adapter — current verified scope
 
-A separate, recovered-GPL Horizon adapter now executes the original WoL modules **on TSPS**, through the Spruce principal launcher flow. Five bounded device launches progressed from queue-builder ABI failure to the first native shader request. The queue, memory-pool and buffer builder device offsets are +0 in this SDK, not the inherited +8; each is verified against the original SDK store instruction.
+A separate, recovered-GPL Horizon adapter executes the original WoL modules **on TSPS**, through the Spruce principal launcher flow. It presents the actual menu and Boring Springs scene through Mali/EGL/KMSDRM. The owner-bundle mip repack is paired with repaired Sprite metadata and matching launcher UV defaults; an old bundle and new defaults are not interchangeable.
 
-The adapter creates a real **Mali-G57 EGL / OpenGL ES 3.2 8×8 pbuffer**, initializes the queue, binds GPU memory pools and maps a buffer. This is **not a game window or presented frame**. Latest controlled stop: `WOL_SHADER_TRANSLATION_REQUIRED`, `main+0xafe4c8`, exit 20. The first old-format 2120-byte control section and a 512-byte GPU-code prefix were captured privately. No WoL shader translation exists yet.
+The current overlay honors multi-stream mesh attributes, samples mesh UV x/y with the material transform, keeps mesh/display-composite identities separate, and replays the game's portrait stencil. Focused regression checks and 22 existing tests pass. Physical captures verify restored bodies, portrait clipping and return to Spruce; this is not full-game, physical-control, scene-transition or endurance certification.
 
-Menu recovery is proven by `/proc` and a physical DRM `kmsgrab` screenshot after the last launch. The diagnostic binary stays installed; its first predecessor is backed up. Evidence and exact reproduction commands: [docs/tsps-horizon-adapter.md](docs/tsps-horizon-adapter.md).
+Current runtime SHA-256: `c25640beebcfb86000545438725a52c4bf5d8a1a440f22aab43218154969b5b7`. Owner payload and launcher read-back receipts are in [gfx265/deployment.json](evidence/gfx265/deployment.json); proprietary bundle/binary data is not committed. The own diagnostic session was stopped, CPU mask restored to `4-7`, and the real Spruce PORTS screen checked. Historical development notes: [docs/tsps-horizon-adapter.md](docs/tsps-horizon-adapter.md).
 
 ## Build and test without game data
 
@@ -79,13 +81,13 @@ This repository is GPL-3.0. Third-party reference packages remain local; the rep
 
 ## Next gates
 
-1. Parse and translate the old WoL NVN shader packages, including the currently blocking first program; preserve exact native code/control identities.
-2. Complete the WoL-specific NVN texture/window/command path, rejecting unknown layouts instead of borrowing another title’s offsets.
-3. Establish real resource-loading/live-set behavior and a physical game frame.
-4. Require controls/audio, scene transition and clean menu return before claiming a working port.
+1. Finish map marker/title placement against a reference; paper size alone is not a complete map fix.
+2. Run the isolated logging/readback/memory/CPU-placement experiments in [resource-optimization.md](docs/resource-optimization.md), preserving the verified visual baseline.
+3. Measure startup and scene-transition live memory and active swap I/O, not only stationary-scene RSS.
+4. Require physical controls/audio, scene transitions, save/load and sustained gameplay before claiming a release.
 5. Keep the independent minimal probe’s LM/service frontier separate from the recovered adapter’s progress.
 
-## Status (latest measured run)
+## Historical status snapshot (gfx252; superseded by gfx265 above)
 
 | Subsystem | State |
 |-----------|-------|
