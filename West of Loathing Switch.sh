@@ -16,7 +16,7 @@ export WOL_F191_NOFOLDID=${WOL_F191_NOFOLDID:-none}
 # Reapply the game's stencil writers/consumers on substituted draws; without
 # this, the WANTED portrait's legs escape its existing UI mask.
 export WOL_PAIR_STENCIL=${WOL_PAIR_STENCIL:-1}
-export WOL_RECT_TRACE=${WOL_RECT_TRACE:-480,440,1060,720}
+export WOL_RECT_TRACE=${WOL_RECT_TRACE:-off}
 export WOL_RECT_TRACE_LIMIT=${WOL_RECT_TRACE_LIMIT:-90000}
 mkdir -p logs save-laboratory
 LOG="$GAMEDIR/logs/latest.log"
@@ -65,6 +65,13 @@ export MEGAMAN_PROBE_SECONDS="${WOL_PROBE_SECONDS:-0}"
 # is the runtime's speed path ("removes the per-draw texture content probing from the hot path");
 # the shader substitution, banks and counters stay intact. Diagnostics pass WOL_QUIET=0 explicitly.
 export WOL_QUIET="${WOL_QUIET:-1}"
+# Keep genuine startup proof and periodic/dark video checks; 1/2 disable them.
+export T2_READBACK_OFF="${T2_READBACK_OFF:-0}"
+export COTM_PRESENT_READBACK_60="${COTM_PRESENT_READBACK_60:-1}"
+export COTM_READBACK_PERIOD="${COTM_READBACK_PERIOD:-120}"
+# Device-tested native precision, not reduced image dimensions or new clocks.
+export WOL_PACKED4444="${WOL_PACKED4444:-1}"
+export WOL_CPU_OFFSET="${WOL_CPU_OFFSET:-4}"
 # The 64/32 MiB floors are bounded diagnostics (they demonstrated 120-600 presents and swap engagement).
 # 2026-10-14 (menu launch, production path): measured floor trips during the RomFS load staging -
 # floor 140 tripped at ~130 MiB available (detail=0x82), 64 at ~55 (detail=0x37), 32 at ~31

@@ -20,6 +20,7 @@ for name in ('WOL_PAIR_BANK_INVALID','WOL_PAIR_DRAW_SKIPPED','WOL_DOWNSAMPLE_BLI
     assert 'if(wol_draw_trace_enabled())printf("'+name not in r, 'failures must remain visible: '+name
 pair=r.split('/* WOL_DRAW_RESULT_BEGIN */',1)[1].split('/* WOL_DRAW_RESULT_END */',1)[0]
 blit=r.split('/* WOL_BLIT_RESULT_BEGIN */',1)[1].split('/* WOL_BLIT_RESULT_END */',1)[0]
+color=r.split('/* WOL_COLOR_WRITE_BEGIN */',1)[1].split('/* WOL_COLOR_WRITE_END */',1)[0] if '/* WOL_COLOR_WRITE_BEGIN */' in r else ''
 pre=r'''
 #define _POSIX_C_SOURCE 200809L
 #include <assert.h>
@@ -29,16 +30,21 @@ pre=r'''
 #include <string.h>
 #include <inttypes.h>
 typedef unsigned GLenum;
+typedef unsigned char GLboolean;
+#define GL_COLOR_WRITEMASK 0x0c23
+static void glGetBooleanv(unsigned name,GLboolean *out){(void)name;for(unsigned i=0;i<4;i++)out[i]=1;}
 static unsigned queries,pending;
 static GLenum glGetError(void){queries++;return pending;}
-struct texture {uint64_t id;unsigned name;struct {unsigned width,height;} b;};
+struct nvn_texture {uint64_t id;unsigned name,draws;struct {unsigned width,height;} b;};
+static struct {struct nvn_texture *target;} nvn_render;
+static unsigned wol_skip_139_this,p2solid,wol_mask_bits=15;
 '''
 main=r'''
 int main(void){
     uint64_t count=6;
-    struct texture a={.id=1,.name=5,.b={.width=1280,.height=720}};
-    struct texture b={.id=2,.name=6,.b={.width=1280,.height=720}};
-    struct texture *src=&a,*dst=&b;
+    struct nvn_texture a={.id=1,.name=5,.b={.width=1280,.height=720}};
+    struct nvn_texture b={.id=2,.name=6,.b={.width=1280,.height=720}};
+    struct nvn_texture *src=&a,*dst=&b;
     int want=getenv("EXPECT_TRACE")&&!strcmp(getenv("EXPECT_TRACE"),"1");
     assert(wol_draw_trace_enabled()==(unsigned)want);
     /* Configuration is immutable for this process, even if env is changed later. */
@@ -58,7 +64,7 @@ int main(void){
 '''.replace('PAIR',pair).replace('BLIT',blit)
 with tempfile.TemporaryDirectory(prefix='wol-draw-log-',dir=os.environ.get('TMPDIR')) as d:
     path=Path(d);c=path/'trace.c';exe=path/'trace'
-    c.write_text(pre+policy+main)
+    c.write_text(pre+policy+color+main)
     subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Werror',str(c),'-o',str(exe)],check=True)
     for value in (None,'0','1','false','true','01'):
         env=dict(os.environ);env.pop('WOL_DRAW_TRACE',None);env['EXPECT_TRACE']='1' if value=='1' else '0'

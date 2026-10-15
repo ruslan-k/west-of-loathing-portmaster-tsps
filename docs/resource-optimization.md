@@ -67,6 +67,14 @@ The stored owner texture ledger (`texture-ledger.json`) still contains 500077312
 
 The scene/UI pipeline still uses intermediate 1920x1080 targets before 1280x720 output. An explicit 720p target path could reduce fill/storage/copy cost, but changing only the window does not change those intermediates, and lying about texture dimensions breaks viewport/UV/stencil/coherence contracts. Treat this as a separate quality-controlled phase with text, mask, layout and image-difference checks—not a quick launcher flag.
 
+## 6. Experimental menu/game checkpoint
+
+The new [resource-goal checkpoint](../evidence/resource-goal-checkpoint/README.md) implements truthful target RGB accounting, optional exact RGBA4444 and guest-ABI-preserving host CPU remapping. With real periodic video checks enabled, the measured menu/game windows reached **21.815 / 19.042 presents/s**, compared with **13.745 / 12.953** in the exploratory baseline. Combined/sequential changes are not isolated causal A/B evidence.
+
+The resource target remains **unmet**: end rollup PSS+SwapPSS is **1054.92 / 1079.86 MiB** in menu/game, and this still excludes a reliable driver-allocation inventory. Status RSS is lower than 1 GiB but does not establish a whole-game budget. Dimensions and clocks were not reduced/changed. Driver storage for eligible 4444 images is estimated, not measured.
+
+This is a user-requested experimental checkpoint, **independent review not-cleared**, not a release. The latest freshly rebuilt artifact is recorded separately from the measured artifact and is being rechecked on-device. The map defect is unresolved. See the evidence README for receipts, standalone regression commands, KMS captures, cleanup/save checks and remaining work.
+
 ## Working rules
 
 - Change one subsystem per A/B, preserve the current owner-section/runtime/launcher baseline and verify SHA-256 after activation.
