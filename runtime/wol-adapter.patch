@@ -356,6 +356,15 @@
          }
          r[0]=key_wait(r[0],r[1],r[2],(int64_t)r[3],pc);ctx->uc_mcontext.pc+=4;return;
      }
+@@ -598,7 +678,7 @@
+     if(svc==0x33) {
+         emit_svc(&b,svc);r[0]=messenger_thread_context(r[0],r[1],pc);ctx->uc_mcontext.pc+=4;return;
+     }
+-    if(svc==0x10){r[0]=sched_getcpu();ctx->uc_mcontext.pc+=4;return;}
++    if(svc==0x10){r[0]=wol_guest_cpu(sched_getcpu());ctx->uc_mcontext.pc+=4;return;}
+     if(svc==0x26) {
+         emit_svc(&b,svc);stop("GUEST_SVC_BREAK",pc,guest_terminate_result?guest_terminate_result:r[0],25);
+     }
 @@ -621,14 +701,19 @@
              struct line b={0};text(&b,"MOMO_SAMPLE thread=");hex(&b,guest_thread_index);
              text(&b," in-kernel=");hex(&b,signal_handler_depth);text(&b," pc=");
@@ -407,6 +416,15 @@
          probe_seconds=(unsigned)seconds;
      }
      printf("NATIVE_PROBE_TIME_BUDGET seconds=%u\n",probe_seconds);
+@@ -826,7 +913,7 @@
+     guest_profile_configure();
+     hid_host_initialize();aud_host_initialize();t2_memwatch_start();
+     t2_gzram_start(); /* Frente J */
+-    cpu_set_t affinity;CPU_ZERO(&affinity);CPU_SET(0,&affinity);
++    cpu_set_t affinity;CPU_ZERO(&affinity);CPU_SET(wol_host_cpu(0),&affinity);
+     if(sched_setaffinity(0,sizeof(affinity),&affinity)){perror("main-thread core 0 affinity");return 1;}
+     if(host_affinity_log(pthread_self(),"guest-main") || host_affinity_log(hid_host.worker,"host-hid") ||
+        host_affinity_log(aud_host.worker,"host-audio"))return 1;
 --- a/native/megaman_texture_view.h
 +++ b/native/megaman_texture_view.h
 @@ -55,6 +55,64 @@
@@ -804,6 +822,58 @@
          }
          if(command && *count==16 && !t2_command_arena_legacy()) {
              /* Full table: forget the oldest non-current chunk whose lists all ran (NVN keeps no older chunks). */
+--- a/native/nvn_cpu_packed.h
++++ b/native/nvn_cpu_packed.h
+@@ -3,6 +3,29 @@
+ #ifndef NVN_CPU_PACKED_H
+ #define NVN_CPU_PACKED_H
+ #include <pthread.h>
++#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++/* WOL_PACKED4444_BEGIN */
++static pthread_once_t wol_packed4444_once=PTHREAD_ONCE_INIT;
++static unsigned wol_packed4444_enabled;
++static void wol_packed4444_configure(void) {
++    const char *v=getenv("WOL_PACKED4444");
++    if(v&&strcmp(v,"0")&&strcmp(v,"1"))stop("WOL_PACKED4444_OPTION",nvn_caller,0,24);
++    wol_packed4444_enabled=v&&!strcmp(v,"1");
++    if(wol_packed4444_enabled)printf("WOL_PACKED4444 enabled=1 native-precision=4-bit host-upload=RGBA4444 no-resize default=off\n");
++}
++static unsigned wol_packed4444_eligible(const struct nvn_texture *t) {
++    return t&&t->pool&&t->pool->flags==0x22&&t->b.format==0x39&&!t->b.flags&&
++        t->b.target==1&&t->b.depth==1&&t->b.levels&&t->b.levels<=14&&!t->b.samples&&
++        t->b.width&&t->b.height&&t->b.width<=4096&&t->b.height<=4096&&
++        !t->b.packaged&&!t->b.packaged_layout&&!t->b.gl_name&&!t->host_half&&!t->host_scaled&&
++        !t->packaged_lazy&&!t->composition_target_seen&&nvn_texture_swizzle_supported(0x39,t->b.swizzle);
++}
++static unsigned wol_packed4444_candidate(const struct nvn_texture *t) {
++    pthread_once(&wol_packed4444_once,wol_packed4444_configure);
++    return wol_packed4444_enabled&&wol_packed4444_eligible(t)?0x8033U:0U;
++}
++/* WOL_PACKED4444_END */
++#endif
+ static pthread_once_t nvn_cpu_packed_once=PTHREAD_ONCE_INIT;
+ static unsigned nvn_cpu_packed_enabled;
+ static void nvn_cpu_packed_configure(void) {
+@@ -12,6 +35,9 @@
+     if(nvn_cpu_packed_enabled)printf("NVN_LC2_CPU_PACKED16 enabled=1 family=39/97 pool=0x22 flags=0x10 snapshot=original-cpu upload-bytes-per-pixel=2\n");
+ }
+ static unsigned nvn_cpu_packed_candidate(const struct nvn_texture *t) {
++#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++    unsigned wol_type=wol_packed4444_candidate(t);if(wol_type)return wol_type;
++#endif
+     pthread_once(&nvn_cpu_packed_once,nvn_cpu_packed_configure);
+     if(!nvn_cpu_packed_enabled||!nvn_cpu_image_family(t))return 0;
+     if(t->b.target!=1||t->b.depth!=1||t->b.levels!=1||t->b.samples||
+@@ -25,6 +51,9 @@
+     if(zero_texture_float_channels(t->b.format) || zero_texture_unorm16_channels(t->b.format) || zero_bc_float(t->b.format))return GL_FLOAT;
+     if(zero_texture_half_channels(t->b.format))return 0x8d61U; /* GL_HALF_FLOAT_OES */
+     if(!t->host_upload_type)return GL_UNSIGNED_BYTE;
++#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++    if(t->host_upload_type==0x8033U&&wol_packed4444_eligible(t))return t->host_upload_type;
++#endif
+     if(!nvn_cpu_image_family(t)||t->host_upload_type!=nvn_texture_packed_type(t->b.format))
+         stop("NVN_LC2_CPU_PACKED_TYPE",nvn_caller,t->id,24);
+     return t->host_upload_type;
 --- a/native/nvn_gl_worker.h
 +++ b/native/nvn_gl_worker.h
 @@ -23,6 +23,8 @@
@@ -1191,7 +1261,7 @@
  static GLenum nvn_blend_equation(unsigned value) {
      if(value==1)return GL_FUNC_ADD;
      if(value==2)return GL_FUNC_SUBTRACT;
-@@ -210,6 +212,240 @@
+@@ -210,6 +212,249 @@
      }
  #endif
      stop("NVN_BLEND_EQUATION_REQUIRED",nvn_caller,value,20);return 0;
@@ -1206,6 +1276,15 @@
 + * re-enable (run 167: gl-blend=0 at draw time for thousands of draws). The four touched cache
 + * slots are invalidated so the next cache user always re-syncs with GL. Defined here, outside
 + * every game-conditional block, because the WoL pair path calls it too. */
++#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++/* WOL_COLOR_WRITE_BEGIN */
++/* This records a successful RGB-writing command, NOT visual correctness.
++ * The actual presented pixels must still be measured before sparse cadence. */
++static void wol_color_write_account(struct nvn_texture *t,unsigned issued,unsigned mask,GLenum error) {
++    if(t&&issued&&(mask&7U)&&!error&&t->draws!=~0U)t->draws++;
++}
++/* WOL_COLOR_WRITE_END */
++#endif
 +static void wol_apply_color_state(uint32_t guest_flags, uint32_t blend, uint32_t equation, uint32_t mask) {
 +    unsigned sf=blend&127,df=(blend>>8)&127,af=(blend>>16)&127,da=(blend>>24)&127;
 +    unsigned ce=(equation>>24)&7,ae=(equation>>28)&7;
@@ -1432,7 +1511,7 @@
  }
  static GLenum nvn_stencil_operation(unsigned value) {
      static const GLenum operations[]={0,GL_KEEP,GL_ZERO,GL_REPLACE,GL_INCR,GL_DECR,GL_INVERT,GL_INCR_WRAP,GL_DECR_WRAP};
-@@ -312,8 +548,19 @@
+@@ -312,8 +557,19 @@
       * sampler2D shaders never evaluate; both are admitted once-logged. Reduction/anisotropy/bias stay closed. */
      {static unsigned aw_sampler_reported;
       if((b->compare || b->lod_min<0) && !aw_sampler_reported++)printf("AW_SAMPLER_ADMIT compare=%u lod-min=%g shaders=sampler2D-only\n",b->compare,b->lod_min);}
@@ -1452,7 +1531,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -507,8 +754,1187 @@
+@@ -507,8 +763,1188 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -2545,6 +2624,7 @@
 +                    GLenum wol_gl_error=glGetError();
 +                    if(wol_gl_error||wol_draw_trace_enabled())
 +                        printf("WOL_PAIR_DRAW_ISSUED primitives=%"PRIu64" glerror=0x%x\n",count,(unsigned)wol_gl_error);
++                    wol_color_write_account(nvn_render.target,!wol_skip_139_this&&!p2solid,wol_mask_bits,wol_gl_error);
 +                }
 +                /* WOL_DRAW_RESULT_END */
 +                /* Review 2026-10-13: prove the pair draw lands in its target - center-pixel readback plus
@@ -2640,7 +2720,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +2130,7 @@
+@@ -704,6 +2140,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -2648,7 +2728,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1535,6 +2962,294 @@
+@@ -1535,6 +2972,298 @@
          begin=end+1;
      }
  }
@@ -2857,10 +2937,14 @@
 +            glDisableVertexAttribArray(0);
 +            /* WOL_BLIT_RESULT_BEGIN */
 +            {
++                GLboolean blit_color[4]={0,0,0,0};
++                glGetBooleanv(GL_COLOR_WRITEMASK,blit_color);
++                unsigned blit_mask=(blit_color[0]?1U:0U)|(blit_color[1]?2U:0U)|(blit_color[2]?4U:0U);
 +                GLenum wol_gl_error=glGetError();
 +                if(wol_gl_error||wol_draw_trace_enabled())
 +                    printf("WOL_DOWNSAMPLE_BLIT src=%"PRIu64"(%ux%u texture=%u) dst=%"PRIu64"(%ux%u texture=%u) glerror=0x%x\n",
 +                        src->id,src->b.width,src->b.height,src->name,dst->id,dst->b.width,dst->b.height,dst->name,(unsigned)wol_gl_error);
++                wol_color_write_account(dst,src->draws!=0,blit_mask,wol_gl_error);
 +            }
 +            /* WOL_BLIT_RESULT_END */
 +            {   /* Decisive census: what the blit wrote (the presented-sized frame) and what the source
@@ -2943,7 +3027,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +3277,16 @@
+@@ -1562,7 +3291,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -4082,6 +4166,25 @@
          }
          else if(format==0x97){
              /* SDK texture word 0x2a712494: A1B5G5R5 hardware with
+@@ -164,6 +168,18 @@
+         return 1;
+     }
+     if(!type||type!=nvn_texture_packed_type(format))return 0;
++    if(format==0x39) {
++        if(!nvn_texture_swizzle_supported(format,swizzle))return 0;
++        for(size_t i=0;i<pixels;i++,src+=2,dst+=2) {
++            unsigned word=src[0]|((unsigned)src[1]<<8);uint16_t out=0;
++            for(unsigned c=0;c<4;c++) {
++                unsigned nibble=swizzle[c]>=2?(word>>(4*(swizzle[c]-2)))&15U:swizzle[c]?15U:0U;
++                out|=(uint16_t)(nibble<<(12-4*c));
++            }
++            memcpy(dst,&out,sizeof(out));
++        }
++        return 1;
++    }
+     for(unsigned c=0;c<4;c++)if(swizzle[c]!=c+2)return 0;
+     for(size_t i=0;i<pixels;i++,src+=2,dst+=2) {
+         unsigned word=src[0]|((unsigned)src[1]<<8);
 --- a/native/nvn_texture_parameters.h
 +++ b/native/nvn_texture_parameters.h
 @@ -10,6 +10,16 @@
@@ -4242,6 +4345,52 @@
          }
          struct fb_var_screeninfo info={0};
          if(nvn_platform_sdl_window) {
+--- a/native/threading.h
++++ b/native/threading.h
+@@ -2,6 +2,34 @@
+  * virtual TPIDR, host stack and signal stack. Kernel state is serialized by
+  * kernel_mutex; blocking operations release it through condition waits. */
+ #define MAX_THREADS 96U   /* Unity 2021 keeps growing its worker and loading pools (MEDIDO run momo-070) */
++/* WOL_CPU_MAP_BEGIN */
++/* Physical placement is not the Horizon logical-core ABI. Keep all masks,
++ * ideals and GetCurrentProcessorNumber in the guest's original 0..2 space. */
++static pthread_once_t wol_cpu_map_once=PTHREAD_ONCE_INIT;
++static unsigned wol_cpu_map_offset;
++static void wol_cpu_map_configure(void) {
++#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
++    const char *v=getenv("WOL_CPU_OFFSET");
++    if(v&&strcmp(v,"0")&&strcmp(v,"4"))stop("WOL_CPU_MAP_OPTION",0,0,24);
++    if(v&&!strcmp(v,"4")) {
++        cpu_set_t allowed;if(sched_getaffinity(0,sizeof(allowed),&allowed))stop("WOL_CPU_MAP_QUERY",0,0,24);
++        for(unsigned i=4;i<7;i++)if(!CPU_ISSET(i,&allowed))stop("WOL_CPU_MAP_UNAVAILABLE",0,i,24);
++        wol_cpu_map_offset=4;
++        printf("WOL_CPU_MAP logical=0,1,2 physical=4,5,6 guest-masks=unchanged no-clock-change\n");
++    }
++#endif
++}
++static unsigned wol_host_cpu(unsigned logical) {
++    pthread_once(&wol_cpu_map_once,wol_cpu_map_configure);
++    return logical+wol_cpu_map_offset;
++}
++static unsigned wol_guest_cpu(int physical) {
++    pthread_once(&wol_cpu_map_once,wol_cpu_map_configure);
++    if(wol_cpu_map_offset&&(physical<0||(unsigned)physical<wol_cpu_map_offset||(unsigned)physical>wol_cpu_map_offset+2))
++        stop("WOL_CPU_MAP_CURRENT",0,(uint64_t)physical,24);
++    return (unsigned)physical-wol_cpu_map_offset;
++}
++/* WOL_CPU_MAP_END */
+ struct guest_thread {
+     uint64_t entry,argument,stack,tls,id,affinity,host_tid;
+     uint32_t handle;int priority,core,state;
+@@ -30,7 +58,7 @@
+     if(!mask || (mask&~7ULL) || core < -1 || core>2 || (core>=0 && !(mask&(1ULL<<core))))
+         stop("INVALID_THREAD_AFFINITY",pc,mask,24);
+     if(t->state==2) {
+-        cpu_set_t set;CPU_ZERO(&set);for(unsigned i=0;i<3;i++)if(mask&(1ULL<<i))CPU_SET(i,&set);
++        cpu_set_t set;CPU_ZERO(&set);for(unsigned i=0;i<3;i++)if(mask&(1ULL<<i))CPU_SET(wol_host_cpu(i),&set);
+ #ifdef AW_NO_ROMFS
+         {const char *o=getenv("AW_GUEST_ONE_CORE");if(o&&!strcmp(o,"1")){CPU_ZERO(&set);CPU_SET(0,&set);}} /* race bisection: every guest thread on CPU0 */
+         {const char *o=getenv("AW_CPU0_EXCLUSIVE");if(o&&!strcmp(o,"1")&&t!=&threads[0]){CPU_CLR(0,&set);if(!CPU_COUNT(&set)){CPU_SET(1,&set);CPU_SET(2,&set);}
 --- a/native/zero_texture_writes.h
 +++ b/native/zero_texture_writes.h
 @@ -5,7 +5,28 @@

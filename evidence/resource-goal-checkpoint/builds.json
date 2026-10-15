@@ -1,0 +1,10 @@
+{
+  "wol-horizon-build-fast-cores": {
+    "bytes": 1909928,
+    "sha256": "d8bfc7efc2faabda5710a6ad700c84c040cabf15577c1ec10c39258da191bfc4"
+  },
+  "wol-horizon-build-goal-verified": {
+    "bytes": 1909936,
+    "sha256": "2424c45fadeddadce2feb8112dbfdc61866f5fc9af755b07f577596d92d83c62"
+  }
+}
