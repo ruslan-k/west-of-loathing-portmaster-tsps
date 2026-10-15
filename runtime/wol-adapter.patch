@@ -38,6 +38,33 @@
          static int allow=-1;if(allow<0){const char *o=getenv("T2_RELEASE_CAPTURE");allow=o&&!strcmp(o,"1");}
          if(!allow||strcmp(kind,"frame-ppm"))return;
      }
+--- a/native/display.h
++++ b/native/display.h
+@@ -97,7 +97,23 @@
+         uint64_t count=0;
+         if(req->outputs[0].size>=0x60) {
+             uint8_t info[0x60]={0};memcpy(info,"Default",8);info[0x40]=1;
+-            uint64_t limits[3]={1,1920,1080};memcpy(info+0x48,limits,sizeof(limits));
++            /* WOL_DISPLAY_MAX=WxH overrides the advertised maximum layer
++             * dimensions (default 1920x1080). Diagnostic for M7: the guest
++             * sizes its internal camera targets from this maximum, so a lower
++             * value asks Unity for 720p internals on a 720p display. */
++            static uint64_t max_w=1920,max_h=1080;static int max_read=0;
++            if(!max_read) {
++                max_read=1;
++                const char *o=getenv("WOL_DISPLAY_MAX");
++                if(o) {
++                    unsigned a=0,b=0;
++                    if(sscanf(o,"%ux%u",&a,&b)==2 && a>=320 && a<=4096 && b>=240 && b<=4096) {
++                        max_w=a;max_h=b;
++                        printf("WOL_DISPLAY_MAX %ux%u\n",a,b);
++                    }
++                }
++            }
++            uint64_t limits[3]={1,max_w,max_h};memcpy(info+0x48,limits,sizeof(limits));
+             memcpy((void *)(uintptr_t)req->outputs[0].address,info,sizeof(info));count=1;
+         }
+         ipc_reply(buffer,req->token,0,&count,8,0,req->domain);return 1;
 --- a/native/filesystem.h
 +++ b/native/filesystem.h
 @@ -34,6 +34,12 @@
@@ -647,7 +674,19 @@
  extern uint64_t cotm_nvn_original_lookup(uint64_t,const char *,uint64_t);
  extern uint64_t cotm_nvn_call_original(uint64_t,struct nvn_frame *);
  static struct {uint64_t address;uint32_t flags;EGLDisplay display;EGLConfig config;EGLContext context;EGLSurface surface;
-@@ -294,6 +299,9 @@
+@@ -235,7 +240,10 @@
+     /* Animal Well (NVN 17.x queries): 40 SUPPORTS_STENCIL8_FORMAT; 45..48 GLSLC gpu-code version bounds the
+      * game compares with its offline BNSH programs (major 1); 62 advanced blend; 64 draw texture. */
+     case 0x28:value=1;break;   /* stencil8 */
+-    case 0x29:value=0;break;   /* ASTC */
++    /* WOL_NVN_ASTC=1 answers that ASTC is a supported feature so the guest
++     * stops falling back to host decompression. The GLES path still has to
++     * learn the format, so this is a diagnostic default-off switch. */
++    case 0x29:{static int astc_cfg=-1;if(astc_cfg<0){const char *o=getenv("WOL_NVN_ASTC");astc_cfg=o&&!strcmp(o,"1");}value=(uint64_t)astc_cfg;break;}   /* ASTC */
+     case 0x2a:value=262144;break; /* L2 size */
+     case 0x2d:value=1;break;
+     case 0x2e:value=1;break;
+@@ -294,6 +302,9 @@
      if(t2p_in_cmdmem_callback){struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);printf("T2P_CB_NVN name=%s caller=0x%"PRIx64" ns=%"PRIu64"\n",nvn_functions[id].name,f->lr,(uint64_t)t.tv_sec*UINT64_C(1000000000)+(uint64_t)t.tv_nsec);} /* FRENTE-P diag */
      nvn_async_api_enter();
      nvn_bridge_depth++;uint64_t previous=nvn_caller;nvn_caller=f->lr;
@@ -657,7 +696,7 @@
      uint64_t count=++nvn_calls[id];nvn_bridge_calls++;
      if(id!=NI_nvnDeviceGetProcAddress && (count<=4 || !(count&(count-1)))) {
          struct line log={0};text(&log,"NVN_CALL name=");text(&log,nvn_functions[id].name);text(&log," caller=");location(&log,f->lr);
-@@ -380,5 +388,7 @@
+@@ -380,5 +391,7 @@
         id==NI_nvnMemoryPoolBuilderGetSize || id==NI_nvnMemoryPoolGetSize)
          printf("NVN_RESULT name=%s result=0x%"PRIx64"\n",nvn_functions[id].name,result);
      if(id==NI_nvnQueueSubmitCommands)nvn_pointer_report(nvn_replay.last_frame);
