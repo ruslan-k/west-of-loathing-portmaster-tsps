@@ -1452,7 +1452,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -507,8 +754,1181 @@
+@@ -507,8 +754,1187 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -1669,7 +1669,7 @@
 +        if(wol_cat_cur) {
 +            wol_pair_program=wol_cat_cur->name;wol_pair_c3_loc=wol_cat_cur->c3;wol_pair_uvk_loc=wol_cat_cur->uvk;
 +            wol_pair_c3f_loc=wol_cat_cur->c3f;wol_pair_tex_loc=wol_cat_cur->tex;
-+            printf("WOL_CAT_DRAW vertex=%s fragment=%s mode=%s\n",
++            if(wol_draw_trace_enabled())printf("WOL_CAT_DRAW vertex=%s fragment=%s mode=%s\n",
 +                wol_cat_bindings[wol_cat_cur->v].name,wol_cat_bindings[wol_cat_cur->f].name,
 +                wol_cat_bindings[wol_cat_cur->f].diag?"TEST-DIAGNOSTIC-COLOR":"translated");
 +            /* The bank slot is whatever the guest actually bound - the shader names it c3, but the bind
@@ -1715,7 +1715,7 @@
 +                        wol_cat_bindings[wol_cat_cur->f].name,fbank,(unsigned)c3f.size,a1,b1,c1,d1,rect_ok);
 +                }
 +            }
-+            printf("WOL_PAIR_BANK stage=0 slot=%u size=%u first=%g,%g,%g,%g stage=1 slot=%u size=%u first=%g,%g,%g,%g\n",
++            if(wol_draw_trace_enabled())printf("WOL_PAIR_BANK stage=0 slot=%u size=%u first=%g,%g,%g,%g stage=1 slot=%u size=%u first=%g,%g,%g,%g\n",
 +                bank,(unsigned)c3r.size,words[0],words[1],words[2],words[3],
 +                fbank,(unsigned)c3f.size,fwords[0],fwords[1],fwords[2],fwords[3]);
 +            {   /* Review 2026-10-13 (third pass): dump EVERY non-empty uniform slot for both stages at the
@@ -1945,7 +1945,7 @@
 +                            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,(GLint)fw_val);
 +                            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,(GLint)fw_val);
 +                            static unsigned fw_told;if(fw_told<4){fw_told++;printf("WOL_FORCE_WRAP applied wrap=0x%x name=%u\n",(unsigned)fw_val,(unsigned)t->name);}}
-+                        printf("WOL_PAIR_TEX slot=%u handle=0x%llx name=%u %ux%u\n",tslot,(unsigned long long)handle,(unsigned)t->name,t->b.width,t->b.height);}if(t->name==139u){static int s139;static unsigned s139on;if(!s139){const char*o=getenv("WOL_SKIP_TEX139");s139on=o&&!strcmp(o,"1");s139=1;}wol_skip_139_this=s139on?1:0;}else wol_skip_139_this=0;
++                        if(wol_draw_trace_enabled())printf("WOL_PAIR_TEX slot=%u handle=0x%llx name=%u %ux%u\n",tslot,(unsigned long long)handle,(unsigned)t->name,t->b.width,t->b.height);}if(t->name==139u){static int s139;static unsigned s139on;if(!s139){const char*o=getenv("WOL_SKIP_TEX139");s139on=o&&!strcmp(o,"1");s139=1;}wol_skip_139_this=s139on?1:0;}else wol_skip_139_this=0;
 +                    /* Second sampler (f268 draft): bind the next resolvable recorded handle to unit 1. */
 +                    {int t1loc=wol_cat_cur&&wol_cat_cur->tex1>=0?wol_cat_cur->tex1:wol_pair_tex1_loc;
 +                    if(t1loc>=0) {
@@ -2048,7 +2048,7 @@
 +                }
 +            }
 +            unsigned long long stride=nvn_render.streams[0][0],vsize=nvn_render.vertex[0].size;
-+            printf("WOL_PAIR_DRAW mode=%"PRIu64" first=%"PRIu64" count=%"PRIu64" stride=%llu stream=%llu c3bank=%llx/%u avail=%u target=%"PRIu64"/%ux%u\n",
++            if(wol_draw_trace_enabled())printf("WOL_PAIR_DRAW mode=%"PRIu64" first=%"PRIu64" count=%"PRIu64" stride=%llu stream=%llu c3bank=%llx/%u avail=%u target=%"PRIu64"/%ux%u\n",
 +                mode,first,count,stride,vsize,(unsigned long long)c3r.address,(unsigned)c3r.size,avail,
 +                nvn_render.target?nvn_render.target->id:0,nvn_render.target?nvn_render.target->b.width:0,nvn_render.target?nvn_render.target->b.height:0);
 +            if(wol_cat_cur->fullscreen) {
@@ -2540,7 +2540,13 @@
 +                    for(unsigned s=0;s<32;s++)if(pair_stream_vbo[s])glDeleteBuffers(1,&pair_stream_vbo[s]);
 +                    pair_vbo=0;
 +                }
-+                printf("WOL_PAIR_DRAW_ISSUED primitives=%"PRIu64" glerror=0x%x\n",count,(unsigned)glGetError());
++                /* WOL_DRAW_RESULT_BEGIN */
++                {
++                    GLenum wol_gl_error=glGetError();
++                    if(wol_gl_error||wol_draw_trace_enabled())
++                        printf("WOL_PAIR_DRAW_ISSUED primitives=%"PRIu64" glerror=0x%x\n",count,(unsigned)wol_gl_error);
++                }
++                /* WOL_DRAW_RESULT_END */
 +                /* Review 2026-10-13: prove the pair draw lands in its target - center-pixel readback plus
 +                 * the render state that could swallow it (scissor/depth/viewport), right after the draw. */
 +                /* Sprite draws (stride 24): scan the whole target once for any non-black pixels - tells
@@ -2634,7 +2640,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +2124,7 @@
+@@ -704,6 +2130,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -2642,7 +2648,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1535,6 +2956,288 @@
+@@ -1535,6 +2962,294 @@
          begin=end+1;
      }
  }
@@ -2849,8 +2855,14 @@
 +            glEnableVertexAttribArray(0);glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,0,quad);
 +            glDrawArrays(GL_TRIANGLE_STRIP,0,4);
 +            glDisableVertexAttribArray(0);
-+            printf("WOL_DOWNSAMPLE_BLIT src=%"PRIu64"(%ux%u texture=%u) dst=%"PRIu64"(%ux%u texture=%u) glerror=0x%x\n",
-+                src->id,src->b.width,src->b.height,src->name,dst->id,dst->b.width,dst->b.height,dst->name,(unsigned)glGetError());
++            /* WOL_BLIT_RESULT_BEGIN */
++            {
++                GLenum wol_gl_error=glGetError();
++                if(wol_gl_error||wol_draw_trace_enabled())
++                    printf("WOL_DOWNSAMPLE_BLIT src=%"PRIu64"(%ux%u texture=%u) dst=%"PRIu64"(%ux%u texture=%u) glerror=0x%x\n",
++                        src->id,src->b.width,src->b.height,src->name,dst->id,dst->b.width,dst->b.height,dst->name,(unsigned)wol_gl_error);
++            }
++            /* WOL_BLIT_RESULT_END */
 +            {   /* Decisive census: what the blit wrote (the presented-sized frame) and what the source
 +                 * texture holds, both read back from the GPU. A black resolve is only diagnosable when the
 +                 * source is measured in the same place. */
@@ -2931,7 +2943,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +3265,16 @@
+@@ -1562,7 +3277,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -3077,7 +3089,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,881 @@
+@@ -46,10 +46,897 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -3745,6 +3757,22 @@
 +     * before trusting game textures. TEST-ONLY. */
 +    static int v=-1;if(v<0){const char *o=getenv("WOL_FS_TESTTEX");v=o&&!strcmp(o,"1");}return (unsigned)v;
 +}
++/* WOL_DRAW_TRACE_BEGIN */
++/* Success-path diagnostics only. Do not put resource binding, counters or GL
++ * error queries inside this gate. WOL_DRAW_TRACE=1 restores the verbose A/B. */
++static unsigned wol_draw_trace_enabled(void) {
++    static int configured=-1;
++    int mode=__atomic_load_n(&configured,__ATOMIC_ACQUIRE);
++    if(mode<0) {
++        const char *o=getenv("WOL_DRAW_TRACE");
++        mode=o&&!strcmp(o,"1");
++        int expected=-1;
++        if(__atomic_compare_exchange_n(&configured,&expected,mode,0,__ATOMIC_RELEASE,__ATOMIC_RELAXED))
++            printf("WOL_DRAW_TRACE detailed=%u default=off errors=always-on\n",(unsigned)mode);
++    }
++    return (unsigned)mode;
++}
++/* WOL_DRAW_TRACE_END */
 +static unsigned wol_quiet(void) {
 +    /* Review 2026-10-13 P1: WOL_QUIET=1 removes the per-draw texture content probing
 +     * (full-texture GPU->CPU readbacks) from the hot path for speed runs; the draw
@@ -3960,7 +3988,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +1378,29 @@
+@@ -507,12 +1394,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -3984,14 +4012,14 @@
 +#endif
 +    if(p && p->compute_only) {
 +#if defined(WOL_SHADER_CAPTURE) && WOL_SHADER_CAPTURE
-+        printf("WOL_PROGRAM_BOUND object=0x%"PRIx64" mask=0x%"PRIx64" action=placeholder-skip\n",object,mask);
++        if(wol_draw_trace_enabled())printf("WOL_PROGRAM_BOUND object=0x%"PRIx64" mask=0x%"PRIx64" action=placeholder-skip\n",object,mask);
 +#endif
 +        return;}
 +
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +1501,28 @@
+@@ -613,6 +1517,28 @@
              }
          }
  #endif

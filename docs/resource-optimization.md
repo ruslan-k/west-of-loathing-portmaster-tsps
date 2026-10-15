@@ -2,7 +2,7 @@
 
 ## Scope
 
-The current owner build reaches real menus and Boring Springs with restored skinned bodies and the WANTED portrait mask. Map layout remains partially unresolved. Keep this visual baseline unchanged while measuring resource work. This document ranks **candidates**, not shipped performance improvements.
+The current owner build reaches real menus and Boring Springs with restored skinned bodies and the WANTED portrait mask. Map layout remains partially unresolved. Keep this visual baseline unchanged while measuring resource work. The historical baseline below is followed by the first measured logging-only optimization; the remaining sections are **candidates**, not shipped improvements.
 
 Evidence: [gfx265](../evidence/gfx265/README.md), including raw `/proc` samples, compressed runtime interval and physical scene/cleanup captures. Date: 2026-10-15.
 
@@ -23,9 +23,19 @@ A read-only, 30.183-second sample of the stationary Boring Springs scene used th
 
 **Observed:** `WOL_QUIET=1` suppresses texture-content probes and samples IPC, but the pair path still emits `WOL_CAT_DRAW`, `WOL_PAIR_BANK`, `WOL_PAIR_TEX`, `WOL_PAIR_DRAW` and `WOL_PAIR_DRAW_ISSUED` for every draw. The sample has roughly 23k of each in 30 seconds.
 
-**Next isolated A/B:** gate these successful-draw trace lines with an explicit detailed-trace flag (default off), retaining one initial configuration receipt and a bounded periodic summary. Keep error detection, pointer/range validation, shader identity checks, unknown-operation stops and actionable failures always on. Do not optimize by simply skipping GL error/state work that rendering depends on.
+**Implemented:** `WOL_DRAW_TRACE=1` opts into the old successful per-draw trace volume. Unset, `0` and other values keep that success output off. The same gate covers successful downsample-blit and compute-only program-bound messages. One configuration receipt and the existing periodic summaries remain. Error detection, pointer/range validation, shader identity checks, unknown-operation stops and actionable failures remain always on. In particular, `glGetError()` still executes at both draw/blit sites, and nonzero errors still print when detailed tracing is disabled. Resource binding, uniforms, geometry, stencil, counters and readback cadence were not changed.
 
 **Acceptance:** same binary and saved scene, detailed trace on/off, matched menu/scene/map captures and input response; report log bytes/s, CPU seconds/frame, median/p95 period and major faults. Any lower write rate is a proven logging saving, not automatically a proven FPS or battery gain.
+
+**Measured A/B/A/B:** [resource-draw-logging evidence](../evidence/resource-draw-logging/README.md), same `c35548fb…` binary and SHA-verified save snapshot, four approximately 30-second stationary Boring Springs windows. Both control runs restore trace verbosity without rebuilding. `WOL_RECT_TRACE=off` and `MOMO_FRAME_CLOCK=1` are identical in all four runs; this is not a comparison against gfx265's differently instrumented baseline.
+
+- Log growth: **312.26 / 329.46 KiB/s** with detailed trace; **27.04 / 23.80 KiB/s** without it. Mean **320.86 → 25.42 KiB/s**, **92.08% less log growth**.
+- Presents/s: **11.64 / 11.65 → 12.36 / 12.13**. Mean **11.65 → 12.25** (observed **+5.12%**, not a universal FPS guarantee).
+- Process CPU time per frame: mean **133.24 → 126.23 ms**, observed **−5.26%**. This is summed process CPU time, not frame wall time. Overall CPU utilization stays approximately **155% of one core** in both modes; no material reduction in utilization or power is established.
+- Median periods: **82.25 / 83.46 → 77.89 / 79.32 ms**; p95: **88.56 / 89.73 → 84.24 / 84.06 ms**. Major faults vary **29.78–42.41/s**; cache/swap state and scene animation are not controlled perfectly.
+- No RAM saving: per-run mean RSS is **684–708 MiB** and VmSwap remains around **700 MiB**. No watts, battery-life or physical-button validation was performed. The visible stick response was checked through the opt-in diagnostic Npad channel, with real KMS movement frames.
+- Menu/WANTED mask, complete player/Cactus Bill bodies, map open/close and final Spruce menu were checked in real KMS frames. The map remains largely blank; this change neither fixes nor validates its unresolved content/layout. Only exact test-runtime PIDs were stopped, the original owner save snapshot was restored and re-hashed, and the new runtime remains installed.
+- Native build, 22 baseline unit tests, seven standalone regression commands (including the compiled trace/error policy test), upstream-overlay dry check and an independent code-only review passed. The review applies only to this small diff, not to all historical experimental code.
 
 ## 2. Repair the present-proof accounting before using sparse readback
 
