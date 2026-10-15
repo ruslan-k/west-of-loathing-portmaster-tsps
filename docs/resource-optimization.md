@@ -61,6 +61,16 @@ picture correct, but measured **slower** (menu 26.74 -> 21.51 presents/s; finish
 the mid-frame blit serialises GPU work more than the overlapped CPU copies cost. Default stays
 `WOL_COPY_GPU=0`. Details: [fps-gpu-copy](../evidence/fps-gpu-copy/README.md).
 
+A second, narrower attempt removed the staging memcpy of the re-upload itself
+(`WOL_REFRESH_DIRECT=1`: upload straight from guest storage): it engaged on all 2560 refreshes
+(`direct-levels=2560`) and measured, over three paired runs, **flat-to-slightly-negative**
+(staging menu 26.28 / game 26.17 vs direct menu 25.68 / game 26.03). The staging copy was not on
+the critical path; the option stays opt-in and the default keeps the staging copy. Details:
+[fps-refresh-direct](../evidence/fps-refresh-direct/README.md).
+
+Both ends of the per-frame copy/upload chain are therefore closed as FPS levers - the remaining
+measured costs sit in replay CPU work and the per-submit finish, not in this chain.
+
 Code, scene coverage, cleanup receipts, exact artifact hashes and limitations:
 [measurement documentation](memory-benchmark.md). Game binaries, owner bundles,
 texture bytes and saves are not published.
