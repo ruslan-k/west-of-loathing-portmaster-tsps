@@ -1,0 +1,51 @@
+{
+  "sample_seconds": 30.182832973001496,
+  "frame_rows": 356,
+  "first_frame": 8098,
+  "last_frame": 8453,
+  "observed_presents_per_s": 11.794784151588471,
+  "cpu_percent": 156.87725549935791,
+  "status_ranges_KiB": {
+    "VmRSS": [
+      664844,
+      675152
+    ],
+    "VmSwap": [
+      757428,
+      761788
+    ]
+  },
+  "largest_mapping_committed_MiB": 785.38671875,
+  "major_faults_per_s": 1.1595995654651587,
+  "log_KiB_per_s": 346.32896993053515,
+  "swapin_KiB_per_s": 15.903079754950749,
+  "swapout_KiB_per_s": 59.23897208719154,
+  "frame_metrics_ms": {
+    "period-ms": {
+      "mean": 84.97106741573033,
+      "median": 84.55,
+      "p95": 91.2
+    },
+    "replay-ms": {
+      "mean": 53.43904494382023,
+      "median": 53.6,
+      "p95": 55.7
+    },
+    "finish-ms": {
+      "mean": 6.120224719101124,
+      "median": 6.1,
+      "p95": 6.8
+    },
+    "readback-ms": {
+      "mean": 16.504775280898876,
+      "median": 16.3,
+      "p95": 18.4
+    }
+  },
+  "measurement_limits": [
+    "single diagnostic-binary window, not an A/B or energy measurement",
+    "T2P_SLOW_FRAME is thresholded at 40 ms; raw interval contained one row per present, all >40 ms",
+    "VmRSS and smaps RSS differ on this kernel; both retained without equating them",
+    "sample endpoints and interval-log frame boundaries can differ by one partial frame"
+  ]
+}

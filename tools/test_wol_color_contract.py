@@ -75,8 +75,9 @@ assert 'if(mih&&!wol_mask_bits&&nvn_render.mask)wol_mask_bits=(nvn_render.mask>>
     'the high-nibble heuristic must only fire when configured, low nibble empty and value nonzero'
 assert 'nvn_vertex_format_decode(format)' in hook,\
     'vertex attributes must bind from the guest descriptors (stride-60 color@24/uv@28 regression)'
-assert hook.count('glVertexAttribPointer(i,(GLint)vf.components,vf.type,vf.normalized')>=2,\
-    'both VBO and direct paths must use the descriptor-driven binding'
+assert ('wol_pair_bind_attribute(i,nvn_render.attrib[i],first,vertex_count,pair_stream_vbo,0)' in hook and
+        'wol_pair_bind_attribute(i,nvn_render.attrib[i],first,vertex_count,pair_stream_vbo,1)' in hook), \
+    'both VBO and direct paths must use the shared descriptor-driven stream binding'
 assert 'wol_trace_this=0;' in hook and 'if(wol_trace_this) {' in hook,\
     'before/after trace sections must share one per-draw flag'
 print('PASS regression guards: mask heuristic scope, descriptor binding, trace pairing')

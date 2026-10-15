@@ -5,6 +5,17 @@ cd "$GAMEDIR" || exit 1
 # TEMP-DIAG (2026-10-14 remote verification): UV diagnostics during the investigation.
 # NOTE: on the device the same block is live; harmless defaults, all overridable.
 export COTM_INPUT_DIAGNOSTIC=${COTM_INPUT_DIAGNOSTIC:-1}
+# Installed owner-bundle baseline: repaired Sprite RenderData metadata now tracks
+# the promoted mip dimensions. Legacy renderer-side UV halving would apply the
+# adjustment twice and break the menu/world on an ordinary menu launch.
+export WOL_TOP_UV=${WOL_TOP_UV:-raw}
+export WOL_TOP_RAWID=${WOL_TOP_RAWID:-none}
+export WOL_TOP_SMART=${WOL_TOP_SMART:-0}
+export WOL_F191_UV=${WOL_F191_UV:-none}
+export WOL_F191_NOFOLDID=${WOL_F191_NOFOLDID:-none}
+# Reapply the game's stencil writers/consumers on substituted draws; without
+# this, the WANTED portrait's legs escape its existing UI mask.
+export WOL_PAIR_STENCIL=${WOL_PAIR_STENCIL:-1}
 export WOL_RECT_TRACE=${WOL_RECT_TRACE:-480,440,1060,720}
 export WOL_RECT_TRACE_LIMIT=${WOL_RECT_TRACE_LIMIT:-90000}
 mkdir -p logs save-laboratory
