@@ -1706,7 +1706,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -507,8 +763,1188 @@
+@@ -507,8 +763,1228 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -1750,12 +1750,43 @@
 +    return 1;
 +}
 +/* WOL_DRAW_GEOMETRY_END */
++/* WOL_PAIR_RING_BEGIN */
++/* 2026-10-15 (chat-plan experiment B, measured basis): the substituted-draw path
++ * creates and deletes a vertex buffer per draw (plus one per distinct vertex stream
++ * and one element buffer for indexed draws). Measured ~44 draws/frame on this title
++ * with the standard vertex path unused (NVN_VERTEX_STATE_PROFILE pointer-sent=0), so
++ * this churn is on the hot path. A small rotation of persistent buffers refilled with
++ * BufferData keeps the old storage alive for pending draws - the same contract the
++ * deleted-per-draw buffers relied on - and removes the per-draw GL object churn.
++ * WOL_PAIR_RING=0 restores the per-draw gen/delete path for an A/B. */
++#define WOL_PAIR_RING_SLOTS 6
++static struct {
++    unsigned cursor;
++    GLuint vertex[WOL_PAIR_RING_SLOTS];
++    GLuint element[WOL_PAIR_RING_SLOTS];
++    GLuint stream[32][WOL_PAIR_RING_SLOTS];
++} wol_pair_ring;
++static int wol_pair_ring_mode(void) {
++    static int configured,on;
++    if(!configured){configured=1;const char *o=getenv("WOL_PAIR_RING");on=!(o&&!strcmp(o,"0"));
++        if(on)printf("WOL_PAIR_RING mode=reuse slots=%u usage=BufferData-STREAM_DRAW\n",(unsigned)WOL_PAIR_RING_SLOTS);
++        else printf("WOL_PAIR_RING mode=per-draw-gen-delete slots=0\n");}
++    return on;
++}
++static unsigned wol_pair_ring_next(void) {
++    return wol_pair_ring.cursor++%(unsigned)WOL_PAIR_RING_SLOTS;
++}
++static GLuint wol_pair_ring_buffer(GLuint *buffer) {
++    if(!*buffer){glGenBuffers(1,buffer);if(!*buffer)stop("WOL_PAIR_RING_MEMORY",nvn_caller,0,21);}
++    return *buffer;
++}
++/* WOL_PAIR_RING_END */
 +/* WOL_PAIR_STREAMS_BEGIN */
 +/* Skinned meshes split position/normal/tangent (stream 0, stride 40) from
 + * UVs (stream 1, stride 24). Attribute offsets are relative to THEIR stream,
 + * never implicitly to stream 0. Keep the single-stream VBO path unchanged. */
 +static unsigned wol_pair_bind_attribute(unsigned index,uint32_t a,uint64_t first,
-+        uint64_t vertex_count,GLuint stream_vbo[32],int direct) {
++        uint64_t vertex_count,GLuint stream_vbo[32],unsigned slot,int direct) {
 +    if(!(a&64))return 0;
 +    unsigned stream=a&31,format=(a>>21)&1023,offset=(a>>7)&16383;
 +    if(stream>=nvn_render.stream_count)return 0;
@@ -1777,7 +1808,8 @@
 +            (GLsizei)stride,data+offset);
 +    } else {
 +        if(!stream_vbo[stream]) {
-+            glGenBuffers(1,&stream_vbo[stream]);
++            if(wol_pair_ring_mode())stream_vbo[stream]=wol_pair_ring_buffer(&wol_pair_ring.stream[stream][slot]);
++            else glGenBuffers(1,&stream_vbo[stream]);
 +            glBindBuffer(GL_ARRAY_BUFFER,stream_vbo[stream]);
 +            glBufferData(GL_ARRAY_BUFFER,(GLsizeiptr)bytes,data,GL_STREAM_DRAW);
 +        } else glBindBuffer(GL_ARRAY_BUFFER,stream_vbo[stream]);
@@ -2435,10 +2467,13 @@
 +                 * guest bytes are uploaded into a stream buffer and the attributes read from it. The old
 +                 * direct-pointer path stays available as WOL_PAIR_DIRECT=1 for the A/B. */
 +                static int pd_configured,pd_direct;if(!pd_configured){const char *o=getenv("WOL_PAIR_DIRECT");pd_direct=o&&!strcmp(o,"1");pd_configured=1;}
++                unsigned pair_ring_slot=wol_pair_ring_mode()?wol_pair_ring_next():0;
 +                GLuint pair_vbo=0;
 +                GLuint pair_stream_vbo[32]={0};
 +                if(!pd_direct) {
-+                    glGenBuffers(1,&pair_vbo);glBindBuffer(GL_ARRAY_BUFFER,pair_vbo);
++                    if(wol_pair_ring_mode())pair_vbo=wol_pair_ring_buffer(&wol_pair_ring.vertex[pair_ring_slot]);
++                    else glGenBuffers(1,&pair_vbo);
++                    glBindBuffer(GL_ARRAY_BUFFER,pair_vbo);
 +                    glBufferData(GL_ARRAY_BUFFER,(GLsizeiptr)(vertex_count*stride),base,GL_STREAM_DRAW);
 +                    pair_stream_vbo[0]=pair_vbo;
 +                }
@@ -2575,7 +2610,7 @@
 +                    unsigned desc_attrs=0;
 +                    for(unsigned i=0;i<(unsigned)nvn_device.attributes&&i<4;i++) {
 +                        if(i<nvn_render.attrib_count)
-+                            desc_attrs+=wol_pair_bind_attribute(i,nvn_render.attrib[i],first,vertex_count,pair_stream_vbo,0);
++                            desc_attrs+=wol_pair_bind_attribute(i,nvn_render.attrib[i],first,vertex_count,pair_stream_vbo,pair_ring_slot,0);
 +                    }
 +                    if(!desc_attrs) {
 +                    glBindBuffer(GL_ARRAY_BUFFER,pair_vbo);
@@ -2594,7 +2629,7 @@
 +                    unsigned desc_attrs=0;
 +                    for(unsigned i=0;i<(unsigned)nvn_device.attributes&&i<4;i++) {
 +                        if(i<nvn_render.attrib_count)
-+                            desc_attrs+=wol_pair_bind_attribute(i,nvn_render.attrib[i],first,vertex_count,pair_stream_vbo,1);
++                            desc_attrs+=wol_pair_bind_attribute(i,nvn_render.attrib[i],first,vertex_count,pair_stream_vbo,pair_ring_slot,1);
 +                    }
 +                    if(!desc_attrs) {
 +                    glEnableVertexAttribArray(0);glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,(GLsizei)stride,base);
@@ -2732,10 +2767,14 @@
 +                if(wol_skip_139_this){static unsigned s139told;if(s139told<4){s139told++;printf("WOL_SKIP_TEX139 draw skipped name=139\n");}}
 +                else if(geometry.indices) {
 +                    GLint saved_elements=0;glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING,&saved_elements);
-+                    GLuint elements=0;glGenBuffers(1,&elements);glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,elements);
++                    GLuint elements=0;
++                    if(wol_pair_ring_mode())elements=wol_pair_ring_buffer(&wol_pair_ring.element[pair_ring_slot]);
++                    else glGenBuffers(1,&elements);
++                    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,elements);
 +                    glBufferData(GL_ELEMENT_ARRAY_BUFFER,(GLsizeiptr)(count*sizeof(uint16_t)),geometry.indices,GL_STREAM_DRAW);
 +                    glDrawElements(geometry.primitive,(GLsizei)count,GL_UNSIGNED_SHORT,0);
-+                    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,(GLuint)saved_elements);glDeleteBuffers(1,&elements);
++                    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,(GLuint)saved_elements);
++                    if(!wol_pair_ring_mode())glDeleteBuffers(1,&elements);
 +                } else if(!wol_skip_139_this) glDrawArrays(geometry.primitive,0,(GLsizei)count);
 +                if(p2solid){if(p2_saved_blend)glEnable(GL_BLEND);else glDisable(GL_BLEND);
 +                            if(p2_saved_scissor)glEnable(GL_SCISSOR_TEST);else glDisable(GL_SCISSOR_TEST);
@@ -2791,7 +2830,8 @@
 +                nvn_replay.draws++;
 +                if(pair_vbo){
 +                    glBindBuffer(GL_ARRAY_BUFFER,0);
-+                    for(unsigned s=0;s<32;s++)if(pair_stream_vbo[s])glDeleteBuffers(1,&pair_stream_vbo[s]);
++                    if(!wol_pair_ring_mode())
++                        for(unsigned s=0;s<32;s++)if(pair_stream_vbo[s])glDeleteBuffers(1,&pair_stream_vbo[s]);
 +                    pair_vbo=0;
 +                }
 +                /* WOL_DRAW_RESULT_BEGIN */
@@ -2895,7 +2935,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +2140,7 @@
+@@ -704,6 +2180,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -2903,7 +2943,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1535,6 +2972,298 @@
+@@ -1535,6 +3012,298 @@
          begin=end+1;
      }
  }
@@ -3202,7 +3242,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +3291,16 @@
+@@ -1562,7 +3331,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }

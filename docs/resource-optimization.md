@@ -30,6 +30,27 @@ optimization A/B; the 700–750 MiB / no-swap target remains unmet.
   earlier commit's 'dead end' language was too strong; see [scope corrections](memory-benchmark.md).
 - M8: no page decommit until allocator ownership and full-page freedom are proven.
 
+## FPS experiment: reusable buffers in the hot draw path (2026-10-15)
+
+The chat-plan's "priority #1 for FPS" (reusable VBO/EBO instead of per-draw
+create/delete) was measured on the **actual** hot path. Two findings, both device-based:
+
+- The standard vertex path is unused on this title (`NVN_VERTEX_STATE_PROFILE
+  pointer-sent=0` in every window), so the existing streaming-buffer opt-ins there
+  cannot help; an A/B of `COTM_STREAM_VBO=1` changed nothing (game 25.44 → 25.05
+  presents/s, within noise).
+- The substituted-draw path did allocate/delete GL buffers per draw; a 6-slot
+  reusable ring (`WOL_PAIR_RING`, default on, `=0` restores the old path) removes
+  that churn. Measured over three paired runs: game **25.88 vs 25.51** median
+  presents/s (ring on vs off) — **no gain beyond run-to-run variance**, no regression,
+  pictures and saves intact.
+
+Full numbers, receipts and limits: [fps-pair-ring](../evidence/fps-pair-ring/README.md).
+Runtime `d3a4ce6a…` (build `wol-horizon-build-pairring`); owner section unchanged
+(`a25600ce…`). GL-object churn being real but not a bottleneck rules the buffer-arithmetic
+family out as the next FPS lever; the measured frame split (replay ~28-33 ms, finish
+~11-16 ms per slow frame) points at replay/CPU work and the per-submit finish instead.
+
 Code, scene coverage, cleanup receipts, exact artifact hashes and limitations:
 [measurement documentation](memory-benchmark.md). Game binaries, owner bundles,
 texture bytes and saves are not published.
