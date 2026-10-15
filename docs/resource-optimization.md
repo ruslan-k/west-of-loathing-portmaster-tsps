@@ -6,7 +6,35 @@ The current owner build reaches real menus and Boring Springs with restored skin
 
 Evidence: [gfx265](../evidence/gfx265/README.md), including raw `/proc` samples, compressed runtime interval and physical scene/cleanup captures. Date: 2026-10-15.
 
-## What the current session actually costs
+## Current M1–M9 status (supersedes historical numbers below)
+
+The accepted M4 section remains installed. The [M1/M5 measurement pass](../evidence/memory-profile-m1m5/README.md)
+adds reproducible read-only startup/phase, pagemap and descriptor-lifetime tooling.
+Two cold launches measured ready-menu PSS+SwapPSS **878.29 / 881.96 MiB** and
+outdoor-game **910.50 / 910.24 MiB**. One street → sheriff interior → street cycle
+was verified in real DRM captures. These repeat observations are not a new
+optimization A/B; the 700–750 MiB / no-swap target remains unmet.
+
+- M1: bounded benchmark and runtime inventory implemented/exercised; GPU physical
+  allocations and allocator active bytes remain unknown.
+- M2/M3: deployed mip-tail removal and corrected RomFS entry length; see
+  [M2 evidence](../evidence/mipstrip-m2/README.md).
+- M4: first selective wave accepted by the owner; a conservative **53-texture**
+  extension is staged and fully offline-verified only (18.75 MiB payload estimate),
+  **not deployed** and not a measured RAM saving.
+- M5: read-only pool/heap-page attribution and endpoint texture lifecycle measured;
+  deeper Unity owner/free-list attribution remains open. About 699 MiB of counted
+  heap pages in one snapshot lie outside NVN pools; this is not reclaimable/free proof.
+- M6: compressed GPU side-cache not implemented.
+- M7/M9: unsuccessful/deferred probes, not universal impossibility proofs. The
+  earlier commit's 'dead end' language was too strong; see [scope corrections](memory-benchmark.md).
+- M8: no page decommit until allocator ownership and full-page freedom are proven.
+
+Code, scene coverage, cleanup receipts, exact artifact hashes and limitations:
+[measurement documentation](memory-benchmark.md). Game binaries, owner bundles,
+texture bytes and saves are not published.
+
+## Historical baseline: what the earlier session cost
 
 A read-only, 30.183-second sample of the stationary Boring Springs scene used the installed `c25640be…` runtime and repaired `e3073432…` section. No CPU/GPU clocks, VM parameters, affinity or asset quality were changed during the sample.
 
