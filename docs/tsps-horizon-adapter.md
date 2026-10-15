@@ -1,6 +1,14 @@
-# TSPS native Horizon adapter — incomplete graphics bring-up
+# TSPS native Horizon adapter — development and measured evidence
 
-**Verdict: partial. No WoL game frame, playable launch, input or audio proof.**
+## Current checkpoint: gfx265 (2026-10-15)
+
+Real menu and Boring Springs frames are now verified. The PC/Cactus Bill skinned bodies, multi-stream UV binding, per-material mesh UV and WANTED stencil mask are repaired. The mip-repacked owner bundle has matching Sprite metadata/launcher defaults. Dynamic-map UI metadata now restores the paper extent, but marker/title placement is still unresolved. This is an experimental development build, not a fully validated release.
+
+See [gfx265 evidence](../evidence/gfx265/README.md) for real before/after screenshots, source/build/deployment hashes, six focused regression scripts, 22 existing passing tests and exact-process cleanup. The read-only stationary-scene resource profile is linked from [resource-optimization.md](resource-optimization.md); its candidate optimizations have not yet been applied or credited as gains. End state: MainUI alive, no test runtime, CPU mask `4-7`, no pending handoff, physical Spruce PORTS frame checked.
+
+## Historical initial bring-up (runs 01–05)
+
+**Initial verdict at runs 01–05: partial. No WoL game frame, playable launch, input or audio proof at that checkpoint.**
 
 This adapter is separate from `wol_native_probe.c`. The minimal QEMU probe still stops at LM; the recovered GPL Horizon adapter has progressed farther on the real TSPS.
 
@@ -105,7 +113,7 @@ and RSS of each run; the per-run logs live in `evidence/device-NN/`.
   for texel writes), (2) translate the first real shader pair and replace the placeholders programme by
   programme, (3) then re-check the downsample as a real blit and, only after that, claim a frame.
 
-**Nothing in this document claims a rendered frame, playable launch, input or audio.**
+**At runs 01–23 there was no rendered-frame, playable-launch, input or audio proof. Later checkpoints supersede this historical frontier.**
 
 ### Runs 24-31: the first frame reaches the panel
 

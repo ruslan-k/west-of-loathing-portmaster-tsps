@@ -1,0 +1,84 @@
+$ python3 -m unittest discover -v
+test_generates_owned_image_and_shader_stub_declared (test_horizon_prepare.HorizonPrepareTests.test_generates_owned_image_and_shader_stub_declared) ... ok
+test_getinfo_entropy_uses_host_random_source (test_native.NativeTests.test_getinfo_entropy_uses_host_random_source) ... ok
+test_getinfo_returns_configured_cpu_mask (test_native.NativeTests.test_getinfo_returns_configured_cpu_mask) ... ok
+test_guest_bootstrap_thread_has_main_handle (test_native.NativeTests.test_guest_bootstrap_thread_has_main_handle) ... ok
+test_guest_tick_trap_returns_nonzero (test_native.NativeTests.test_guest_tick_trap_returns_nonzero) ... ok
+test_guest_tls_isolated_from_host (test_native.NativeTests.test_guest_tls_isolated_from_host) ... ok
+test_guest_unknown_svc_stops_explicitly (test_native.NativeTests.test_guest_unknown_svc_stops_explicitly) ... ok
+test_main_thread_id_query (test_native.NativeTests.test_main_thread_id_query) ... ok
+test_main_thread_priority_query (test_native.NativeTests.test_main_thread_priority_query) ... ok
+test_malformed_sm_ipc_stops (test_native.NativeTests.test_malformed_sm_ipc_stops) ... ok
+test_process_key_signal_without_waiters_succeeds (test_native.NativeTests.test_process_key_signal_without_waiters_succeeds) ... ok
+test_query_memory_rejects_readonly_output (test_native.NativeTests.test_query_memory_rejects_readonly_output) ... ok
+test_query_memory_reports_mapped_region (test_native.NativeTests.test_query_memory_reports_mapped_region) ... ok
+test_service_manager_cmif_initialize (test_native.NativeTests.test_service_manager_cmif_initialize) ... ok
+test_service_manager_port_connects (test_native.NativeTests.test_service_manager_port_connects) ... ok
+test_zero_mutable_tls_does_not_replace_readonly_tls (test_native.NativeTests.test_zero_mutable_tls_does_not_replace_readonly_tls) ... ok
+test_bundle_rejects_truncation (test_preflight.PreflightTests.test_bundle_rejects_truncation) ... ok
+test_map_rejects_segment_identity_mismatch (test_preflight.PreflightTests.test_map_rejects_segment_identity_mismatch) ... ok
+test_map_rejects_unimplemented_relocation (test_preflight.PreflightTests.test_map_rejects_unimplemented_relocation) ... ok
+test_nso_rejects_wrong_magic (test_preflight.PreflightTests.test_nso_rejects_wrong_magic) ... ok
+test_real_nso_detects_modified_segment (test_preflight.PreflightTests.test_real_nso_detects_modified_segment) ... ok
+test_preparation_reproduces_verified_segments_and_layout (test_prepare.PrepareTests.test_preparation_reproduces_verified_segments_and_layout) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 6.166s
+
+OK
+exit=0
+
+$ python3 tools/test_wol_sprite_metadata.py
+......
+----------------------------------------------------------------------
+Ran 6 tests in 0.000s
+
+OK
+exit=0
+
+$ python3 tools/test_wol_vertex_streams.py /mnt/external/Hermes/spikes/wol-switch/wol-horizon-source/native/nvn_render.h
+WOL_PAIR_STREAM attr=1 stream=1 stride=24 offset=16 vertices=48 base=4 bytes=1152 vbo=8
+PASS VBO multistream: UVs uploaded from stream 1 with baseVertex
+WOL_PAIR_STREAM attr=1 stream=1 stride=24 offset=16 vertices=48 base=4 bytes=1152 vbo=0
+PASS direct multistream: independent stream base, stride and offset
+PASS actual hook binds the guest descriptor stream, not only its offset
+exit=0
+
+$ python3 tools/test_wol_mesh_uv.py /mnt/external/Hermes/spikes/wol-switch/wol-horizon-source/native/nvn_shaders.h
+PASS PC torso and Cactus Bill UVs use x/y plus per-material scale/offset, not position.z
+PASS mesh fragment samples its own UVs, without a second perspective divide
+PASS composite override excludes f08bad2f#c320
+exit=0
+
+$ python3 tools/test_wol_stencil_contract.py /mnt/external/Hermes/spikes/wol-switch/wol-horizon-source/native/nvn_render.h
+PASS mask writer: ALWAYS + REPLACE for both faces
+PASS portrait consumer: EQUAL ref=1, read-only stencil
+PASS unmasked gameplay disables stencil without requiring an attachment
+PASS substituted draws replay stencil and invalidate cached enable
+exit=0
+
+$ python3 tools/test_wol_draw_geometry.py /mnt/external/Hermes/spikes/wol-switch/wol-horizon-source/native/nvn_render.h
+PASS u16 indexed basevertex: type=1 is NOT first=1; 6 indices address 4 vertices
+PASS u8 rebase preserves order
+PASS u32 rebased to u16 without truncation
+PASS arrays honor first separately
+PASS empty draw
+PASS negative base refused
+PASS invalid index type refused
+PASS real hook uses decoded indices and preserves primitive
+exit=0
+
+$ python3 tools/test_wol_color_contract.py /mnt/external/Hermes/spikes/wol-switch/wol-horizon-source/native
+PASS sprite SRC_ALPHA/ONE_MINUS_SRC_ALPHA is applied and slots invalidated
+PASS disabled blend keeps the write mask contract
+PASS write mask 0x0/0xf map to full off/on
+PASS sprite alpha 0, fractional, scaled
+PASS pair-path and standard draw hooks apply the guest color contract
+PASS regression guards: mask heuristic scope, descriptor binding, trace pairing
+exit=0
+
+$ bash -n West of Loathing Switch.sh
+exit=0
+
+$ git diff --check
+exit=0

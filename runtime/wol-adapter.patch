@@ -1452,7 +1452,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -507,8 +754,1122 @@
+@@ -507,8 +754,1181 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -1496,6 +1496,49 @@
 +    return 1;
 +}
 +/* WOL_DRAW_GEOMETRY_END */
++/* WOL_PAIR_STREAMS_BEGIN */
++/* Skinned meshes split position/normal/tangent (stream 0, stride 40) from
++ * UVs (stream 1, stride 24). Attribute offsets are relative to THEIR stream,
++ * never implicitly to stream 0. Keep the single-stream VBO path unchanged. */
++static unsigned wol_pair_bind_attribute(unsigned index,uint32_t a,uint64_t first,
++        uint64_t vertex_count,GLuint stream_vbo[32],int direct) {
++    if(!(a&64))return 0;
++    unsigned stream=a&31,format=(a>>21)&1023,offset=(a>>7)&16383;
++    if(stream>=nvn_render.stream_count)return 0;
++    struct nvn_vertex_format vf=nvn_vertex_format_decode(format);
++    if(!vf.components)return 0;
++    uint64_t stride=nvn_render.streams[stream][0];
++    uint64_t size=nvn_render.vertex[stream].size;
++    if(!stride||offset>stride||vf.bytes>stride-offset||first>size/stride||
++       !vertex_count||vertex_count>size/stride-first)
++        stop("WOL_PAIR_STREAM_RANGE",nvn_caller,stream,24);
++    uint64_t start=nvn_render.vertex[stream].address+first*stride;
++    uint64_t bytes=vertex_count*stride;
++    const uint8_t *data=NULL;
++    if(direct||!stream_vbo[stream])data=nvn_gpu_pointer(start,bytes,PROT_READ);
++    if(direct) {
++        glBindBuffer(GL_ARRAY_BUFFER,0);
++        glEnableVertexAttribArray(index);
++        glVertexAttribPointer(index,(GLint)vf.components,vf.type,vf.normalized,
++            (GLsizei)stride,data+offset);
++    } else {
++        if(!stream_vbo[stream]) {
++            glGenBuffers(1,&stream_vbo[stream]);
++            glBindBuffer(GL_ARRAY_BUFFER,stream_vbo[stream]);
++            glBufferData(GL_ARRAY_BUFFER,(GLsizeiptr)bytes,data,GL_STREAM_DRAW);
++        } else glBindBuffer(GL_ARRAY_BUFFER,stream_vbo[stream]);
++        glEnableVertexAttribArray(index);
++        glVertexAttribPointer(index,(GLint)vf.components,vf.type,vf.normalized,
++            (GLsizei)stride,(const void *)(uintptr_t)offset);
++    }
++    if(stream) {
++        static unsigned told;
++        if(told<16){told++;printf("WOL_PAIR_STREAM attr=%u stream=%u stride=%"PRIu64" offset=%u vertices=%"PRIu64" base=%"PRIu64" bytes=%"PRIu64" vbo=%u\n",
++            index,stream,stride,offset,vertex_count,first,bytes,(unsigned)stream_vbo[stream]);}
++    }
++    return 1;
++}
++/* WOL_PAIR_STREAMS_END */
 +#endif
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
@@ -2139,9 +2182,11 @@
 +                 * direct-pointer path stays available as WOL_PAIR_DIRECT=1 for the A/B. */
 +                static int pd_configured,pd_direct;if(!pd_configured){const char *o=getenv("WOL_PAIR_DIRECT");pd_direct=o&&!strcmp(o,"1");pd_configured=1;}
 +                GLuint pair_vbo=0;
++                GLuint pair_stream_vbo[32]={0};
 +                if(!pd_direct) {
 +                    glGenBuffers(1,&pair_vbo);glBindBuffer(GL_ARRAY_BUFFER,pair_vbo);
 +                    glBufferData(GL_ARRAY_BUFFER,(GLsizeiptr)(vertex_count*stride),base,GL_STREAM_DRAW);
++                    pair_stream_vbo[0]=pair_vbo;
 +                }
 +                /* WOL_PAIR_MATH=1 (review 2026-10-13): replicate the translated vertex transform on the
 +                 * CPU and print the clip-space result per vertex, to tell an off-screen/clipped quad or a
@@ -2275,17 +2320,11 @@
 +                     * the measured layouts remain as a fallback when no descriptors are present. */
 +                    unsigned desc_attrs=0;
 +                    for(unsigned i=0;i<(unsigned)nvn_device.attributes&&i<4;i++) {
-+                        uint32_t a=nvn_render.attrib[i];
-+                        if(i>=nvn_render.attrib_count||!(a&64))continue;
-+                        unsigned stream=a&31,format=(a>>21)&1023,offset=(a>>7)&16383;
-+                        if(stream>=nvn_render.stream_count)continue;
-+                        struct nvn_vertex_format vf=nvn_vertex_format_decode(format);
-+                        if(!vf.components)continue;
-+                        glEnableVertexAttribArray(i);
-+                        glVertexAttribPointer(i,(GLint)vf.components,vf.type,vf.normalized,(GLsizei)stride,(const void *)(uintptr_t)offset);
-+                        desc_attrs++;
++                        if(i<nvn_render.attrib_count)
++                            desc_attrs+=wol_pair_bind_attribute(i,nvn_render.attrib[i],first,vertex_count,pair_stream_vbo,0);
 +                    }
 +                    if(!desc_attrs) {
++                    glBindBuffer(GL_ARRAY_BUFFER,pair_vbo);
 +                    glEnableVertexAttribArray(0);glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,(GLsizei)stride,(const void *)0);
 +                    if(stride==24||stride==32) {
 +                        /* Sprite layouts (d88c64a6): pos 3f@0, colour RGBA8 normalized @12, uv 2f@16.
@@ -2300,15 +2339,8 @@
 +                } else {
 +                    unsigned desc_attrs=0;
 +                    for(unsigned i=0;i<(unsigned)nvn_device.attributes&&i<4;i++) {
-+                        uint32_t a=nvn_render.attrib[i];
-+                        if(i>=nvn_render.attrib_count||!(a&64))continue;
-+                        unsigned stream=a&31,format=(a>>21)&1023,offset=(a>>7)&16383;
-+                        if(stream>=nvn_render.stream_count)continue;
-+                        struct nvn_vertex_format vf=nvn_vertex_format_decode(format);
-+                        if(!vf.components)continue;
-+                        glEnableVertexAttribArray(i);
-+                        glVertexAttribPointer(i,(GLint)vf.components,vf.type,vf.normalized,(GLsizei)stride,base+offset);
-+                        desc_attrs++;
++                        if(i<nvn_render.attrib_count)
++                            desc_attrs+=wol_pair_bind_attribute(i,nvn_render.attrib[i],first,vertex_count,pair_stream_vbo,1);
 +                    }
 +                    if(!desc_attrs) {
 +                    glEnableVertexAttribArray(0);glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,(GLsizei)stride,base);
@@ -2333,6 +2365,29 @@
 +                {static int mi;static unsigned mih;if(!mi){const char*o=getenv("WOL_MASK_HIGHNIB");mih=o&&!strcmp(o,"1");mi=1;}
 +                 if(mih&&!wol_mask_bits&&nvn_render.mask)wol_mask_bits=(nvn_render.mask>>4)&15U;}
 +                wol_apply_color_state(nvn_render.color,nvn_render.blend[1],nvn_render.blend[0],wol_mask_bits);
++                /* The substitution path returns before the standard path's stencil replay.
++                 * WOL_PAIR_STENCIL=1 is an isolated A/B: replay the recorded mask writers
++                 * and consumers, not a hard-coded crop for the WANTED portrait. */
++                {
++                    static int configured;static unsigned apply,told;
++                    if(!configured){const char *o=getenv("WOL_PAIR_STENCIL");apply=o&&!strcmp(o,"1");configured=1;}
++                    if(apply){
++                        nvn_render_state.valid&=~(1u<<NCS_STENCIL_ENABLE);
++                        nvn_render_stencil();
++                    }
++                    if((nvn_render.depth_state[0]&4U)&&told<48){
++                        told++;GLint bits=0;glGetIntegerv(GL_STENCIL_BITS,&bits);
++                        printf("WOL_PAIR_STENCIL mode=%s f=%s stride=%llu first=%"PRIu64" count=%"PRIu64" state=0x%x/0x%x known=%u/%u ref=%u/%u write=%u/%u compare=%u/%u mask=0x%x depth-id=%"PRIu64" depth-format=0x%x bits=%d enabled=%d\n",
++                            apply?"apply":"observe",wol_cat_bindings[wol_cat_cur->f].name,stride,first,count,
++                            nvn_render.depth_state[0],nvn_render.depth_state[1],
++                            nvn_render.stencil_known[0],nvn_render.stencil_known[1],
++                            nvn_render.stencil_ref[0],nvn_render.stencil_ref[1],
++                            nvn_render.stencil_write[0],nvn_render.stencil_write[1],
++                            nvn_render.stencil_compare[0],nvn_render.stencil_compare[1],nvn_render.mask,
++                            nvn_render.depth?nvn_render.depth->id:0,nvn_render.depth?nvn_render.depth->b.format:0,
++                            bits,(int)glIsEnabled(GL_STENCIL_TEST));
++                    }
++                }
 +                /* WOL_TRACE_PAIR: alpha-aware record of the chain (review 2026-10-14). WOL_TRACE_SKIP=N
 +                 * skips the first N matching draws (the early top2 draws are mask=0 prep passes; the real
 +                 * menu-UI draws come later in the run). */
@@ -2480,7 +2535,11 @@
 +                    }
 +                }
 +                nvn_replay.draws++;
-+                if(pair_vbo){glBindBuffer(GL_ARRAY_BUFFER,0);glDeleteBuffers(1,&pair_vbo);pair_vbo=0;}
++                if(pair_vbo){
++                    glBindBuffer(GL_ARRAY_BUFFER,0);
++                    for(unsigned s=0;s<32;s++)if(pair_stream_vbo[s])glDeleteBuffers(1,&pair_stream_vbo[s]);
++                    pair_vbo=0;
++                }
 +                printf("WOL_PAIR_DRAW_ISSUED primitives=%"PRIu64" glerror=0x%x\n",count,(unsigned)glGetError());
 +                /* Review 2026-10-13: prove the pair draw lands in its target - center-pixel readback plus
 +                 * the render state that could swallow it (scissor/depth/viewport), right after the draw. */
@@ -2575,7 +2634,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +2065,7 @@
+@@ -704,6 +2124,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -2583,7 +2642,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1535,6 +2897,288 @@
+@@ -1535,6 +2956,288 @@
          begin=end+1;
      }
  }
@@ -2872,7 +2931,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +3206,16 @@
+@@ -1562,7 +3265,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -3018,7 +3077,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,870 @@
+@@ -46,10 +46,881 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -3052,7 +3111,9 @@
 +"    gl_Position.y = c3[17] * q.x + c3[21] * q.y + c3[25] * q.z + c3[29] * q.w;\n"
 +"    gl_Position.z = c3[18] * q.x + c3[22] * q.y + c3[26] * q.z + c3[30] * q.w;\n"
 +"    gl_Position.w = c3[19] * q.x + c3[23] * q.y + c3[27] * q.z + c3[31] * q.w;\n"
-+"    v8 = vec2(a_extra.x * c3[32] + c3[34], a_pos.z);\n"
++/* Aligned Maxwell decode: r8/r9 are UV x/y; the second FFMA overwrites r5.
++ * The old partial decode mistook this final r5 for its earlier position.z. */
++"    v8 = vec2(a_extra.x * c3[32] + c3[34], a_extra.y * c3[33] + c3[35]);\n"
 +"    v7 = gl_Position;\n"
 +"}\n";
 +
@@ -3114,6 +3175,15 @@
 + * sampled a degenerate uv (v8.y twice) - that produced the smeared menu layer ("black object with
 + * green"). The uv arrives already transformed by the vertex (f309b86a). */
 +"void main(){ vec4 t = texture2D(tex0, v9 / v7.w); gl_FragColor = t * vec4(c3f[0], c3f[1], c3f[2], c3f[3]); }\n";
++/* f08bad2f#c320 is the mesh material, NOT the display composite. GLES
++ * perspective-correct interpolation replaces Maxwell IPA-pass plus reciprocal. */
++static const char wol_mesh_fragment_glsl[] =
++"#version 100\n"
++"precision mediump float;\n"
++"varying vec2 v8;\n"
++"uniform highp float c3f[96];\n"
++"uniform sampler2D tex0;\n"
++"void main(){ vec4 t = texture2D(tex0, v8); gl_FragColor = t * vec4(c3f[0], c3f[1], c3f[2], c3f[3]); }\n";
 +static const char wol_pair_fragment_v8xy_glsl[] =
 +"#version 100\n"
 +"precision mediump float;\n"
@@ -3617,7 +3687,7 @@
 +    /*4*/ { 512,0x848,1,0,"f08bad2f#a9b0",wol_pair_fragment_glsl,
 +           {0xf0,0x8b,0xad,0x2f,0x44,0xa0,0x2b,0xae,0x70,0x83,0x85,0x47,0x69,0x75,0x5e,0x05,0xbe,0x1a,0x69,0x2c,0x35,0xf6,0xe1,0x7d,0xbc,0x88,0xf8,0x06,0x25,0xb8,0x3d,0x0e},
 +           {0xa9,0xb0,0x3c,0x3f,0xa5,0xe7,0x80,0x0d,0x52,0x90,0xd5,0x2c,0x39,0x23,0xc8,0x9a,0x52,0x42,0xd4,0x12,0x39,0x74,0x24,0x38,0x8f,0x8a,0xd9,0x16,0x2a,0xcb,0x28,0x04}},
-+    /*5*/ { 512,0x848,1,0,"f08bad2f#c320",wol_pair_fragment_glsl,
++    /*5*/ { 512,0x848,1,0,"f08bad2f#c320",wol_mesh_fragment_glsl,
 +           {0xf0,0x8b,0xad,0x2f,0x44,0xa0,0x2b,0xae,0x70,0x83,0x85,0x47,0x69,0x75,0x5e,0x05,0xbe,0x1a,0x69,0x2c,0x35,0xf6,0xe1,0x7d,0xbc,0x88,0xf8,0x06,0x25,0xb8,0x3d,0x0e},
 +           {0xc3,0x20,0x07,0x08,0xdd,0xde,0xc3,0x52,0x68,0x8d,0x6f,0x76,0x83,0x11,0xa3,0x95,0x1d,0x44,0x84,0x75,0x56,0xe4,0x45,0x44,0xcc,0xa2,0x84,0x84,0xb5,0x8a,0x14,0xbb}},
 +    /*6*/ { 512,0x848,1,1,"f191-draft",wol_f191_draft_fragment_glsl,
@@ -3720,7 +3790,7 @@
 +    if(!bf->diag) {
 +        static int pt_configured,pt_on;if(!pt_configured){const char *o=getenv("WOL_PAIR_TEST");pt_on=o&&!strcmp(o,"1");pt_configured=1;}
 +        if(pt_on){frag=wol_diag_green_glsl;testfrag=1;}
-+        else if(strstr(bf->name,"f08bad2f")) {
++        else if(!strcmp(bf->name,"f08bad2f#a9b0")) {
 +            static int cuv_configured,cuv_mode;if(!cuv_configured){const char *o=getenv("WOL_COMP_UV");
 +                /* Default 2 = the clip-derived uv variant (the composite quad carries no uv attribute;
 +                 * the exact uv-attribute route sampled (0,0) and blanked the screen, measured gfx197).
@@ -3890,7 +3960,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +1367,29 @@
+@@ -507,12 +1378,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -3921,7 +3991,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +1490,28 @@
+@@ -613,6 +1501,28 @@
              }
          }
  #endif
