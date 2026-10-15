@@ -4,9 +4,13 @@ from pathlib import Path
 import os, subprocess, sys, tempfile
 n=Path(sys.argv[1]);h=(n/'nvn_texture_formats.h').read_text();t=(n/'nvn_textures.h').read_text()
 assert 'nvn_texture_copy_rgba8' in h, 'missing exact identity-RGBA8 bulk-copy helper'
+assert 'nvn_texture_rgba8_raw_eligible' in h, 'missing raw-eligibility predicate used by the direct refresh path'
 assert 'getenv("WOL_RGBA8_COPY")' in t, 'missing reversible refresh-only A/B switch'
+assert 'getenv("WOL_REFRESH_DIRECT")' in t, 'missing reversible direct-upload A/B switch'
+assert 'rd_direct=o&&!strcmp(o,"1")' in t, 'direct refresh must stay opt-in (=1); the measured default is the staging copy'
 refresh=t.split('static void zero_texture_refresh(',1)[1].split('#include "zero_texture_writes.h"',1)[0]
 assert 'stride==row' in refresh and 'type==GL_UNSIGNED_BYTE' in refresh and 'nvn_texture_copy_rgba8' in refresh
+assert 'nvn_texture_rgba8_raw_eligible' in refresh, 'direct refresh must reuse the exact-copy eligibility predicate'
 for guard in ('ZERO_TEXTURE_CPU_GPU_COHERENCE_REQUIRED','ZERO_TEXTURE_REFRESH_RANGE','ZERO_TEXTURE_REFRESH_GL','nvn_texture_decode_upload','glTexSubImage2D','free(pixels)'):
     assert guard in refresh, 'copy path must retain '+guard
 code=r'''
@@ -25,6 +29,7 @@ int main(void) {
         memset(fast,0xa5,sizeof(fast));
         assert(nvn_texture_decode_rgba(format,sw,old,src,257));
         unsigned want=format==0x25 && sw[0]==2 && sw[1]==3 && sw[2]==4 && sw[3]==5;
+        assert(nvn_texture_rgba8_raw_eligible(format,sw)==want);
         assert(nvn_texture_copy_rgba8(format,sw,fast,src,257)==want);
         if(want){assert(!memcmp(old,fast,sizeof(old)));accepted++;}
         else for(size_t i=0;i<sizeof(fast);i++)assert(fast[i]==0xa5);
