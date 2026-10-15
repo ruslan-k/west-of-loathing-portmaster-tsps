@@ -72,6 +72,8 @@ export COTM_READBACK_PERIOD="${COTM_READBACK_PERIOD:-120}"
 # Device-tested native precision, not reduced image dimensions or new clocks.
 export WOL_PACKED4444="${WOL_PACKED4444:-1}"
 export WOL_CPU_OFFSET="${WOL_CPU_OFFSET:-4}"
+# Exact contiguous identity-RGBA8 refresh; 0 restores per-pixel decoding.
+export WOL_RGBA8_COPY="${WOL_RGBA8_COPY:-1}"
 # The 64/32 MiB floors are bounded diagnostics (they demonstrated 120-600 presents and swap engagement).
 # 2026-10-14 (menu launch, production path): measured floor trips during the RomFS load staging -
 # floor 140 tripped at ~130 MiB available (detail=0x82), 64 at ~55 (detail=0x37), 32 at ~31

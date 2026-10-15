@@ -4166,7 +4166,24 @@
          }
          else if(format==0x97){
              /* SDK texture word 0x2a712494: A1B5G5R5 hardware with
-@@ -164,6 +168,18 @@
+@@ -107,6 +111,16 @@
+             for(unsigned c=0;c<4;c++)dst[c]=swizzle[c]>=2?channel[swizzle[c]-2]:(swizzle[c]==1?255:0);
+         }
+     }
++    return 1;
++}
++/* Exact raw-copy eligibility, not a coherence shortcut. The caller still owns
++ * source validation, pitch, upload type, staging lifetime and the GL upload.
++ * Refuse all conversions and overflow without touching the destination. */
++static inline unsigned nvn_texture_copy_rgba8(unsigned format,const uint32_t swizzle[4],
++                                             uint8_t *dst,const uint8_t *src,size_t pixels) {
++    if(format!=0x25 || swizzle[0]!=2 || swizzle[1]!=3 || swizzle[2]!=4 || swizzle[3]!=5 ||
++       pixels>SIZE_MAX/4)return 0;
++    if(pixels)memmove(dst,src,pixels*4);
+     return 1;
+ }
+ /* Ordinary CPU images may keep their native channel precision. These GL
+@@ -164,6 +178,18 @@
          return 1;
      }
      if(!type||type!=nvn_texture_packed_type(format))return 0;
@@ -4305,7 +4322,41 @@
      unsigned x=box?box[0]/4:0,y=box?box[1]/4:0,width=box?box[3]:m.width,height=box?box[4]:m.height;
      unsigned nx=(width+3)/4,ny=(height+3)/4;size_t linear_bytes=(size_t)nx*ny*m.bytes;
      uint8_t *linear=malloc(linear_bytes);if(!linear)stop("ZERO_BC_LINEAR_MEMORY",nvn_caller,linear_bytes,21);
-@@ -739,6 +777,7 @@
+@@ -492,7 +530,11 @@
+     if(t->composition_target_seen || t->draws || t->depth_buffer || t->b.target!=1 ||
+        t->host_scaled || t->host_half || t->packaged_lazy || t->b.packaged_layout)
+         stop("ZERO_TEXTURE_CPU_GPU_COHERENCE_REQUIRED",nvn_caller,t->id,20);
+-    unsigned width=t->b.width,height=t->b.height,bc=zero_bc_bytes(t->b.format);
++    unsigned width=t->b.width,height=t->b.height,bc=zero_bc_bytes(t->b.format),copied=0;
++    const char *copy_option=NULL;
++#if defined(WOL_TEXTURE_VIEW_36) && WOL_TEXTURE_VIEW_36
++    copy_option=getenv("WOL_RGBA8_COPY");
++#endif
+     unsigned type=nvn_cpu_image_upload_type(t),output_bpp=nvn_texture_upload_bytes(type);
+     glBindTexture(GL_TEXTURE_2D,t->name);GLint alignment;glGetIntegerv(GL_UNPACK_ALIGNMENT,&alignment);glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+     for(unsigned level=0;level<t->b.levels;level++) {
+@@ -503,7 +545,10 @@
+         const uint8_t *source=nvn_pointer(t->pool->address+t->b.offset+t->levels[level],stride*rows,PROT_READ);
+         size_t bytes=(size_t)width*height*output_bpp;uint8_t *pixels=malloc(bytes);
+         if(!pixels)stop("ZERO_TEXTURE_REFRESH_MEMORY",nvn_caller,bytes,21);
+-        if(bc) {
++        if(!bc && type==GL_UNSIGNED_BYTE && stride==row && copy_option && !strcmp(copy_option,"1") &&
++           nvn_texture_copy_rgba8(t->b.format,t->b.swizzle,pixels,source,(size_t)width*height)) {
++            copied++;
++        } else if(bc) {
+             zero_texture_bc_pixels(t,level,NULL,pixels,bytes);
+         } else for(unsigned y=0;y<height;y++)if(!nvn_texture_decode_upload(t->b.format,t->b.swizzle,type,pixels+(size_t)y*width*output_bpp,source+y*stride,width))
+             stop("ZERO_TEXTURE_REFRESH_FORMAT",nvn_caller,t->b.format,20);
+@@ -513,7 +558,7 @@
+     }
+     glPixelStorei(GL_UNPACK_ALIGNMENT,alignment);
+     GLenum error=glGetError();if(error)stop("ZERO_TEXTURE_REFRESH_GL",nvn_caller,error,21);
+-    printf("ZERO_TEXTURE_FLUSH_UPLOADED id=%"PRIu64" format=0x%x native-cpu-bytes=preserved before-sampler\n",t->id,t->b.format);
++    printf("ZERO_TEXTURE_FLUSH_UPLOADED id=%"PRIu64" format=0x%x native-cpu-bytes=preserved before-sampler rgba8-copy-levels=%u\n",t->id,t->b.format,copied);
+ }
+ #include "zero_texture_writes.h"
+ static unsigned nvn_texture_dispatch(unsigned id,struct nvn_frame *f,uint64_t *result) {
+@@ -739,6 +784,7 @@
              printf("MOMO_TEXTURE_IDENTITY id=%"PRIu64" object=0x%"PRIx64" pool=0x%"PRIx64" offset=0x%"PRIx64" bytes=%"PRIu64" size=%ux%u format=0x%x flags=0x%x levels=%u target=%u\n",
                  t->id,a[0],b.pool,b.offset,size,b.width,b.height,b.format,b.flags,b.levels,b.target);
          printf("NVN_TEXTURE_REAL object=0x%"PRIx64" format=0x%x size=%ux%u levels=%u bytes=%"PRIu64" texture=%u depth=%u gpu-storage=%s no-draw\n",a[0],b.format,b.width,b.height,b.levels,size,t->name,t->depth_buffer,t->zero_backend_deferred?"unavailable-native-backing-retained":t->packaged_lazy?"deferred":"allocated");
