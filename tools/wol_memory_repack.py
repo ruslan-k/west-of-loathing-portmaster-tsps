@@ -85,8 +85,8 @@ def scale_sprite_pixel_metadata(sprite, scale, *, ui=False):
     """
     if scale == 1.0:
         return
-    if scale != 0.5:
-        raise ValueError('only one-level mip promotion is supported')
+    if scale != 0.5 and scale != 0.25:
+        raise ValueError('only up to two-level mip promotion is supported')
     if ui:
         # UGUI derives mesh padding from logical rect versus texture rect; both
         # pixel rectangles must use the same units. Rect/PPU preserves UI size.
@@ -131,18 +131,30 @@ def main():
                     help="preserve this owner-bundle texture and its sprite metadata verbatim")
     ap.add_argument("--max-mip-levels", type=int, default=0,
                     help="keep at most N mip levels per texture (1 = level 0 only); 0 disables")
+    ap.add_argument("--levels-file", type=pathlib.Path,
+                    help="TSV 'path_id<TAB>extra_steps': additional mip promotions for selected "
+                         "textures on top of the width-based baseline promotion")
     ap.add_argument("--dry-run", action="store_true",
                     help="report the outcome without writing the bundle")
     ap.add_argument("--manifest", type=pathlib.Path,
                     help="write a TSV of every strip decision")
     a = ap.parse_args()
     keep_ids = set(a.keep_texture_id)
+    extra_steps = {}
+    if a.levels_file:
+        for line in a.levels_file.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            pid, steps = line.split('\t')
+            extra_steps[int(pid)] = int(steps)
+        print(f"levels file: {len(extra_steps)} texture overrides")
     t0 = time.time()
     if not a.dry_run:
         a.out_dir.mkdir(parents=True, exist_ok=True)
     env = UnityPy.load(str(a.core))
     before = after = mod = 0
-    changed_textures = set()
+    changed_textures = {}
     strip_rows = []
     strip_stripped = strip_skipped = 0
     strip_before = strip_after = 0
@@ -157,17 +169,19 @@ def main():
             f = str(d.m_TextureFormat)
         before += d.m_CompleteImageSize
         dirt = False
-        if should_promote_texture(d.m_Width, d.m_MipCount, d.m_ImageCount,
-                                  x.path_id, keep_ids, a.min_width):
-            l0 = level0_size(d.m_Width, d.m_Height, f)
+        steps = 1 if should_promote_texture(d.m_Width, d.m_MipCount, d.m_ImageCount,
+                                            x.path_id, keep_ids, a.min_width) else 0
+        steps += extra_steps.get(x.path_id, 0)
+        if steps and x.path_id not in keep_ids and d.m_MipCount >= steps + 1:
+            prefix = mip_chain_size(d.m_Width, d.m_Height, f, steps)
             raw = bytes(d.image_data)
-            if l0 is not None and l0 < len(raw):
-                d.image_data = raw[l0:]
-                d.m_Width //= 2
-                d.m_Height //= 2
-                d.m_MipCount -= 1
-                d.m_CompleteImageSize = len(raw) - l0
-                changed_textures.add((id(x.assets_file), x.path_id))
+            if prefix is not None and prefix < len(raw):
+                d.image_data = raw[prefix:]
+                d.m_Width >>= steps
+                d.m_Height >>= steps
+                d.m_MipCount -= steps
+                d.m_CompleteImageSize = len(raw) - prefix
+                changed_textures[(id(x.assets_file), x.path_id)] = steps
                 mod += 1
                 dirt = True
         if a.max_mip_levels > 0 and d.m_MipCount > a.max_mip_levels:
@@ -233,11 +247,12 @@ def main():
             ref = sprite['m_RD']['texture']
             if ref['m_FileID'] != 0:
                 raise ValueError('external sprite texture reference needs explicit resolution')
-            if (id(x.assets_file), ref['m_PathID']) not in changed_textures:
+            steps = changed_textures.get((id(x.assets_file), ref['m_PathID']))
+            if steps is None:
                 continue
             ui = ((id(x.assets_file), x.path_id) in ui_sprites
                   or is_dynamic_map_ui_sprite(sprite['m_Name']))
-            scale_sprite_pixel_metadata(sprite, 0.5, ui=ui)
+            scale_sprite_pixel_metadata(sprite, 0.5 ** steps, ui=ui)
             if not a.dry_run:
                 x.save_typetree(sprite)
             sprites_fixed += 1
