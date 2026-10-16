@@ -42,11 +42,16 @@ Scope: one day of device rounds on `main` (baseline `a6acb0e` → `54ef07f`), ow
 ## Known gaps / explicitly not done
 
 - Moving-scene, battle, map and transition coverage (required before promoting any flag).
-  First attempt (2026-10-16): the diagnostic stick path accepts and publishes stick events
-  (21× `HID_DIAGNOSTIC_PRESS` with `stick=0,±30000` across four directions, verified in the
-  runtime log `latest-moving2.log`), but no measurable scene displacement appeared in-game
-  (frame diffs ≤ ~1/255 per channel vs. the pre-move frame). The stick-to-gameplay route is
-  unresolved; these samples remain open.
+  First attempt (2026-10-16): the diagnostic input path is proven end-to-end inside gameplay —
+  A/B/START/L/R open the confirm flow, inventory, character sheet and options screens, and the
+  left stick moved the inventory cursor — but the character itself did not move in the start
+  scene under the stick (all four directions held ~10 s each; stick events accepted, 21×
+  `HID_DIAGNOSTIC_PRESS` with `stick=0,±30000`) or the D-pad (up/right); frame diffs vs the
+  static scene stay at animation-noise level (≤~4/765). The start scene is therefore either
+  non-interactive (splash/travel state) or movement is script-blocked until an event we have
+  not triggered. Scripted movement beyond the start scene is not yet available. Instrument
+  note: the diagnostic press duration limit is 2000 ms per event — longer presses are rejected
+  (`HID_DIAGNOSTIC_REJECT`).
 - Allocation-owner trace (≥1 MiB allocations with call sites and lifetimes) and repeated
   street→sheriff→street cycles.
 - M6 cache implementation and encoder provisioning; texture-460 lazy-copy implementation
