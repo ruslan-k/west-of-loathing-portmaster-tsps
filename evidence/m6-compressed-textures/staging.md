@@ -39,6 +39,10 @@ iteration starts from measured facts.
    mounted as-is; fold it into the first cache-validation pass).
 3. Owner-local content-hash cache outside UnityFS (BC → ASTC RGBA/RGB; keep the guest API
    contract untouched; RGBA fallback for dynamic/partially-updated/render-target assets).
+   **Builder + format: DONE** — `tools/wol_m6_cache_build.py` (UnityPy decode, sha256 over
+   RGBA8 pixels, astcenc 6x6) and `cache-design.md`; first cache: 24 textures,
+   81,788,928 B RGBA -> 9,135,504 B ASTC (8.95x), `cache-audit-24.json`. Runtime wiring
+   (first-upload hook + fallback) is the remaining step.
 4. Preserve mips, block sizes, alpha, linear/sRGB, wrapping, swizzle and invalidation on
    guest writes; keep a revertible flag and compare against the RGBA path on physical
    screenshots, PSS/SwapPSS and reload latency.
