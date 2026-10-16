@@ -60,4 +60,4 @@ the overlapped CPU upload costs. A useful future candidate would be a *different
   `native/nvn_render.h` (block `wol_sample_split` + `wol_ss_*` helpers; entry/exit pairs in
   `nvn_render_sampler_prepare_mode` and `nvn_render_sampler`). The device runs `dtime8` now
   (previous `astcfix1` kept as `wol-horizon.bak-astcfix1-20261016`).
-- Harness: `session.py` gained `WOL_SAMPLE_SPLIT` and `COTM_RESOURCE_LOOKUP_CACHE` passtthroughs.
+- Harness: `session.py` gained `WOL_SAMPLE_SPLIT` and `COTM_RESOURCE_LOOKUP_CACHE` passthroughs.
