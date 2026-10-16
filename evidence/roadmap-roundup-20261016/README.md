@@ -42,6 +42,11 @@ Scope: one day of device rounds on `main` (baseline `a6acb0e` → `54ef07f`), ow
 ## Known gaps / explicitly not done
 
 - Moving-scene, battle, map and transition coverage (required before promoting any flag).
+  First attempt (2026-10-16): the diagnostic stick path accepts and publishes stick events
+  (21× `HID_DIAGNOSTIC_PRESS` with `stick=0,±30000` across four directions, verified in the
+  runtime log `latest-moving2.log`), but no measurable scene displacement appeared in-game
+  (frame diffs ≤ ~1/255 per channel vs. the pre-move frame). The stick-to-gameplay route is
+  unresolved; these samples remain open.
 - Allocation-owner trace (≥1 MiB allocations with call sites and lifetimes) and repeated
   street→sheriff→street cycles.
 - M6 cache implementation and encoder provisioning; texture-460 lazy-copy implementation
