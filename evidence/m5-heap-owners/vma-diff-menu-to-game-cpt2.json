@@ -1,0 +1,331 @@
+{
+ "phase_a": [
+  "menu",
+  "menu-end"
+ ],
+ "phase_b": [
+  "game",
+  "game-end"
+ ],
+ "which": "end",
+ "rollup_a": {
+  "Pss": 474271,
+  "Pss_Anon": 459720,
+  "Pss_File": 14375,
+  "SwapPss": 430628
+ },
+ "rollup_b": {
+  "Pss": 451582,
+  "Pss_Anon": 422820,
+  "Pss_File": 28586,
+  "SwapPss": 477864
+ },
+ "pagemap_a": {
+  "guest_heap": {
+   "present": 143133,
+   "swapped": 82591,
+   "unmapped": 285252,
+   "soft_dirty": 0
+  },
+  "pool_union": {
+   "present": 31806,
+   "swapped": 15079,
+   "unmapped": 121044,
+   "soft_dirty": 0
+  }
+ },
+ "pagemap_b": {
+  "guest_heap": {
+   "present": 136082,
+   "swapped": 94370,
+   "unmapped": 280524,
+   "soft_dirty": 0
+  },
+  "pool_union": {
+   "present": 34903,
+   "swapped": 16604,
+   "unmapped": 116422,
+   "soft_dirty": 0
+  }
+ },
+ "category_deltas": [
+  {
+   "category": "[anonymous]",
+   "pss_a": 457828,
+   "pss_b": 420904,
+   "dpss": -36924,
+   "rss_a": 457828,
+   "rss_b": 420904,
+   "n_a": 206,
+   "n_b": 206
+  },
+  {
+   "category": "/usr/lib/libmali.so.0.32.0",
+   "pss_a": 6500,
+   "pss_b": 17616,
+   "dpss": 11116,
+   "rss_a": 6500,
+   "rss_b": 17616,
+   "n_a": 4,
+   "n_b": 4
+  },
+  {
+   "category": "/mnt/sdcard/mmcblk1p1/Roms/PORTS/wol-switch/main.text.seg",
+   "pss_a": 5764,
+   "pss_b": 8328,
+   "dpss": 2564,
+   "rss_a": 5764,
+   "rss_b": 8328,
+   "n_a": 1,
+   "n_b": 1
+  },
+  {
+   "category": "/usr/lib/libstdc++.so.6.0.28",
+   "pss_a": 28,
+   "pss_b": 332,
+   "dpss": 304,
+   "rss_a": 28,
+   "rss_b": 332,
+   "n_a": 4,
+   "n_b": 4
+  },
+  {
+   "category": "/mnt/sdcard/mmcblk1p1/Roms/PORTS/wol-switch/main.rodata.seg",
+   "pss_a": 540,
+   "pss_b": 772,
+   "dpss": 232,
+   "rss_a": 540,
+   "rss_b": 772,
+   "n_a": 1,
+   "n_b": 1
+  },
+  {
+   "category": "/mnt/sdcard/mmcblk1p1/Roms/PORTS/wol-switch/sdk.text.seg",
+   "pss_a": 392,
+   "pss_b": 560,
+   "dpss": 168,
+   "rss_a": 392,
+   "rss_b": 560,
+   "n_a": 1,
+   "n_b": 1
+  },
+  {
+   "category": "/mnt/sdcard/mmcblk1p1/Roms/PORTS/wol-switch/sdk.rodata.seg",
+   "pss_a": 168,
+   "pss_b": 96,
+   "dpss": -72,
+   "rss_a": 168,
+   "rss_b": 96,
+   "n_a": 1,
+   "n_b": 1
+  },
+  {
+   "category": "/usr/lib/libasound.so.2.0.0",
+   "pss_a": 368,
+   "pss_b": 308,
+   "dpss": -60,
+   "rss_a": 368,
+   "rss_b": 308,
+   "n_a": 4,
+   "n_b": 4
+  },
+  {
+   "category": "/usr/lib/libSDL2-2.0.so.0.3200.6",
+   "pss_a": 256,
+   "pss_b": 212,
+   "dpss": -44,
+   "rss_a": 256,
+   "rss_b": 212,
+   "n_a": 4,
+   "n_b": 4
+  },
+  {
+   "category": "[heap]",
+   "pss_a": 1096,
+   "pss_b": 1128,
+   "dpss": 32,
+   "rss_a": 1096,
+   "rss_b": 1128,
+   "n_a": 1,
+   "n_b": 1
+  },
+  {
+   "category": "/mnt/sdcard/mmcblk1p1/Roms/PORTS/wol-switch/wol-horizon",
+   "pss_a": 868,
+   "pss_b": 848,
+   "dpss": -20,
+   "rss_a": 868,
+   "rss_b": 848,
+   "n_a": 3,
+   "n_b": 3
+  },
+  {
+   "category": "/lib/libc-2.33.so",
+   "pss_a": 72,
+   "pss_b": 81,
+   "dpss": 9,
+   "rss_a": 560,
+   "rss_b": 568,
+   "n_a": 4,
+   "n_b": 4
+  },
+  {
+   "category": "/mnt/sdcard/mmcblk1p1/Roms/PORTS/wol-switch/rtld.text.seg",
+   "pss_a": 4,
+   "pss_b": 8,
+   "dpss": 4,
+   "rss_a": 4,
+   "rss_b": 8,
+   "n_a": 1,
+   "n_b": 1
+  },
+  {
+   "category": "/mnt/sdcard/mmcblk1p1/Roms/PORTS/wol-switch/subsdk0.rodata.seg",
+   "pss_a": 4,
+   "pss_b": 8,
+   "dpss": 4,
+   "rss_a": 4,
+   "rss_b": 8,
+   "n_a": 1,
+   "n_b": 1
+  },
+  {
+   "category": "/mnt/sdcard/mmcblk1p1/Roms/PORTS/wol-switch/rtld.rodata.seg",
+   "pss_a": 0,
+   "pss_b": 4,
+   "dpss": 4,
+   "rss_a": 0,
+   "rss_b": 4,
+   "n_a": 1,
+   "n_b": 1
+  },
+  {
+   "category": "/lib/libpthread-2.33.so",
+   "pss_a": 18,
+   "pss_b": 20,
+   "dpss": 2,
+   "rss_a": 88,
+   "rss_b": 88,
+   "n_a": 4,
+   "n_b": 4
+  },
+  {
+   "category": "[vvar]",
+   "pss_a": 0,
+   "pss_b": 0,
+   "dpss": 0,
+   "rss_a": 0,
+   "rss_b": 0,
+   "n_a": 1,
+   "n_b": 1
+  },
+  {
+   "category": "[stack]",
+   "pss_a": 12,
+   "pss_b": 12,
+   "dpss": 0,
+   "rss_a": 12,
+   "rss_b": 12,
+   "n_a": 1,
+   "n_b": 1
+  }
+ ],
+ "largest_b": [
+  {
+   "start": "0x1001d1c000",
+   "end": "0x106c58e000",
+   "size_kb": 1745352,
+   "pss_kb": 358068,
+   "rss_kb": 358068,
+   "path": "[anonymous]"
+  },
+  {
+   "start": "0x106d8b2000",
+   "end": "0x107715e000",
+   "size_kb": 156336,
+   "pss_kb": 24672,
+   "rss_kb": 24672,
+   "path": "[anonymous]"
+  },
+  {
+   "start": "0x7f8ef80000",
+   "end": "0x7f91c3b000",
+   "size_kb": 45804,
+   "pss_kb": 17264,
+   "rss_kb": 17264,
+   "path": "/usr/lib/libmali.so.0.32.0"
+  },
+  {
+   "start": "0x7f74000000",
+   "end": "0x7f758c0000",
+   "size_kb": 25344,
+   "pss_kb": 14020,
+   "rss_kb": 14020,
+   "path": "[anonymous]"
+  },
+  {
+   "start": "0x8005000",
+   "end": "0x93d3000",
+   "size_kb": 20280,
+   "pss_kb": 8328,
+   "rss_kb": 8328,
+   "path": "/mnt/sdcard/mmcblk1p1/Roms/PORTS/wol-switch/main.text.seg"
+  },
+  {
+   "start": "0x1000f46000",
+   "end": "0x1001d1a000",
+   "size_kb": 14160,
+   "pss_kb": 7748,
+   "rss_kb": 7748,
+   "path": "[anonymous]"
+  },
+  {
+   "start": "0x1000000000",
+   "end": "0x1000c85000",
+   "size_kb": 12820,
+   "pss_kb": 4880,
+   "rss_kb": 4880,
+   "path": "[anonymous]"
+  },
+  {
+   "start": "0x1077360000",
+   "end": "0x10776e2000",
+   "size_kb": 3592,
+   "pss_kb": 2508,
+   "rss_kb": 2508,
+   "path": "[anonymous]"
+  },
+  {
+   "start": "0x9d4c000",
+   "end": "0xa0cf000",
+   "size_kb": 3596,
+   "pss_kb": 1720,
+   "rss_kb": 1720,
+   "path": "[anonymous]"
+  },
+  {
+   "start": "0x10782fd000",
+   "end": "0x1078b00000",
+   "size_kb": 8204,
+   "pss_kb": 1628,
+   "rss_kb": 1628,
+   "path": "[anonymous]"
+  },
+  {
+   "start": "0x1077ee2000",
+   "end": "0x10781fd000",
+   "size_kb": 3180,
+   "pss_kb": 1440,
+   "rss_kb": 1440,
+   "path": "[anonymous]"
+  },
+  {
+   "start": "0x559f3e7000",
+   "end": "0x55a0469000",
+   "size_kb": 16904,
+   "pss_kb": 1128,
+   "rss_kb": 1128,
+   "path": "[heap]"
+  }
+ ]
+}

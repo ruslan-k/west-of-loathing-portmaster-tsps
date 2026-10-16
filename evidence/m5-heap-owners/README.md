@@ -32,16 +32,37 @@ the startup→game anonymous drop would have to be at least ~137 MiB; the measur
 includes such buffers. **This is not proof, and no memory is proposed for reclamation on it**
 (per the roadmap: do not free it solely because initial loading completed).
 
+## VMA diffs between phases (second pass, 2026-10-16)
+
+Two independent runs (`m1m5-cpt2`, `m1m5-dtime5`; menu-end → game-end snapshots, which embed
+`/proc/<pid>/smaps` rows of 428 mappings) agree closely (`tools/analyze_vma_diff.py`):
+
+- **Anonymous Pss falls ~37 MiB** (457.8 → 420.9 MiB) **while file-backed Pss rises ~14 MiB**
+  (14.4 → 28.6 MiB); `SwapPss` rises ~47 MiB (430.6 → 477.9 MiB): part of the anonymous set
+  moves to swap when gameplay starts.
+- **`libmali.so.0` grows +11 MiB Pss** (6.5 → 17.6 MiB) — driver-side allocations grow with
+  gameplay and are separate from guest anon accounting.
+- `main.text.seg` +2.6 MiB, `main.rodata.seg` +0.2 MiB (code/data cache), everything else is
+  small or flat.
+- Largest mappings in gameplay: a **guest-heap VMA at `0x1001d1c000` (= guest heap base
+  `0x1000000000` + ~29 MiB), 1.66 GiB virtual, Pss ~358 MiB**; a second heap VMA at
+  `0x106d8b2000` (Pss ~24.7 MiB); `libmali` ~17.3 MiB; an anonymous 0x7f74000000 region
+  (Pss ~14 MiB). `guest_heap` pagemap: present 143.1k → 136.1k pages (−27 MiB), swapped
+  82.6k → 94.4k pages (+46 MiB) menu → game.
+- For the 136.9 MiB launch read above: no region of that size disappears between the observed
+  phases; the heap VMA stays large and increasingly swapped — consistent with the buffer
+  being retained (or aliased inside the heap), still **not proof**.
+
 ## What the next instrument needs (not implemented)
 
-1. `/proc/<pid>/maps` + `smaps` collection in the phase snapshots so consecutive phases can
-   be diffed VMA-by-VMA (grow / stabilise / shrink), without double counting the NVN pool
-   aliases.
+1. ~~maps/smaps collection~~ — already present: the phase snapshots embed 428 smaps rows per
+   snapshot and `tools/analyze_vma_diff.py` diffs them; repeat over more scene cycles when the
+   harness route can be scripted safely.
 2. A bounded runtime trace of guest allocations ≥1 MiB with call-site identity, lifetime and
    free path (Unity allocator, IL2CPP managed, AssetBundle read staging, texture staging),
    plus the allocator's reserved/committed/active/free-list bytes.
-3. Repeated scene cycles (more than one street→sheriff→street loop) once the harness route
-   can be scripted safely; the current evidence covers a single cycle.
+3. Repeated scene cycles (more than one street→sheriff→street loop); the current evidence
+   covers one cycle plus two independent menu→game transitions.
 
 Artifacts: `phase-comparison.json` (machine-readable tables above), produced by
 `tools/analyze_memory_phases.py` from the repository's existing compressed snapshots.
