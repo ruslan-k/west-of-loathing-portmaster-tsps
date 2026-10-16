@@ -1,207 +1,177 @@
-# West of Loathing on TrimUI Smart Pro S — performance and zero-swap roadmap
+# West of Loathing / TrimUI Smart Pro S — FPS and zero-swap optimization roadmap
 
-Status: **proposed work, not implemented**, unless explicitly marked otherwise.  
-Baseline: **main at a6acb0e2d8d392dd31eb1de872ac361d36f99950**, 2026-10-16.  
-Target: original Switch ARM64/IL2CPP Unity 5.6.5p1 through the native Horizon adapter on SpruceOS / Mali-G57 / OpenGL ES 3.2. No Box64.
+**Status:** living technical plan; tested and rejected experiments are explicitly separated from proposed work.  
+**Reviewed:** 2026-10-16, `main` baseline `2f60f46992991f3bb47a96a1c13a12a7b7544e08` (before this documentation update).  
+**Platform:** owner-supplied Switch Unity 5.6.5p1 ARM64/IL2CPP, native Horizon adapter, SpruceOS, Mali-G57 GLES 3.2, approximately 963 MiB RAM. No Box64.  
+**Purpose:** identify *new* experiments after the first roadmap was executed. [Historical resource studies](resource-optimization.md) and [M1/M5 measurement contracts](memory-benchmark.md) remain authoritative for their own earlier checkpoints.
 
-This document tracks the next engineering steps after the 2026-10-15 A/B experiments. It supplements [resource-optimization.md](resource-optimization.md) and [memory-benchmark.md](memory-benchmark.md), not replaces their raw evidence. Re-evaluate the baseline when main changes; do not silently relabel proposed work as measured.
+> This is **not** a claim that either 30+ FPS or zero-swap has been attained. Device reports use varying saves/scenes and diagnostic builds. The latest sampler micro-zone timings were measured on `dtime8` (SHA `414efb1f…`); its `WOL_SAMPLE_SPLIT` instrumentation is reported under evidence but is **not present in the committed main overlay** at this review. Publish/reconcile the exact diff against the restored runtime baseline before calling it merged source code.
 
-## 1. Goals and acceptance criteria
+## 1. Current measurable baseline and open gates
 
-**Performance:** at least 30 independently verified game presents/second in representative gameplay, with P95 end-to-end frame interval at or below 33.33 ms after warm-up. Measure stationary and moving scenes, transitions, map, battle and a long session; a 30 s menu benchmark alone is insufficient. Distinguish NVN presents, actual KMS scanout and panel refresh (not identical metrics).
-
-**Memory:** complete cold start and game session with **no swap enabled from before process launch**, no OOM or memory-floor stops, correct graphics/audio/save/load, and a meaningful MemAvailable/CmaFree safety margin at startup peaks and transitions. A warm process with near-zero swap I/O or a low VmSwap value does not prove zero-swap viability. Do not disable swap while the game is already running.
-
-**Correctness:** preserve currently restored player/Cactus Bill geometry, WANTED stencil clipping, Sprite metadata/UV contracts, menus, dialogue, audio, saves and clean return to Spruce. The map's paper extent has improved, but marker/title placement remains unresolved; validate separately rather than asserting the map is fixed.
-
-**Measurement:** every optimization must compare SHA-identified runtime and owner section with controlled save, identical launch environment, clocks and scene; run paired/alternating A/B repetitions and preserve actual KMS captures. Record frame-time P50/P95/P99, present rate, CPU consumption, major faults, swap-in/out, PSS/SwapPSS, sampled startup peaks, CmaFree and any GPU allocation metrics. Report noise and unknowns; do not convert estimates into measured gains.
-
-### Reference measurements (not an A/B against future builds)
-
-| Metric | Current evidence |
-| --- | --- |
-| Outdoor gameplay | about 24.9–26.2 presents/s in repeated M1/M5 probes |
-| Ready menu | about 25.5–26.4 presents/s |
-| Outdoor PSS + SwapPSS | about 910 MiB (process rollup, **not** entire physical RAM usage) |
-| Startup minimum MemAvailable | 29.7–32.3 MiB |
-| Startup minimum CmaFree | 0–12 KiB (sampled) |
-| Outdoor live textures | 250, estimated host image extent 196.83 MiB |
-| Guest heap pages outside NVN pool spans | about 699 MiB present-or-swapped; **not** identified free memory |
-| Estimated work to reach 30 fps at 25–26 fps | around 5–7 ms/frame, subject to verified timing |
-
-Sources: [M1/M5 observations](../evidence/memory-profile-m1m5/README.md), [M4 results](../evidence/mipstrip-m4/README.md), [resource-optimization evidence](resource-optimization.md). RSS, PSS, SwapPSS, NVN pool aliases, and estimated Mali images must **not** be added indiscriminately.
-
-## 2. Completed or tested: do not redo without a new mechanism
-
-| Work | Status and evidence | Action |
+| Measurement | Observed | Interpretation / limit |
 | --- | --- | --- |
-| Per-draw success logging gate | Implemented; approximately 92% lower log growth; modest measured FPS change in that experiment | Keep quiet production path; preserve failures |
-| True present RGB-write proof and periodic readback | Implemented/tested | Retain real pixel health checks; never mislabel unsampled as healthy |
-| CPU logical-to-host remap, native RGBA4444, fast RGBA8 copy | Implemented as flags with tests | Keep validated defaults; do not attribute combined gains to one flag |
-| M2/M3 mip-tail strip + corrected RomFS entry length | Deployed, significant measured footprint reduction | Keep |
-| M4 100 selected background textures | Deployed; reduced measured memory in sampled scenes | Keep |
-| M4 wave2, 53 additional textures | Offline-verified only, approximately 18.75 MiB payload estimate | Optional later device A/B, **not** a proven RAM saving |
-| WOL_PAIR_RING persistent/reused GL objects | Implemented; median 25.88 vs 25.51 game presents/s, difference within noise | Not next FPS priority |
-| WOL_COPY_GPU texture-region blit | Implemented opt-in; menu 26.74 -> 21.51 presents/s and longer finish; default off | Avoid unless the algorithm/scheduling changes |
-| WOL_REFRESH_DIRECT guest-storage upload | Implemented opt-in; no meaningful FPS improvement; default off | Avoid re-testing the same copy elimination |
-| M1/M5 read-only profiler and heap/NVN pool census | Implemented and exercised | Extend to owner-level attribution |
-| M7 ListDisplays override / M9 format-56/ASTC probes | Specific probes did not work | Defer; not proof every scaling/compression solution is impossible |
-| M8 free-page decommit | Not implemented; ownership not proved | Block until allocator evidence exists |
+| Previously repeated Boring Springs street | ~25–27 presents/s | Not guaranteed panel FPS or all-scene FPS |
+| Controlled `tut_gulch` sampler run | ~34.0 ms mean frame, with large slow-frame tail; normal mode | Different saved scene than the earlier Boring Springs baseline; do **not** compare as strict A/B |
+| `tut_gulch` normal texture sample prepare `pp3` | **5.773 ms/frame** | `zero_texture_refresh`, dominated by per-frame full upload of texture 460 |
+| `tut_gulch` `WOL_COPY_GPU=1` | `pp3` ~0.019 ms, but frame ~48.0 ms vs 34.0 ms control | Finish **25.94 vs 12.63 ms**; immediate GPU blit loses overall |
+| Guest texture 460 | 1280×720 RGBA8, 3,686,400 bytes, once per frame | ~2,816 refreshes / ~10.38 GB upload in one profiler run |
+| Controlled street PSS + SwapPSS | ~910–935 MiB across reported runs | Process committed/swap accounting, not whole-device RAM footprint |
+| Short map/pause cycle (60 s) | GPU context commit ~262–274 MiB; PSS ~460–469 MB, SwapPss ~458–467 MB | No growth trend in this window; not a long gameplay/scene-transition or no-swap proof |
+| GPU residency census | ~153 MiB estimated host images, ~97 MiB inactive >5 s | Only **~7.1 MiB safely reconstructible** with current semantics |
+| ASTC create-time experiment | +8.08 MiB GPU committed without cache before BC content copies; later both ~255 MiB | Native compressed storage works; **no persistent saving after subsequent BC uploads** |
+| Zero-swap cold boot | **Not demonstrated** | Process still uses hundreds of MiB of swap; startup/CMA pressure remain |
 
-Detailed evidence: [pair ring](../evidence/fps-pair-ring/README.md), [GPU copy](../evidence/fps-gpu-copy/README.md), [direct upload](../evidence/fps-refresh-direct/README.md), [memory profiling](../evidence/memory-profile-m1m5/README.md).
+Goals: at least **30 presents/s sustained** in representative moving, dialogue, map, battle and late-game scenarios, **P95 full frame interval ≤33.33 ms** where appropriate, and **no swap configured before game launch** with no OOM, low memory-pressure stalls and adequate MemAvailable/CmaFree headroom. Benchmark observed presents and screen output separately. Do not claim any target on a single 30-second idle scene.
 
-## 3. P0 FPS: attribute replay, GPU waits, and presentation
+## 2. Work already implemented, verified, or intentionally closed
 
-**Hypothesis:** the remaining approximately 5–7 ms/frame may lie in replay CPU work, per-submit GPU completion or driver synchronization; exact overlap of reported replay/finish phases must be verified before adding numbers.
-
-**Relevant code:** runtime/wol-adapter.patch, especially native/nvn_present.h, native/nvn_render.h, the texture copy/refresh overrides; tools/wol_memory_benchmark.py.
-
-**Implement:**
-1. Add an opt-in bounded per-frame/command-category timeline (suggested flag: WOL_FRAME_TIMELINE=1). Aggregate timestamps in memory; do not printf per draw.
-2. Attribute command decode, shader lookup, state application, vertex/index preparation, texture binding, refresh, GL draw submission, copy/resolve, wait and present. Capture count, accumulated wall/CPU time, maxima and affected bytes.
-3. Time actual GPU completion using supported driver mechanisms where possible; keep CPU submission and GPU elapsed time separate, avoid blocking same-frame timer query collection. Classify finish/eglSwapBuffers/fence waits, surface changes and dependencies.
-4. Correlate phases to game frame IDs and log one summary per 60–120 frames; confirm the profiler itself is low overhead via profiler off/on A/B.
-5. Measure during startup, menu, stationary street, moving street, sheriff interior, map and battle. Correlate with CPU core/frequency and GPU frequency rather than inferring saturation from one snapshot.
-
-**Deliverable:** evidence/fps-frame-timeline/ containing timestamp definitions, code paths, A/B results, KMS captures, log summaries, and ranked top three critical-path bottlenecks.
-
-**Accept:** identify a reproducible component with enough time to explain the gap, or report that the current evidence cannot distinguish GPU/CPU limits. Do not begin major GPU scheduling rewrites without this attribution.
-
-## 4. P0/P1 FPS: explore a genuinely different texture-460 copy model
-
-The measured hot path performs a 1280x720 (3.69 MB) CopyTextureToTexture into texture id 460 each frame; the default CPU-copy + dirty re-upload path moved about 9.44 GB each way over the profiling run. Replacing this with an immediate GPU region blit was *slower*; bypassing staging memcpy was flat.
-
-**Not implemented: a conditional lazy copy/alias**. Before touching the implementation, trace the exact dependency chain: source render-target writes, copy, source writes after copy, destination GPU sampling, destination CPU reads/writes, reuse and subsequent copies. IDs are per-session; use object/generation identities, not a hardcoded global texture number.
-
-Possible strategy:
-1. Record a deferred copy descriptor including source/destination identities, generation, region, format, levels, sampler/UV transform and destination snapshot semantics.
-2. On GPU sampling, redirect to source storage only if the source still represents the copy-time snapshot and all format/origin/swizzle/filter/alpha rules match.
-3. On source mutation, destination mutation, guest CPU access, incompatible blit or pending GPU dependency, materialize the destination **before** the conflicting operation.
-4. Use an explicit hazard/ownership model and revertible flag. Never substitute a live source image for a destination that requires independent copy-time contents.
-
-**Alternative** (also unimplemented): defer a copy to a render-pass boundary or test native GLES glBlitFramebuffer with cached FBOs, but only with correct ordering. Do not merely re-enable WOL_COPY_GPU.
-
-**Accept:** bitwise or narrowly specified pixel-equivalent output for matched captures, safe CPU/GPU coherence, no new finish stalls, and a repeated >noise FPS win before enabling by default. If the trace shows unavoidable hazards every frame, reject lazy alias early.
-
-## 5. P1 memory: M5 owner-level Unity/AssetBundle heap attribution
-
-Current read-only snapshots see approximately 901 MiB present-or-swapped pages in the guest heap reservation, with approximately 202 MiB overlapping the NVN pool union and about 699 MiB elsewhere. This is *not* an identified 699 MiB free block.
-
-**Relevant code:** tools/wol_memory_profile.py, tools/wol_memory_layout.py, tools/wol_memory_benchmark.py; restored owner runtime/guest Unity 5.6.5p1 allocations (not published).
-
-**Implement in safe stages:**
-1. Extend read-only phase snapshots to repeated scene cycles and identify which VMAs grow, stabilize or shrink; compare guest heap, GPU aliases and native mappings without double counting.
-2. Establish call-site/owner attribution for large allocations (Unity native allocator, IL2CPP managed memory, AssetBundle, UnityFS read/decompression, texture staging, other). Start with bounded samples for allocations >=1 MiB; collect lifetimes and frees with minimal perturbation.
-3. Determine whether the 136.9 MiB M4 core read buffer is released, retained as a lazy cache or duplicated. Do not free it solely because initial loading completed.
-4. Characterize allocator reserved, committed, active and free-list bytes and whether fully free pages can be safely returned.
-5. Repeat street -> sheriff -> street multiple times; compare stable endpoint memory and live texture ownership to distinguish caching from leaks.
-
-**Deliverable:** proposed tools/wol_heap_ownership.py (or equivalent runtime trace) and evidence/m5-heap-owners/ with a reconciled per-owner table and explicit unknown bytes.
-
-**Accept:** identify concrete live allocators/resources capable of saving measurable RAM. An unknown VMA label or pagemap swapped flag does not prove reclaimability.
-
-## 6. P1 memory: M6 compressed and compact host GPU textures
-
-**Not implemented.** Guest BC/DXT texture content is often decoded to host RGBA for GLES uploads. A static BC3 1024x1024 level needs about 1 MiB compressed but 4 MiB RGBA8 when expanded; these are *format* sizes, not a prediction of total driver-RAM savings.
-
-**Relevant code:** runtime/wol-adapter.patch around zero_texture_refresh / zero_texture_bc_pixels and host texture creation, tools/wol_memory_repack.py for separate offline metadata.
-
-**Implement:**
-1. Collect native-format, sampled/static/mutable, mip, sRGB/swizzle, render-target and *measured if possible* driver-residency inventory. The ~196.83 MiB host image number is only an estimate.
-2. Query Mali GLES support for ETC2/EAC and ASTC formats, then verify glCompressedTexImage2D on a single safe asset and inspect actual driver allocations.
-3. Generate an owner-local, content-hash-identified cache (BC -> ETC2 RGBA/RGB or suitable ASTC) **outside** UnityFS. Leave original guest format/API contract unchanged. Keep RGBA fallback for dynamic, partially updated, render-target and unsupported textures.
-4. Preserve mip levels, block sizes, alpha, linear/sRGB, wrapping, swizzle, sampler state and invalidation on guest writes.
-5. For genuinely grayscale assets, evaluate R8 or RG8 plus exact channel reconstruction; do not indiscriminately replace RGBA for sprites with independent alpha.
-6. Compare fine black outlines, characters, UI text and stencil masks on physical screenshots, plus PSS/SwapPSS, Mali allocations, GPU bandwidth (if available), startup, and FPS.
-
-**Accept:** verifiable physical-memory improvement, no correctness regression or new upload latency. A smaller compressed disk cache alone is not sufficient. Treat M9's unsuccessful in-bundle format replacement as a separate experiment, not a reason to skip M6.
-
-## 7. P1 memory: GPU residency inventory and safe eviction
-
-**Not implemented as a complete budget-based policy.** Endpoint counts in the M5 test were 217 -> 250 -> 246 -> 261 live textures; increased object count does not by itself imply leaked GPU memory.
-
-**Implement:**
-1. Track per-resource guest identity/generation, estimated and measured host bytes, last sampled/written frame, in-flight uses, render-target/depth status, guest backing and reconstructibility.
-2. Report unused-for-5/15/30-second bytes and candidate safe-to-evict static storage. This first pass must **not** free resources.
-3. Only if there is enough inactive reconstructible storage, add budgeted eviction with lazy re-creation and fence-aware retirement. Never evict unique GPU-authoritative render results without a correct restore path.
-4. Use memory pressure and measured reload penalties to tune budget, rather than copying ScarletNX's exact fixed frame timeout.
-
-**Accept:** lower peak resident physical memory after repeated transitions without excessive re-uploads, page faults, hitching, or loss of texture content.
-
-## 8. P2: M8 allocator-safe decommit (blocked on M5)
-
-**Do not** call madvise(MADV_DONTNEED), mprotect, unmap or perform a zero-page scan as a proxy for allocator ownership. Pagemap present/swapped/unmapped and NVN pool aliases do not show which Unity objects are live.
-
-Implement only after the allocator exposes verified whole-page free ranges, free-list transitions and all aliases/GPU uses. Require page alignment, lock/epoch coordination, fail-closed guards and a fallback mode. Test long scene cycles and restoration of every reused allocation.
-
-**Accept:** actual decline in committed/physical memory on device without guest data corruption, crashes, GPU faults or higher reload stalls.
-
-## 9. P2: M7 coordinated internal render-target scaling
-
-The 1920x1080 intermediate images cost about 2.25x the pixels of the 1280x720 screen for each equal-format full-screen pass. The existing ListDisplays override did **not** make Unity allocate smaller targets.
-
-**Implement only after profiling indicates GPU fill/bandwidth or RT storage is significant:**
-1. Trace render-target creation, dimensions, formats, usage, viewport/scissor, attachment graphs, sampled regions and physical output.
-2. Identify camera-color/depth targets eligible for scaling while preserving logical guest dimensions and transformations, or find the genuine guest-side resolution decision.
-3. A/B only one coordinated target class at a time, including downstream UV, copy regions, stencil, UI and sampling.
-4. Compare cost/quality in gameplay, map, portrait mask and dialogue text; avoid a global 1920 -> 1280 lying-size substitution.
-
-**Accept:** reduced GPU elapsed/present time or physical storage with visually correct compositing and no guest memory incoherence. If GPU is not the bottleneck, defer.
-
-## 10. P2 other candidates (measure before coding)
-
-- Cache redundant GL state changes and GL queries only after a bounded call-frequency profile; keep full error detection in diagnostics and invalidate cached state on all direct GL paths.
-- Generation-tracked immutable vertex/index cache only if repeated unmodified guest ranges are common. WOL_PAIR_RING alone already eliminated object churn without a meaningful FPS improvement.
-- Prewarm shader programs only if compilation/link stalls appear in timings.
-- Pool transient texture upload workspaces only if peak allocation/lifetime measurements show an opportunity; WOL_REFRESH_DIRECT already showed staging memcpy is not a frame-time lever.
-- Investigate true zero-copy or cheaper readback only when health-proof accounting and presentation correctness remain intact.
-
-## 11. Experimental order and exit criteria
-
-| Phase | Proposed work | Output / decision |
+| Earlier roadmap item | New status (2026-10-16) | Evidence |
 | --- | --- | --- |
-| A — FPS baseline | WOL_FRAME_TIMELINE, GPU-wait classification, same-scene A/B | Rank exact critical-path costs |
-| B — FPS mechanism | Texture-460 dependency trace, then lazy alias or pass-boundary copy behind opt-in flag | Keep only if repeatable >noise performance gain |
-| C — memory baseline | M5 allocator/AssetBundle owners and multi-transition lifecycle | Account for large retained non-pool heap regions |
-| D — compressed storage | M6 one immutable BC asset then limited rollout | Quantify physically saved RAM vs quality/latency |
-| E — residency | Read-only inactivity census; gated eviction if worthwhile | Measured reduction in peak RAM |
-| F — targeted optional | M4 wave2, M7 render scaling, M8 verified-free decommit | Each isolated; revert failures |
-| G — full acceptance | Cold boot without swap, gameplay + save/load + late locations, performance and KMS capture | **30+ FPS + zero swap** proven in one build |
+| NVN frame phase, draw split, critical-path timing | **Measured**: `COTM_REPLAY_PHASES` with `NVN_DRAW_SPLIT`, ~25.9 ms replay / ~11.8 ms finish in one street profile | [Frame timeline](../evidence/fps-frame-timeline/README.md) |
+| First sampler sub-zones | **Measured on device build `dtime8`**, but source diff not yet included in `main` patch | [Sampler split](../evidence/fps-sampler-split/README.md) |
+| Resource lookup cache | **Closed for FPS**: 99.4% hit rate; ~0.4 µs/frame lookup scan, no meaningful gain | [Resource-lookup A/B](../evidence/resource-lookup-ab/README.md) |
+| Texture-460 copy dependency trace | **Measured**, 256/256 intervals: copy → destination sampled twice → source rewritten; generic deferred snapshot alias **rejected** | [Copy trace](../evidence/copy460-dependency-trace/README.md) |
+| Immediate GPU copy (`WOL_COPY_GPU`) | **Rejected/default off**, GPU finish regression confirmed again by micro-zones | [Sampler split](../evidence/fps-sampler-split/README.md) |
+| Direct guest-storage upload (`WOL_REFRESH_DIRECT`) | **Neutral** in measured A/B; default off | [Direct upload](../evidence/fps-refresh-direct/README.md) |
+| Reusable buffer objects (`WOL_PAIR_RING`) | Implemented, no statistically useful FPS gain | [Pair ring](../evidence/fps-pair-ring/README.md) |
+| CPU logical→fast-core remap | Isolated A/B **no repeatable speed-up**; existing launcher still exports `WOL_CPU_OFFSET=4` unless overridden: review default separately | [CPU remap](../evidence/cpu-remap-ab/README.md) |
+| Truthful present proof / sparse reads | **Validated**, first proof frame 4, period 300, 2,895 `NOT-SAMPLED` frames | [Sparse proof](../evidence/present-proof-sparse/README.md) |
+| M4 wave2 (53 additional textures) | **Device A/B done but not adopted**: −4.7 MiB menu / −1.7 MiB street PSS+SwapPSS, no measured FPS change; original section restored | [Wave2 A/B](../evidence/m4-wave2-device-ab/README.md) |
+| M5 `smaps`/VMA phase diffs | **Done read-only**; major Unity allocation owners/free lists **still unknown** | [Heap observations](../evidence/m5-heap-owners/README.md) |
+| Texture residency census | **Done read-only**; eviction gate not met with only ~7 MiB demonstrably restorable | [GPU residency](../evidence/gpu-texture-residency/README.md) |
+| M6 ASTC device proof and initial cache | **Implemented/tested**: ASTC 6×6 hardware decode, WOL6 cache builder, runtime hook, 16 null-content hits, upload/fallback GL error fixed, GPU RAM delta measured | [ASTC acceptance](../evidence/m6-compressed-textures/astc-acceptance.md), [E2E](../evidence/m6-compressed-textures/astc-e2e-device.md) |
+| M6 *create-time content* cache | **Closed as current design**: BC textures observed empty at creation in `tut_main`, `tut_gulch` and `tut_saloonbasement`; content arrives later via CopyBufferToTexture | [Content scene probes](../evidence/m6-compressed-textures/content-scene-probes.md) |
+| Map/pause memory stability | **Limited acceptance**: no trend over 60 s while toggling visible map and pause | [Scene cycles](../evidence/scene-cycles-memory/README.md) |
 
-Run FPS and memory work in parallel only when their experimental changes can be evaluated independently. No deadline or estimated FPS/RAM saving is a commitment.
+**Do not repeat** earlier buffer-gen/delete, hash-lookup, immediate GPU blit, direct-storage upload, simple fast-core remap, or create-time ASTC content caching without a materially different algorithm and a falsifiable device hypothesis.
 
-### One-variable A/B discipline
+## 3. P0 FPS — avoid the texture-460 host upload without an immediate GPU blit
 
-- Start each trial from a SHA-pinned main revision and a known-good owner-only section/launcher/save, restoring all after each bounded run.
-- Use a controlled real Spruce principal/menu handoff and consistent scenes; do not treat successful diagnostic Npad packets as physical controller verification.
-- Alternate control/variant order, repeat enough times to separate approximately 1–1.5 presents/s natural variation from a true change; report full samples not just best run.
-- Preserve startup samples plus 30 s menu/street, interior and return. Add movement, battle, map and extended play before promoting any flag.
-- Capture actual KMS frames and compare exact locations; flag known map deficiencies. Check audio, save hashes, exact runtime PID cleanup, CPU online mask, MainUI recovery and absence of unowned process changes.
-- Keep measured facts, projections and hypothesized benefits explicitly separate.
+**Why first:** the new sampler micro-zones put roughly **5.8 ms/frame** inside the full 1280×720 `glTexSubImage2D` refresh in `tut_gulch`. Its per-frame CPU-side RGBA copy is already a fast `memmove` and bypassing staging memcpy did not help. The immediate GPU blit removed the upload but cost more GPU-finish time. No approach is yet proven faster end to end.
 
-## 12. Zero-swap readiness gate
+### 3.1 New candidate: same-frame **GPU sample redirection** while preserving the CPU snapshot
 
-Before a no-swap test, demonstrate ample MemAvailable and CMA headroom **through cold-start peaks**, not just a warm street screenshot. Track host driver allocations separately and note possible overlaps with process accounting. Process PSS+SwapPSS around 910 MiB is not itself proof the game will fit into about 963 MiB physical RAM with kernel, display, GPU and other processes.
+This is deliberately **not** the previously rejected generic lazy-copy algorithm. Keep the existing guest-visible CPU row copy into the destination pool so CPU reads and the copy-time byte snapshot remain correct, but, *only for proven-consistent sampling in the current command interval*, redirect the destination's **GPU sampler binding** to the already-current producer render-target GL texture rather than refreshing/uploading the CPU mirror.
 
-For a dedicated recovery-safe test environment, disable swap **before** launching the game, then verify no swap device/file is active, collect meminfo/oom/pagemap/driver indicators and run menu -> street -> interior -> battle -> map -> save/load -> return cycles. Do not force swapoff on a live, already swapped game. Re-enable the normal system configuration if the experiment fails.
+Potentially removes the ~3.7 MB GL upload while retaining cheap CPU copying; it performs **no extra GPU blit**. The opportunity is based on the observed sequence (copy → two destination samples → next source write), but that sequence was observed only for the stationary route and is **insufficient to enable this generically**.
 
-**Release gate:** no OOM, no memory floor, no missing textures, no stale CPU/GPU copies, acceptable frame-time P95, stable memory over extended scene cycles, clean Spruce restoration and verifiable zero swap throughout.
+**Preflight instrumentation (required before changing rendering):**
+1. Expand `WOL_COPYTRACE` to moving frames, `tut_main`, `tut_gulch`, `tut_saloonbasement`, battle, map, reload and transitions. Log *all* CPU and GPU reads/writes of source and destination, render-target bindings/attachments, acquire/release, source/destination versions and GL context.
+2. Verify that both destination samples happen **before** the source is modified, the source GL texture contains the correct copy-time pixels, and destination CPU reads still see the existing CPU copy. A later destination sample (after source modification), changed sampler semantics or unknown context must cause immediate fallback.
+3. Confirm no read/write feedback loop, implicit GLES resolve, rotation/crop/flip, filtering, multisample, stencil, texture-level or per-target hazard changes. The three rotating sources cannot be reduced to one unversioned ID.
+4. Prototype a single per-command or per-submit **GPU-only redirect** under a new default-off flag (proposed `WOL_COPY_SAMPLE_REDIRECT=1`), restoring ordinary uploads on the first unsafe event. Invalidate the redirect before source rewrites and retain a correct CPU mirror.
+5. Trace GPU finish separately: eliminating a driver upload might shift cost into source resolve/sampling and still lose overall.
 
-## 13. Correctness, CI and repository follow-up
+**Acceptance:** identical visual output in physical KMS captures, correct CPU readback/guest snapshot contracts, no GL errors, no stale textures after source redraw or scene changes, improved *full-frame* P50/P95 in alternating A/B (not only lower `pp3`), and clear per-frame proof of which draws used the shortcut. Abort if hazards are unavoidable in real gameplay.
 
-- Keep the [gfx265 visual baseline](../evidence/gfx265/README.md) and all owner-data SHA receipts. Character bodies and portrait mask are restored; map title/markers remain open.
-- Add a real overlay-apply/build/regression CI job against the verified GPL reconstructed source when that source can be acquired lawfully in CI, while keeping commercial assets/NSO/game binaries and owner saves out of public CI. Existing .github/workflows/native-probe.yml does **not** prove full Horizon runtime performance or playability.
-- Add focused data-free tests for timeline counter boundaries, copy hazards, texture generations, compressed formats, eviction and allocator-page safety as relevant changes land.
-- Do not make experimental runtime flags production defaults until device A/B, KMS screenshot, audio/input and save/load acceptance.
-- Update outdated status text in runtime/README.md and original PR descriptions separately if useful; this roadmap does not assert those documents are current.
-- Keep new measurement evidence under evidence/<experiment>/ with effective environment, source/runtime/section hashes, scripts, raw metrics and explicit limitations; no commercial game assets or raw extracted shaders.
+**Source areas:** `runtime/wol-adapter.patch` → `native/nvn_render.h` sampler resolve and `zero_texture_refresh`, `nvnCommandBufferCopyTextureToTexture` special-case, `native/nvn_texture.h`/NVN coherence hooks; `tools/analyze_copytrace.py`. Record the actual reconstructed source file paths during implementation (overlay diff hunks are not standalone runtime source files).
 
-## 14. Recommended immediate next commits
+### 3.2 Fallback candidates if sample redirection loses
 
-1. **Instrumentation only:** lightweight frame timeline and GPU-wait attribution; no runtime behavior change by default.
-2. **Instrumentation only:** heap/AssetBundle allocation owner and texture-residency inventory with repeat scene cycles.
-3. **Experimental opt-in:** texture-460 dependency trace and guarded lazy copy, *only* if trace supports safe aliasing.
-4. **Experimental opt-in:** M6 compressed upload for one validated immutable texture with cache/fallback and physical-memory comparison.
-5. **Evidence/report:** choose the next production candidate based on measured critical-path milliseconds and reclaimable resident bytes, not source-level speculation.
+- **Render-graph pass restructuring:** a terminal composite that samples the producer directly with correct transformed UVs, avoiding intermediate destination sampling/copy only when the graph semantics allow it. Not equivalent to the already-rejected mid-frame GPU blit. Requires per-pass instrumentation, FBO detachment and host/guest order proof.
+- **Async PBO upload experiment:** double/triple bounded unpack buffers, non-blocking fence retirement, full-image upload semantics unchanged. Only worthwhile if driver stall is attributable to synchronous GL upload; PBO still transfers 3.7 MB and can worsen total bandwidth or RAM. A/B against both normal and `WOL_REFRESH_DIRECT`.
+- **Damage-region upload** only if a pixel/region diff over real moving frames demonstrates a *small* changed area and dirty rects are accurate. Otherwise full 1280×720 conversion is unavoidable. Avoid CPU full-frame diff overhead without an off-thread/producer source of changed-region metadata.
+- **Avoid assuming `glBlitFramebuffer` alone helps**; a previous GPU-side copy serialized the pipeline. Try any alternative only after a dependency/driver timing argument.
 
-Do not repeat ring-buffer, immediate GPU-blit, or direct-refresh-upload experiments without materially different scheduling/coherency logic.
+Do not accept a 5.8 ms reduction of sampler CPU work that adds ≥5.8 ms to GPU finish. The metric is complete frame interval and visual correctness.
+
+## 4. P0/P1 memory — M6 second-generation, **post-CopyBufferToTexture** compressed cache
+
+**Existing mechanism proven:** ASTC 6×6 `glCompressedTexImage2D` works on Mali-G57, shader sampling matches the tested astcenc reference, and the runtime's WOL6 hash cache/fallback is real. While 82 cached **empty** textures are resident, the GPU context commits 8.08 MiB less than control; after their real BC content is copied in, cache textures convert back to RGBA and the memory delta disappears. A create-time content-hash lookup is therefore not a production optimization.
+
+**New candidate (not implemented):** serve the *completed, actual* BC texture from a precomputed ASTC entry **after** its content arrives via `nvnCommandBufferCopyBufferToTexture`. Reuse the existing owner-local builder, runtime-exact BC decoder and WOL6 format; place new matching/host-storage logic at the **copy path**, not at empty texture creation.
+
+**Stages:**
+1. **Trace BC writes by texture, region, mip and scene:** count full-image versus partial/multi-call updates, duplicate updates, last-write→first-sample lifetime, format, dimensions and whether the texture ever serves as render target. The `tut_saloonbasement` sample contained 74 BC texture creations but only 8 observed buffer→texture copies; do not assume all BC textures have an immediate complete upload.
+2. For a fully populated immutable level-0 BC texture, compute a stable key over the **canonical decoded bytes** (builder already uses `tools/wol_bcdecode_host.c` to reproduce runtime rounding); alternatively verify a canonical BC-block hash only if host/guest linearisation is exact. No fuzzy matching.
+3. On a WOL6 cache hit with matching width/height/level/format, replace host RGBA storage **at the point of the completed copy**, or avoid creating RGBA storage for that complete upload when proven possible. Do not issue RGBA `glTexSubImage2D` onto compressed storage. On later partial writes, CPU-image refresh, render-target binding or copy, recreate RGBA backing and clear cache state, with correct GPU synchronization.
+4. On a cache miss keep the existing RGBA path. **Never run astcenc synchronously during gameplay**; cache must be generated offline, used read-only, and ideally mapped/lazy-loaded without holding the entire content cache in anonymous RAM.
+5. Start with one *real, nonempty, copy-populated* BC texture, then a small group in `tut_saloonbasement`; compare actual `mali0/ctx/<ctx>/mem_allocs` commit, process memory, texture-load latency and visual diff through multiple scenes.
+
+**Go/no-go:** persistent GPU memory reduction *after* real BC content uploads, with no repeat-transfer penalties or bad compression artifacts on thin black strokes/alpha, and no correctness regression. If most textures receive partial updates or future overwrites, reject this route rather than encode on the device. A disk-side cache ratio is not evidence of physical RAM savings.
+
+**Sources:** `tools/wol_m6_cache_build.py`, `tools/wol_bcdecode_host.c`, `runtime/wol-adapter.patch` (`nvn_textures.h` creation ASTC hook and `nvnCommandBufferCopyBufferToTexture` / `zero_texture_refresh` fallback), [M6 reports](../evidence/m6-compressed-textures/astc-e2e-device.md), [scene content probe](../evidence/m6-compressed-textures/content-scene-probes.md). Do not re-run the earlier empty-image cache expecting lasting savings.
+
+## 5. P0/P1 memory — M5 actual Unity allocation owners and 136.9 MiB read lifetime
+
+**Still open:** detailed `smaps`/pagemap and VMA comparisons are in place. A large guest heap VMA (~1.66 GiB virtual; ~358 MiB PSS in a sample) retains hundreds of MiB present/swapped pages; the exact Unity native, IL2CPP, AssetBundle and temp-buffer owners are not identified. The 136.9 MiB `StreamingAssets/core` RomFS read has no known allocation/free identity. A ~60 MiB anonymous PSS drop from startup is **not** proof that a 136.9 MiB input buffer is live, nor that it was freed.
+
+**Next instrumentation:**
+1. Locate the actual guest allocator entry/exit paths in the owner Unity/IL2CPP binaries and the Horizon allocation bridges. Sample large allocations (initial threshold ≥1 MiB) with caller PC/backtrace identity, allocation address, size, arena, time/scene and matched frees. Instrumentation must be bounded and fail closed on uncertain pointers.
+2. Specifically trace the 143,554,106-byte RomFS read buffer: who allocates it, whether Unity copies it, when the guest no longer reads it, and how much of the underlying mapping remains resident. Distinguish file-backed, anonymous and remapped pages.
+3. Report **reserved vs committed vs active vs free-list bytes**, anonymous mappings, native mappings, pool aliases and driver memory without double counting. Re-run identical cold starts and full street↔interior scene loops, not just map/pause toggles.
+4. Only if a genuinely retained redundant copy is shown, explore streaming reads, bounded staging or valid owner-level release. Do not simply free the buffer when the initial load ends: Unity might still access compressed/serialized AssetBundle data lazily.
+5. Treat allocator-safe `madvise(MADV_DONTNEED)` (former M8) as **blocked** until complete, page-aligned free ownership and no guest/GPU aliases are proven.
+
+**Acceptance:** a reconciled allocation-lifetime table accounting for major non-NVN pages, clear evidence for a concrete reclaimable resource, and same-scene lower physical pressure after an isolated change. Zero-swap is **not** solved by `VmSwap≈0` in a warm session.
+
+**Files:** `tools/wol_memory_profile.py`, `tools/wol_memory_benchmark.py`, `tools/analyze_memory_phases.py`, `tools/analyze_vma_diff.py`; [phase owner report](../evidence/m5-heap-owners/README.md).
+
+## 6. P1 — correct physical-memory accounting and peak-lifetime model
+
+The new `mali0/ctx/*/mem_allocs` series supplies an actual GPU context commit estimate (~262–274 MiB in one short loop), which is different from the earlier ~153 MiB texture-level-0 *estimate* and from process PSS. **Do not add GPU commit to process PSS as if allocations cannot overlap**; also do not infer entire physical RAM from PSS+SwapPSS. `CmaFree` reached ~0 at earlier startup peaks.
+
+**Implement a bounded, minimally perturbing sampler** recording per-process `Pss`, `SwapPss`, `VmSwap`, guest pool residency, global `MemAvailable`/`CmaFree`, Mali context allocations, process major faults, global `pswpin/out`, and CPU/GPU clocks at the *same timestamps*. Record an allocation-high-water/phase chart for cold startup, first gameplay, map, interior, battle, save/load and restart.
+
+**Accept:** one consistent accounting ledger with explicit overlaps and uncertainty, identifying what must decrease for a swap-disabled cold boot. The 60-second map/pause observation has **no growth trend**, not a no-leak endurance certificate.
+
+## 7. P2 — opportunities still open, ranked by new evidence
+
+| Idea | Current gate | Reason to defer / test |
+| --- | --- | --- |
+| GPU pass completion / fence scheduling | Only coarse `finish` (~11–26 ms depending on path); `T2_GPU_PIPELINE=1` previously hit `EGL_BAD_SURFACE` | First distinguish implicit upload stall, GPU resolve, context/surface wait and VSync. Never flip async mode blindly |
+| Vertex/index generation cache | Stationary guest vertex streams were byte-identical (100% sampled) | Need moving/battle census and data-version invalidation; buffer ring already showed churn was not bottleneck |
+| Shader program/constant upload cache | ~0.8–1.1 ms/frame in earlier draw split | Count truly redundant uniforms/program switches before implementing |
+| NVN non-draw `Downsample` operations | ~1.9–3 ms/frame in sampler reports | Break down CPU vs GL/wait and test only if top candidate fails |
+| M7 1920×1080 camera targets → coordinated 1280×720 | Earlier `ListDisplays` override did nothing | Requires full render graph / logical coordinate and stencil validation; do not lie about storage dimensions |
+| Monochrome R8/RG8 GPU representations | Thin black/white graphics may permit exact compact formats | Requires content+alpha/channel audit, shader swizzle, immutable-resource gating and real GPU allocation A/B |
+| GPU eviction | Read-only inventory showed just ~7 MiB safely reconstructible | **Not a promising standalone zero-swap lever** unless an additional recovery path is proven |
+| M4 wave2 | Device A/B measured only ~1.7 MiB street PSS+SwapPSS reduction | Optional owner-quality A/B, not a breakthrough; accepted baseline remains installed |
+
+## 8. Required gameplay coverage and harness repairs
+
+Earlier frame/memory samples were mostly stationary. The first attempted in-game movement test (documented in [round-up](../evidence/roadmap-roundup-20261016/README.md)) showed diagnostic A/B/START/L/R working, but character movement was **not proven** from the starting scene: four held stick directions and D-pad did not move the character. Press duration is capped at **2,000 ms per event**; longer diagnostic packets are rejected, so a script claiming 10 s of one continuous hold may actually be issuing repeated/invalid presses.
+
+Before generalizing optimizations:
+- Identify a verified, controllable save/scene where world movement changes real KMS pixels; use accepted HID duration packets and observe movement, not just input receipts.
+- Extend automated smoke test through a confirmed battle, map, interior, return, save and restart/load (owner data stays private).
+- Include scenes `tut_gulch` and `tut_saloonbasement` because their BC upload patterns differ and the latter includes many BC textures.
+- Fix/validate remaining map marker/title positioning independently of optimization work; preserve skinned character bodies, WANTED stencil and Spruce UI restore.
+- Run multi-minute and longer memory stability plus physical-button/audio checks before claiming readiness; map/pause 60 s is not enough.
+
+## 9. Proposed next commits on main, with falsifiable decisions
+
+| Order | Scope | Change | Acceptance / stop condition |
+| --- | --- | --- | --- |
+| 1 | **Evidence/source parity** | Reconcile `dtime8` `WOL_SAMPLE_SPLIT` timers into the published overlay or archive an exact data-free patch/build recipe; add bounded same-timestamp Mali+VM metrics | Same binaries and instrumentation definitions reproducible; no shader/resource behaviour changed |
+| 2 | **P0 FPS preflight** | Expand CopyTextureToTexture dependency and sampler trace across movement, combat, map and multiple saves | Prove exact sample-before-overwrite and CPU snapshot contract, or reject redirection |
+| 3 | **P0 FPS opt-in** | GPU sample redirect of 460 while retaining CPU row-copy semantics, *not* a generic deferred alias | Visual/CPU/GPU-coherence parity and stable >noise whole-frame improvement; auto-fallback on hazards |
+| 4 | **P0 RAM preflight** | M5 allocation owner trace incl. 136.9 MiB RomFS read and heap lifetime; same-time host GPU snapshots | Evidence of actual reclaimable copy/arena or explicit unknown; no speculative freeing |
+| 5 | **P1 RAM opt-in** | M6 post-copy real BC-content → precomputed ASTC, one immutable level-0 texture first | Persistent GPU commit saving after content upload; no errors/visual regression |
+| 6 | **Decision branch** | If sample redirect fails, test pass-boundary composite/async PBO only with measured GPU timing; if M6 fails, prioritize owner-level heap work and optional R8/RG8 | No repeated null-cache/immediate-blit or generic ring experiments |
+| 7 | **Acceptance** | Cold start without configured swap in a recovery-safe test setup, multi-scene gameplay and save/load | No OOM, no swap, sufficient RAM+CMA headroom, 30+ FPS with P95 bound where appropriate |
+
+These are **proposed**, not completed tasks. Sequence 4 and 5 can be developed alongside 2 and 3 if source/runtime hashes, owner sections and device A/B controls stay isolated.
+
+## 10. Experimental safety, baselines, CI and release criteria
+
+- Pin `main` source commit, restored GPL runtime source manifest, owner-only `RomFS` section, SHA-256 ELF/launcher/save, exact env and profiler flags for each run. Experimental source from a local restored tree is not automatically present in the public overlay.
+- Run alternating A/B (prefer ≥3 per arm where practical), the **same verified scene and save**, cold startup, 30 s menu/game, transitions and memory peaks; track natural ~1–1.5 presents/s variance and report interval distributions, not a best run.
+- Collect real KMS screen evidence, pixel diffs where meaningful, sprite/portrait/map/alpha checks, input/audio, no GL errors, original save restoration and MainUI recovery. Never overwrite a save belonging to a running/unowned process.
+- Use the existing `.github/workflows/native-probe.yml` for its proven synthetic tests, but add data-free overlay-apply/build and isolated unit tests for redirect hazards, BC post-copy fallback and allocator ownership as code lands. Public CI must not ship game assets, Switch NSO or extracted shader binaries.
+- Defer any global `swapoff`, swappiness, GPU frequency, unsafe `madvise` or production-fast-path toggles until controlled proof. A no-swap acceptance run requires swap disabled **before** launching, with recovery available.
+- No performance or memory win is claimed until measured on TSPS with the genuine game frame and independent, unmodified control arm.
+
+### Reference index
+
+- [Round-up of original roadmap stages](../evidence/roadmap-roundup-20261016/README.md)
+- [Sampler micro-zones (critical new FPS result)](../evidence/fps-sampler-split/README.md)
+- [Frame timeline](../evidence/fps-frame-timeline/README.md)
+- [Copy-460 dependency trace](../evidence/copy460-dependency-trace/README.md)
+- [M6 ASTC E2E and fallback findings](../evidence/m6-compressed-textures/astc-e2e-device.md)
+- [M6 real-content scene probes](../evidence/m6-compressed-textures/content-scene-probes.md)
+- [M6 measured GPU memory](../evidence/m6-compressed-textures/device-memory/README.md)
+- [M5 heap owners and VMA diffs](../evidence/m5-heap-owners/README.md)
+- [60-second scene-cycle memory check](../evidence/scene-cycles-memory/README.md)
+- [Original measured resource optimization log](resource-optimization.md)
