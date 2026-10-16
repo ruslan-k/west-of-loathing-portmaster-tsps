@@ -11,7 +11,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install parser dependencies
-        run: python3 -m pip install lz4 capstone
+        run: python3 -m pip install lz4 capstone UnityPy
       - name: Validate data-free overlay syntax
         run: git apply --numstat runtime/wol-adapter.patch
       - name: Read-only memory profiler and staged selection tests
