@@ -32,3 +32,8 @@ wol-romfs*
 
 # Owner-supplied reference frames: local-only, owner content
 evidence/**/reference-guide-owner.jpg
+
+# Dumped game texture pixels: measurement inputs, never committed
+evidence/**/wol-gln-*.pam
+evidence/**/wol-gln-*.png
+evidence/**/white-wol-gln-*.png
