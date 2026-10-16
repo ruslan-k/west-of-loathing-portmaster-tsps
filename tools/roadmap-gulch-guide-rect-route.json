@@ -1,0 +1,9 @@
+[
+ {
+  "label": "guide-open",
+  "buttons": "0x100",
+  "stick": 0,
+  "hold_ms": 180,
+  "wait_s": 14
+ }
+]

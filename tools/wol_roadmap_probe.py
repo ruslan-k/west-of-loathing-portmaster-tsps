@@ -69,6 +69,7 @@ def main():
     ap.add_argument('--route',type=Path,help='bounded data-free action list; requested actions are not observed scenes')
     ap.add_argument('--ordinary-title',action='store_true',help='unaltered launcher environment; title-only, no injected input')
     ap.add_argument('--guest-pages',action='store_true',help='heavy diagnostic pagemap snapshots; not an FPS benchmark')
+    ap.add_argument('--draw-trace',action='store_true',help='per-draw tracing for one short screen (heavy log, not an FPS arm)')
     a=ap.parse_args()
     route=json.loads(a.route.read_text()) if a.route else None
     if route is not None:
@@ -93,6 +94,7 @@ def main():
                  launcher_sha256=hashlib.sha256((root.parent/'West of Loathing Switch.sh').read_bytes()).hexdigest(),
                  layout_sha256=hashlib.sha256(a.layout.read_bytes()).hexdigest(),
                  ordinary_title_only=a.ordinary_title,
+                 draw_trace=a.draw_trace,
                  phase_labels_are_requests_not_scene_classifications=True,
                  heavy_guest_page_sampling=a.guest_pages)
     ledger=None
@@ -113,7 +115,8 @@ def main():
                 if p.is_file():shutil.copyfile(p,save/p.name)
         receipt['control_save_hashes']=hashes(save)
         stage('startup')
-        launch=subprocess.Popen([sys.executable,'/mnt/UDISK/session.py','start',a.label,'normal' if a.ordinary_title else '0'])
+        launch=subprocess.Popen([sys.executable,'/mnt/UDISK/session.py','start',a.label,
+                                 'normal' if a.ordinary_title else ('1' if a.draw_trace else '0')])
         deadline=time.monotonic()+120
         while not pids('wol-horizon') and time.monotonic()<deadline:
             if launch.poll() is not None:raise RuntimeError('launch ended before runtime')
