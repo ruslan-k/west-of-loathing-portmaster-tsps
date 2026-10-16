@@ -1,0 +1,9 @@
+{
+  "scope": "authored diff additions and new regression scripts",
+  "findings": {
+    "hardcoded_secret": 0,
+    "shell_true": 0,
+    "os_system": 0,
+    "unsafe_deserialization": 0
+  }
+}

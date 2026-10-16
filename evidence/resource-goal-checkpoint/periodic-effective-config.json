@@ -1,0 +1,11 @@
+{
+  "T2_READBACK_OFF": "0",
+  "COTM_PRESENT_READBACK_60": "1",
+  "COTM_READBACK_PERIOD": "120",
+  "WOL_PACKED4444": "1",
+  "WOL_CPU_OFFSET": "4",
+  "WOL_RECT_TRACE": "off",
+  "WOL_PAIR_STENCIL": "1",
+  "WOL_TOP_UV": "raw",
+  "WOL_F191_UV": "none"
+}

@@ -1,0 +1,83 @@
+{
+  "validation_commands": 13,
+  "results": [
+    {
+      "command": "python3 -m unittest discover -v",
+      "cwd": "/mnt/external/Hermes/west-of-loathing-portmaster-tsps",
+      "exit_code": 0,
+      "output": "test_generates_owned_image_and_shader_stub_declared (test_horizon_prepare.HorizonPrepareTests.test_generates_owned_image_and_shader_stub_declared) ... ok\ntest_getinfo_entropy_uses_host_random_source (test_native.NativeTests.test_getinfo_entropy_uses_host_random_source) ... ok\ntest_getinfo_returns_configured_cpu_mask (test_native.NativeTests.test_getinfo_returns_configured_cpu_mask) ... ok\ntest_guest_bootstrap_thread_has_main_handle (test_native.NativeTests.test_guest_bootstrap_thread_has_main_handle) ... ok\ntest_guest_tick_trap_returns_nonzero (test_native.NativeTests.test_guest_tick_trap_returns_nonzero) ... ok\ntest_guest_tls_isolated_from_host (test_native.NativeTests.test_guest_tls_isolated_from_host) ... ok\ntest_guest_unknown_svc_stops_explicitly (test_native.NativeTests.test_guest_unknown_svc_stops_explicitly) ... ok\ntest_main_thread_id_query (test_native.NativeTests.test_main_thread_id_query) ... ok\ntest_main_thread_priority_query (test_native.NativeTests.test_main_thread_priority_query) ... ok\ntest_malformed_sm_ipc_stops (test_native.NativeTests.test_malformed_sm_ipc_stops) ... ok\ntest_process_key_signal_without_waiters_succeeds (test_native.NativeTests.test_process_key_signal_without_waiters_succeeds) ... ok\ntest_query_memory_rejects_readonly_output (test_native.NativeTests.test_query_memory_rejects_readonly_output) ... ok\ntest_query_memory_reports_mapped_region (test_native.NativeTests.test_query_memory_reports_mapped_region) ... ok\ntest_service_manager_cmif_initialize (test_native.NativeTests.test_service_manager_cmif_initialize) ... ok\ntest_service_manager_port_connects (test_native.NativeTests.test_service_manager_port_connects) ... ok\ntest_zero_mutable_tls_does_not_replace_readonly_tls (test_native.NativeTests.test_zero_mutable_tls_does_not_replace_readonly_tls) ... ok\ntest_bundle_rejects_truncation (test_preflight.PreflightTests.test_bundle_rejects_truncation) ... ok\ntest_map_rejects_segment_identity_mismatch (test_preflight.PreflightTests.test_map_rejects_segment_identity_mismatch) ... ok\ntest_map_rejects_unimplemented_relocation (test_preflight.PreflightTests.test_map_rejects_unimplemented_relocation) ... ok\ntest_nso_rejects_wrong_magic (test_preflight.PreflightTests.test_nso_rejects_wrong_magic) ... ok\ntest_real_nso_detects_modified_segment (test_preflight.PreflightTests.test_real_nso_detects_modified_segment) ... ok\ntest_preparation_reproduces_verified_segments_and_layout (test_prepare.PrepareTests.test_preparation_reproduces_verified_segments_and_layout) ... ok\n\n----------------------------------------------------------------------\nRan 22 tests in 5.932s\n\nOK\n"
+    },
+    {
+      "command": "python3 tools/test_wol_sprite_metadata.py",
+      "cwd": "/mnt/external/Hermes/west-of-loathing-portmaster-tsps",
+      "exit_code": 0,
+      "output": "......\n----------------------------------------------------------------------\nRan 6 tests in 0.000s\n\nOK\n"
+    },
+    {
+      "command": "python3 tools/test_wol_draw_logging.py /mnt/external/Hermes/spikes/wol-switch/wol-horizon-source/native",
+      "cwd": "/mnt/external/Hermes/west-of-loathing-portmaster-tsps",
+      "exit_code": 0,
+      "output": "PASS trace=None success-output=off errors=on queries=4\nPASS trace='0' success-output=off errors=on queries=4\nPASS trace='1' success-output=on errors=on queries=4\nPASS trace='false' success-output=off errors=on queries=4\nPASS trace='true' success-output=off errors=on queries=4\nPASS trace='01' success-output=off errors=on queries=4\nPASS success-only gates preserve error output and per-draw GL error queries\n"
+    },
+    {
+      "command": "python3 tools/test_wol_color_contract.py /mnt/external/Hermes/spikes/wol-switch/wol-horizon-source/native",
+      "cwd": "/mnt/external/Hermes/west-of-loathing-portmaster-tsps",
+      "exit_code": 0,
+      "output": "PASS sprite SRC_ALPHA/ONE_MINUS_SRC_ALPHA is applied and slots invalidated\nPASS disabled blend keeps the write mask contract\nPASS write mask 0x0/0xf map to full off/on\nPASS sprite alpha 0, fractional, scaled\nPASS pair-path and standard draw hooks apply the guest color contract\nPASS regression guards: mask heuristic scope, descriptor binding, trace pairing\n"
+    },
+    {
+      "command": "python3 tools/test_wol_vertex_streams.py /mnt/external/Hermes/spikes/wol-switch/wol-horizon-source/native/nvn_render.h",
+      "cwd": "/mnt/external/Hermes/west-of-loathing-portmaster-tsps",
+      "exit_code": 0,
+      "output": "WOL_PAIR_STREAM attr=1 stream=1 stride=24 offset=16 vertices=48 base=4 bytes=1152 vbo=8\nPASS VBO multistream: UVs uploaded from stream 1 with baseVertex\nWOL_PAIR_STREAM attr=1 stream=1 stride=24 offset=16 vertices=48 base=4 bytes=1152 vbo=0\nPASS direct multistream: independent stream base, stride and offset\nPASS actual hook binds the guest descriptor stream, not only its offset\n"
+    },
+    {
+      "command": "python3 tools/test_wol_mesh_uv.py /mnt/external/Hermes/spikes/wol-switch/wol-horizon-source/native/nvn_shaders.h",
+      "cwd": "/mnt/external/Hermes/west-of-loathing-portmaster-tsps",
+      "exit_code": 0,
+      "output": "PASS PC torso and Cactus Bill UVs use x/y plus per-material scale/offset, not position.z\nPASS mesh fragment samples its own UVs, without a second perspective divide\nPASS composite override excludes f08bad2f#c320\n"
+    },
+    {
+      "command": "python3 tools/test_wol_stencil_contract.py /mnt/external/Hermes/spikes/wol-switch/wol-horizon-source/native/nvn_render.h",
+      "cwd": "/mnt/external/Hermes/west-of-loathing-portmaster-tsps",
+      "exit_code": 0,
+      "output": "PASS mask writer: ALWAYS + REPLACE for both faces\nPASS portrait consumer: EQUAL ref=1, read-only stencil\nPASS unmasked gameplay disables stencil without requiring an attachment\nPASS substituted draws replay stencil and invalidate cached enable\n"
+    },
+    {
+      "command": "python3 tools/test_wol_draw_geometry.py /mnt/external/Hermes/spikes/wol-switch/wol-horizon-source/native/nvn_render.h",
+      "cwd": "/mnt/external/Hermes/west-of-loathing-portmaster-tsps",
+      "exit_code": 0,
+      "output": "PASS u16 indexed basevertex: type=1 is NOT first=1; 6 indices address 4 vertices\nPASS u8 rebase preserves order\nPASS u32 rebased to u16 without truncation\nPASS arrays honor first separately\nPASS empty draw\nPASS negative base refused\nPASS invalid index type refused\nPASS real hook uses decoded indices and preserves primitive\n"
+    },
+    {
+      "command": "git apply --check /mnt/external/Hermes/west-of-loathing-portmaster-tsps/runtime/wol-adapter.patch",
+      "cwd": "/mnt/external/Hermes/spikes/wol-switch/upstream-source",
+      "exit_code": 0,
+      "output": ""
+    },
+    {
+      "command": "python3 tools/test_wol_color_write_proof.py /mnt/external/Hermes/spikes/wol-switch/wol-horizon-source/native",
+      "cwd": "/mnt/external/Hermes/west-of-loathing-portmaster-tsps",
+      "exit_code": 0,
+      "output": "PASS color-write: skip/stencil/alpha/error excluded, saturation safe, proven copies propagate, sparse/dark sampling retained\nT2_READBACK_OFF periodic-and-dark-sampling=disabled capture=explicit-only\nPASS diagnostic OFF modes must NOT be called periodic health checks\nT2_READBACK_OFF mode=2 sampling=until-first-proof then=explicit-capture-only\nPASS diagnostic OFF modes must NOT be called periodic health checks\n"
+    },
+    {
+      "command": "python3 tools/test_wol_packed4444.py /mnt/external/Hermes/spikes/wol-switch/wol-horizon-source/native",
+      "cwd": "/mnt/external/Hermes/west-of-loathing-portmaster-tsps",
+      "exit_code": 0,
+      "output": "PASS exhaustive 4444: 84934656 pixels across all 1296 legal swizzles; invalid swizzles rejected; 5551 contract unchanged\nPASS eligibility, immutable/default-off opt-in, checked 84934656 pixels\nPASS exhaustive 4444: 0 pixels across all 1296 legal swizzles; invalid swizzles rejected; 5551 contract unchanged\nPASS eligibility, immutable/default-off opt-in, checked 0 pixels\nPASS exhaustive 4444: 0 pixels across all 1296 legal swizzles; invalid swizzles rejected; 5551 contract unchanged\nWOL_PACKED4444 enabled=1 native-precision=4-bit host-upload=RGBA4444 no-resize default=off\nPASS eligibility, immutable/default-off opt-in, checked 0 pixels\nPASS exhaustive 4444: 0 pixels across all 1296 legal swizzles; invalid swizzles rejected; 5551 contract unchanged\nPASS exhaustive 4444: 0 pixels across all 1296 legal swizzles; invalid swizzles rejected; 5551 contract unchanged\nPASS packed option None rc 0\nPASS packed option 0 rc 0\nPASS packed option 1 rc 0\nPASS packed option 01 rc 24\nPASS packed option true rc 24\n"
+    },
+    {
+      "command": "python3 tools/test_wol_cpu_map.py /mnt/external/Hermes/spikes/wol-switch/wol-horizon-source/native",
+      "cwd": "/mnt/external/Hermes/west-of-loathing-portmaster-tsps",
+      "exit_code": 0,
+      "output": "PASS offset None blocked_cpu False bad_physical False rc 0\nPASS offset 0 blocked_cpu False bad_physical False rc 0\nPASS offset 4 blocked_cpu False bad_physical False rc 0\nPASS offset 3 blocked_cpu False bad_physical False rc 24\nPASS offset 04 blocked_cpu False bad_physical False rc 24\nPASS offset 4 blocked_cpu True bad_physical False rc 24\nPASS offset 4 blocked_cpu False bad_physical True rc 24\n"
+    },
+    {
+      "command": "bash -n 'West of Loathing Switch.sh'",
+      "cwd": "/mnt/external/Hermes/west-of-loathing-portmaster-tsps",
+      "exit_code": 0,
+      "output": ""
+    }
+  ]
+}

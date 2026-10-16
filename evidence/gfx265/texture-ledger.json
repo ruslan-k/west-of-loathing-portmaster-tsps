@@ -1,0 +1,22 @@
+{
+  "DXT5": {
+    "count": 3090,
+    "payload_bytes": 500077312
+  },
+  "DXT1": {
+    "count": 942,
+    "payload_bytes": 48283728
+  },
+  "ARGB4444": {
+    "count": 253,
+    "payload_bytes": 48116130
+  },
+  "RGBA32": {
+    "count": 120,
+    "payload_bytes": 36330680
+  },
+  "RGB24": {
+    "count": 6,
+    "payload_bytes": 700284
+  }
+}

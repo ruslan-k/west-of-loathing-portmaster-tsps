@@ -1,0 +1,13 @@
+{
+  "status": "not-cleared",
+  "scope": "Independent automated code-only review; not release approval",
+  "reviewer": "opencode-go/deepseek-v4.1-flash",
+  "security_concerns_reported": [],
+  "outcome": "Two replies did not return an approval. Several allegations contradict the per-draw lifetime and bounds checks shown in the diff, and others are hypothetical unsupported-layout/test-gap concerns. They are not confirmed regressions, but no independent pass is claimed.",
+  "follow_up": [
+    "Manually confirm all enabled attribute locations and full composite code/control identity coverage against the recorded ABI.",
+    "Extend positive atlas-offset and world-padding regression coverage; keep owner-bundle/physical-screen checks separate from synthetic tests.",
+    "Retain explicit rejection of unsupported external sprite references instead of silently producing a partly repaired bundle."
+  ],
+  "publication_policy": "User requested publishing the latest development checkpoint before further optimization. This branch checkpoint is experimental/WIP, not a reviewed release or a verified performance improvement. Existing tests and actual device results are recorded separately in checks.txt and README.md."
+}
