@@ -60,6 +60,15 @@ Results with the fix (runs `m1m5-astcfix-1` / `m1m5-astcfix-2`, same null cache)
   indistinguishable from the baseline captures (see `device-visual/`; the moving dark
   scribble on the title screen is the game's animated tumbleweed).
 
+## Physical memory window (measured)
+
+Two further runs sampled the Mali context (`mali0/ctx/<ctx>/mem_allocs`) every 6 s —
+same build/section, only the cache differs. While the cached textures stay compressed the
+no-cache arm holds **+8.08 MiB** more GPU memory (menu plateau 247.49 vs 239.41 MiB); the
+end states converge (255.0 vs 254.9 MiB) because every cached texture falls back to RGBA
+when its content arrives. Measured lower bound for the window; see `device-memory/`
+(README + `mem-allocs-plateau.json`) and the sampler `device-memory/snap-gpumem.sh`.
+
 ## Structural facts learned
 
 1. **On the m1m5 route the BC content arrives *after* creation.** All BC textures are
