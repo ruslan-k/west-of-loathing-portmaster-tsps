@@ -3605,7 +3605,7 @@
          unsigned level_width=t->b.width>>copy_level,level_height=t->b.height>>copy_level;
          if(!level_width)level_width=1;
          if(!level_height)level_height=1;
-@@ -267,6 +274,37 @@
+@@ -267,6 +274,44 @@
             box[0]>level_width || box[3]>level_width-box[0] ||
             box[1]>level_height || box[4]>level_height-box[1])stop("NVN_COPY_REGION_REQUIRED",nvn_caller,a[1],24);
          unsigned bpp=nvn_texture_format_bytes(t->b.format);
@@ -3634,6 +3634,13 @@
 +            if(!rgba)stop("NVN_TEXTURE_UPLOAD_MEMORY",nvn_caller,rgba_bytes,21);
 +            zero_texture_bc_pixels(t,copy_level,box,rgba,rgba_bytes);
 +            glBindTexture(GL_TEXTURE_2D,t->name);glPixelStorei(GL_UNPACK_ALIGNMENT,1);
++            if(t->astc_from_cache) {
++                /* M6: this copy decodes to RGBA and writes with glTexSubImage2D, illegal on the
++                 * compressed store - rebuild the uncompressed store and continue; levels above 0
++                 * are untouched (only level 0 was ever cached). */
++                glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,(GLsizei)t->b.width,(GLsizei)t->b.height,0,GL_RGBA,nvn_cpu_image_upload_type(t),NULL);
++                t->astc_from_cache=0;printf("ASTC_CACHE_FALLBACK id=%"PRIu64" reason=copy-buffer\n",t->id);
++            }
 +            glTexSubImage2D(GL_TEXTURE_2D,(GLint)copy_level,box[0],box[1],box[3],box[4],GL_RGBA,GL_UNSIGNED_BYTE,rgba);
 +            free(rgba);
 +            static unsigned told;if(told++<8)printf("WOL_BC_COPY texture=%"PRIu64" level=%u box=%u,%u,%u,%u format=0x%x blocks=%zu note=linear-to-tiled-and-decoded\n",
@@ -3643,14 +3650,53 @@
          if(!bpp || nvn_texture_format_depth(t->b.format))stop("NVN_COPY_TEXTURE_FORMAT_REQUIRED",nvn_caller,t->b.format,20);
          uint64_t row=(uint64_t)box[3]*bpp,stride=nvn_replay.row_stride?nvn_replay.row_stride:row;
          if(stride<row || stride>64U*1024U*1024U)stop("NVN_COPY_ROW_STRIDE",nvn_caller,stride,24);
-@@ -327,6 +365,7 @@
+@@ -294,10 +339,30 @@
+                 stop("NVN_COPY_TEXTURE_DECODE_REQUIRED",nvn_caller,t->b.format,20);
+         nvn_texture_copy_cpu(t,box,src,stride,copy_level);
+         glBindTexture(GL_TEXTURE_2D,t->name);glPixelStorei(GL_UNPACK_ALIGNMENT,1);
++        if(t->astc_from_cache) {
++            glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,(GLsizei)t->b.width,(GLsizei)t->b.height,0,GL_RGBA,nvn_cpu_image_upload_type(t),NULL);
++            t->astc_from_cache=0;printf("ASTC_CACHE_FALLBACK id=%"PRIu64" reason=copy-buffer-rgba\n",t->id);
++        }
+         glTexSubImage2D(GL_TEXTURE_2D,(GLint)copy_level,box[0],box[1],box[3],box[4],GL_RGBA,upload_type,rgba);free(rgba);
+         return;
+     }
+     printf("NVN_REPLAY_REQUIRED name=%s\n",nvn_functions[r->op].name);stop("NVN_REPLAY_OPERATION_REQUIRED",nvn_caller,r->op,20);
++}
++/* M6-ERR: bounded op ring so the replay error boundary names the operation that
++ * poisoned the pipe (and the ops around it), instead of a bare 0x502. */
++static unsigned char nvn_replay_op_ring[16];
++static unsigned nvn_replay_op_ring_n;
++static void nvn_replay_gl_error_report(unsigned op,const uint64_t *args,GLenum e) {
++    printf("NVN_REPLAY_GL_ERROR_DETAIL op=%s idx=%u error=0x%x frame=%u draws=%u a0=0x%"PRIx64" a1=0x%"PRIx64" a2=0x%"PRIx64" a3=0x%"PRIx64" target=%"PRIu64" program=%u/%u\n",
++        op<NI_COUNT?nvn_functions[op].name:"?",op,e,nvn_replay.last_frame,nvn_replay.draws,
++        args[0],args[1],args[2],args[3],
++        nvn_render.target?nvn_render.target->id:0,
++        nvn_render.program?nvn_render.program->sources[0]:0,
++        nvn_render.program?nvn_render.program->sources[1]:0);
++    printf("NVN_REPLAY_OP_RING");
++    unsigned have=nvn_replay_op_ring_n<16?nvn_replay_op_ring_n:16;
++    for(unsigned k=have;k>0;k--){unsigned o=nvn_replay_op_ring[(nvn_replay_op_ring_n-k)&15];printf(" %s",o<NI_COUNT?nvn_functions[o].name:"?");}
++    printf("\n");
+ }
+ static uint64_t nvn_replay_run_list(struct nvn_command_list *list,unsigned batch_errors,unsigned snapshot) {
+     struct nvn_queue *q=NULL;unsigned asynchronous=nvn_async_enabled();(void)q;(void)asynchronous;
+@@ -327,12 +392,14 @@
                      if(is_draw){k=nvn_phase.target_changed?NPH_DRAWFIRST:NPH_DRAWCALL;nvn_phase.target_changed=0;uint64_t c=0;if(nvn_cpu_nanoseconds(&c)&&c>=draw_cpu0)nvn_phase.draw_cpu_ns+=c-draw_cpu0;}
                      if(r.op==NI_nvnCommandBufferSetRenderTargets)nvn_phase.target_changed=1;
                      uint64_t before=nvn_phase.mark;nvn_phase_end(k);if(r.op<NI_COUNT){nvn_phase.op_ns[r.op]+=nvn_phase.mark-before;nvn_phase.op_calls[r.op]++;}}
 +                if(is_draw){nvn_copy_trace_draw(nvn_render.target);if(!(nvn_replay.last_frame%60))nvn_copy_trace_dump(nvn_replay.last_frame);}
++                nvn_replay_op_ring[nvn_replay_op_ring_n++&15]=(unsigned char)r.op;
  #ifdef ANIMAL_WELL_SHADERS
                  if(!batch_errors||nvn_draw_diagnostic_active()){GLenum e=glGetError();if(e){printf("AW_GL_ERROR op=%s error=0x%x a0=0x%"PRIx64" a1=0x%"PRIx64" a2=0x%"PRIx64" a3=0x%"PRIx64" draws=%u frame=%u\n",nvn_functions[r.op].name,e,r.args[0],r.args[1],r.args[2],r.args[3],nvn_replay.draws,nvn_replay.last_frame);
                      if(nvn_render.program)printf("AW_GL_ERROR_PROGRAM pair=%u/%u target=%"PRIu64"\n",nvn_render.program->sources[0],nvn_render.program->sources[1],nvn_render.target?nvn_render.target->id:0);
+                     stop("NVN_REPLAY_GL_ERROR",nvn_caller,e,21);}}
+ #else
+-                if(!batch_errors||nvn_draw_diagnostic_active())nvn_replay_error_boundary();
++                if(!batch_errors||nvn_draw_diagnostic_active()){GLenum e=glGetError();if(e){nvn_replay_gl_error_report(r.op,r.args,e);stop("NVN_REPLAY_GL_ERROR",nvn_caller,e,21);}}
+ #endif
+                 zero_gpu_cost_context("outside-record",0,0,0,0,0,0);
+                 consumed+=r.bytes;next=r.next;
 --- a/native/nvn_samplers.h
 +++ b/native/nvn_samplers.h
 @@ -9,6 +9,20 @@
@@ -4686,7 +4732,15 @@
              if(stage>1 || matched&(1U<<stage))stop("NVN_LC2_SHADER_STAGE_DUPLICATE",nvn_caller,source,24);
 --- a/native/nvn_texture_coherence.h
 +++ b/native/nvn_texture_coherence.h
-@@ -113,6 +113,7 @@
+@@ -109,10 +109,15 @@
+             free(rgba);free(snapshot);stop("NVN_LC2_CPU_IMAGE_DECODE",nvn_caller,t->b.format,20);
+         }
+     glPixelStorei(GL_UNPACK_ALIGNMENT,1);
++    if(t->astc_from_cache) {
++        glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,(GLsizei)t->b.width,(GLsizei)t->b.height,0,GL_RGBA,upload_type,NULL);
++        t->astc_from_cache=0;printf("ASTC_CACHE_FALLBACK id=%"PRIu64" reason=cpu-image\n",t->id);
++    }
+     glTexSubImage2D(GL_TEXTURE_2D,0,x0,y0,update_width,update_height,GL_RGBA,upload_type,rgba);
      glPixelStorei(GL_UNPACK_ALIGNMENT,alignment);free(rgba);
      GLenum error=glGetError();
      if(error){free(snapshot);stop("NVN_LC2_CPU_IMAGE_UPLOAD_GL",nvn_caller,error,21);}
