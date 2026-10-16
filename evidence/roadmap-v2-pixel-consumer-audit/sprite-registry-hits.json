@@ -1,0 +1,283 @@
+{
+  "schema": 1,
+  "objects_with_name_lists": 546,
+  "hits": [
+    {
+      "type": "GameObject",
+      "path_id": -9202722937897578575,
+      "container": "assets/assetbundleassets/prefabs/susie.prefab",
+      "names": [
+        "PC_test_arm_left_lower"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -9166921969175157024,
+      "container": "assets/assetbundleassets/prefabs/sherf.prefab",
+      "names": [
+        "PC_test_arm_right_lower"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -9115380639145992279,
+      "container": "assets/assetbundleassets/prefabs/classselect_cowpuncher.prefab",
+      "names": [
+        "PC_test_leg_left_upper"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "TextAsset",
+      "path_id": -9106560407795022994,
+      "container": "assets/assetbundleassets/game/data.json",
+      "names": [
+        "icon_badge",
+        "icon_options",
+        "icon_invnames",
+        "icon_asterisk",
+        "icon_journal",
+        "icon_inventory",
+        "icon_atoz",
+        "icon_map"
+      ],
+      "name_count": 11,
+      "bytes": 10354548
+    },
+    {
+      "type": "GameObject",
+      "path_id": -9087078079217255062,
+      "container": "assets/assetbundleassets/prefabs/pc_mounted_dark.prefab",
+      "names": [
+        "PC_test_arm_left_lower"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -9075497880129048144,
+      "container": "assets/assetbundleassets/prefabs/docalice_drinkinwhiskey.prefab",
+      "names": [
+        "PC_test_leg_left_upper"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -9056591466211501694,
+      "container": "assets/assetbundleassets/prefabs/horse_pale_armored.prefab",
+      "names": [
+        "PC_test_leg_left_lower"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -9045288716718070425,
+      "container": "assets/assetbundleassets/prefabs/pc_sleep.prefab",
+      "names": [
+        "PC_test_leg_right_upper"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -9009512941100907607,
+      "container": "assets/assetbundleassets/prefabs/crazypete.prefab",
+      "names": [
+        "PC_test_leg_right_upper"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -9001994307165552841,
+      "container": "assets/assetbundleassets/prefabs/horse_basic_armored.prefab",
+      "names": [
+        "PC_test_leg_left_lower"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -8997542058131619449,
+      "container": "assets/assetbundleassets/prefabs/horse_pale_armored.prefab",
+      "names": [
+        "PC_test_leg_left_upper"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -8983716048105861602,
+      "container": "assets/assetbundleassets/prefabs/horse_wagon.prefab",
+      "names": [
+        "PC_test_leg_left_upper"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -8970635506856800157,
+      "container": "assets/assetbundleassets/prefabs/combat_alice.prefab",
+      "names": [
+        "PC_test_arm_left_upper"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -8922336652453088314,
+      "container": "assets/assetbundleassets/prefabs/horse_pale_armored.prefab",
+      "names": [
+        "PC_test_torso"
+      ],
+      "name_count": 1,
+      "bytes": 83
+    },
+    {
+      "type": "GameObject",
+      "path_id": -8880699788049525298,
+      "container": "assets/assetbundleassets/prefabs/human_template_oncart.prefab",
+      "names": [
+        "PC_test_torso"
+      ],
+      "name_count": 1,
+      "bytes": 87
+    },
+    {
+      "type": "GameObject",
+      "path_id": -8874474564961003857,
+      "container": "assets/assetbundleassets/prefabs/classselect_beanslinger_v2.prefab",
+      "names": [
+        "PC_test_arm_right_upper"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -8870865380274321151,
+      "container": "assets/assetbundleassets/prefabs/pc_mounted_dark.prefab",
+      "names": [
+        "PC_test_leg_left_lower"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -8864567289552623033,
+      "container": "assets/assetbundleassets/prefabs/pc_body_builder.prefab",
+      "names": [
+        "PC_test_leg_right_lower"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -8847007397856295888,
+      "container": "assets/assetbundleassets/prefabs/pc_mounted.prefab",
+      "names": [
+        "PC_test_arm_right_upper"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -8825009921743796547,
+      "container": "assets/assetbundleassets/prefabs/pianist.prefab",
+      "names": [
+        "PC_test_leg_right_lower"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -8669596422744193549,
+      "container": "assets/assetbundleassets/prefabs/ghost_template.prefab",
+      "names": [
+        "PC_test_arm_right_lower"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -8439059243210035186,
+      "container": "assets/assetbundleassets/prefabs/pardner_pete.prefab",
+      "names": [
+        "PC_test_leg_left_lower"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -8419587688206950882,
+      "container": "assets/assetbundleassets/prefabs/human_sitting_front.prefab",
+      "names": [
+        "PC_test_arm_left_lower"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": -8328713379492513068,
+      "container": "assets/assetbundleassets/prefabs/susie.prefab",
+      "names": [
+        "PC_test_torso"
+      ],
+      "name_count": 1,
+      "bytes": 87
+    }
+  ],
+  "covered_names": [
+    "PC_headFace_normal",
+    "PC_test_arm_left_lower",
+    "PC_test_arm_left_upper",
+    "PC_test_arm_right_lower",
+    "PC_test_arm_right_upper",
+    "PC_test_leg_left_lower",
+    "PC_test_leg_left_upper",
+    "PC_test_leg_right_lower",
+    "PC_test_leg_right_upper",
+    "PC_test_torso",
+    "cc_die",
+    "cc_female",
+    "cc_slidercap",
+    "cc_sliderslider",
+    "hair_female_tails",
+    "horse01_head",
+    "icon_asterisk",
+    "icon_atoz",
+    "icon_badge",
+    "icon_inventory",
+    "icon_invnames",
+    "icon_journal",
+    "icon_map",
+    "icon_options",
+    "inv_iconframe",
+    "ui_combatlog2",
+    "uicon_map"
+  ],
+  "caveat": "A container hit proves the object carries the names; the semantic registry owner is read from its typetree."
+}

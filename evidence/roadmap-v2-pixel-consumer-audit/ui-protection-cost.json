@@ -1,0 +1,186 @@
+{
+  "schema": 1,
+  "rescaled_sprites": 62,
+  "unique_textures": 11,
+  "restore_level0_delta_bytes": 23740414,
+  "restore_level0_delta_mib": 22.64,
+  "per_texture": [
+    {
+      "texture": "SpriteAtlasTexture-ui (Group 0)-2048x2048-fmt2",
+      "format": "ARGB4444",
+      "original": [
+        2048,
+        2048
+      ],
+      "candidate": [
+        1024,
+        1024
+      ],
+      "candidate_bytes": 2097152,
+      "protected_level0_bytes": 8388608,
+      "delta_bytes": 6291456,
+      "sprites": 28
+    },
+    {
+      "texture": "NX_controller",
+      "format": "RGBA32",
+      "original": [
+        1362,
+        1308
+      ],
+      "candidate": [
+        681,
+        654
+      ],
+      "candidate_bytes": 1781496,
+      "protected_level0_bytes": 7125984,
+      "delta_bytes": 5344488,
+      "sprites": 12
+    },
+    {
+      "texture": "ui_combatlog2",
+      "format": "RGBA32",
+      "original": [
+        1692,
+        1030
+      ],
+      "candidate": [
+        846,
+        515
+      ],
+      "candidate_bytes": 1742760,
+      "protected_level0_bytes": 6971040,
+      "delta_bytes": 5228280,
+      "sprites": 1
+    },
+    {
+      "texture": "ui_victorycard",
+      "format": "ARGB4444",
+      "original": [
+        1303,
+        811
+      ],
+      "candidate": [
+        651,
+        405
+      ],
+      "candidate_bytes": 527310,
+      "protected_level0_bytes": 2113466,
+      "delta_bytes": 1586156,
+      "sprites": 1
+    },
+    {
+      "texture": "ui_defeatcard",
+      "format": "ARGB4444",
+      "original": [
+        1303,
+        811
+      ],
+      "candidate": [
+        651,
+        405
+      ],
+      "candidate_bytes": 527310,
+      "protected_level0_bytes": 2113466,
+      "delta_bytes": 1586156,
+      "sprites": 1
+    },
+    {
+      "texture": "character_creation",
+      "format": "ARGB4444",
+      "original": [
+        1024,
+        1024
+      ],
+      "candidate": [
+        512,
+        512
+      ],
+      "candidate_bytes": 524288,
+      "protected_level0_bytes": 2097152,
+      "delta_bytes": 1572864,
+      "sprites": 2
+    },
+    {
+      "texture": "SpriteAtlasTexture-PC-1024x512-fmt2",
+      "format": "ARGB4444",
+      "original": [
+        1024,
+        512
+      ],
+      "candidate": [
+        512,
+        256
+      ],
+      "candidate_bytes": 262144,
+      "protected_level0_bytes": 1048576,
+      "delta_bytes": 786432,
+      "sprites": 12
+    },
+    {
+      "texture": "ui_dreamframe2",
+      "format": "ARGB4444",
+      "original": [
+        610,
+        610
+      ],
+      "candidate": [
+        305,
+        305
+      ],
+      "candidate_bytes": 186050,
+      "protected_level0_bytes": 744200,
+      "delta_bytes": 558150,
+      "sprites": 1
+    },
+    {
+      "texture": "SpriteAtlasTexture-ui (Group 1)-512x512-fmt2",
+      "format": "ARGB4444",
+      "original": [
+        512,
+        512
+      ],
+      "candidate": [
+        256,
+        256
+      ],
+      "candidate_bytes": 131072,
+      "protected_level0_bytes": 524288,
+      "delta_bytes": 393216,
+      "sprites": 2
+    },
+    {
+      "texture": "SpriteAtlasTexture-horse_01-512x256-fmt2",
+      "format": "ARGB4444",
+      "original": [
+        512,
+        256
+      ],
+      "candidate": [
+        256,
+        128
+      ],
+      "candidate_bytes": 65536,
+      "protected_level0_bytes": 262144,
+      "delta_bytes": 196608,
+      "sprites": 1
+    },
+    {
+      "texture": "SpriteAtlasTexture-horse_dark-512x256-fmt2",
+      "format": "ARGB4444",
+      "original": [
+        512,
+        256
+      ],
+      "candidate": [
+        256,
+        128
+      ],
+      "candidate_bytes": 65536,
+      "protected_level0_bytes": 262144,
+      "delta_bytes": 196608,
+      "sprites": 1
+    }
+  ],
+  "caveat": "Serialized payload delta, not resident RAM; candidate sizes are the installed baselines."
+}
