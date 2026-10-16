@@ -1,0 +1,72 @@
+{
+  "label": "v2-sandab-postcopy-2",
+  "owner_save_hashes": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "8a70c734feaee946b2618fa85ff6f47670667e5f6932e8d11c23f1c2cf525779"
+  },
+  "stages": [
+    {
+      "name": "startup",
+      "t_ns": 49016232577408
+    },
+    {
+      "name": "menu",
+      "t_ns": 49100852581394
+    },
+    {
+      "name": "continue-load",
+      "t_ns": 49120880119764
+    },
+    {
+      "name": "game-idle",
+      "t_ns": 49133682111624
+    },
+    {
+      "name": "move-right",
+      "t_ns": 49163713409501
+    },
+    {
+      "name": "move-left",
+      "t_ns": 49168388641896
+    },
+    {
+      "name": "map",
+      "t_ns": 49173058878937
+    },
+    {
+      "name": "map-return",
+      "t_ns": 49187763290949
+    },
+    {
+      "name": "pause",
+      "t_ns": 49202546180973
+    },
+    {
+      "name": "pause-return",
+      "t_ns": 49207233075332
+    }
+  ],
+  "cleanup_verified": true,
+  "probe_sha256": "9da68c859b2d860965c638c0ea78982219e07c30a3d7ad0280c0aad3329d3c4f",
+  "session_sha256": "b66c7c12f1ea336679ceff6a319ff3e7be950cbe671e4708e44a1131c209b1e5",
+  "launcher_sha256": "d24ebc83879eb1b64d7f9131c7967561ba2a97482b27c29e46df32f6e0e16cf3",
+  "layout_sha256": "fb03bf6f2b0f03c7937d4ae0c3e21eaf6b12914bf848756b3f601a596f2680af",
+  "phase_labels_are_requests_not_scene_classifications": true,
+  "heavy_guest_page_sampling": false,
+  "control_save_hashes": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "8a70c734feaee946b2618fa85ff6f47670667e5f6932e8d11c23f1c2cf525779"
+  },
+  "runtime_sha256": "2093c1a9018195ede915f0756229b8a5102997a8a77a73c481ec738e27e002d2",
+  "section_sha256": "a25600cebbd47376d9520d2c4d648463a78911224e8bc82e645dcab6223deb36",
+  "ledger_exit": 0,
+  "restored_save_hashes": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "8a70c734feaee946b2618fa85ff6f47670667e5f6932e8d11c23f1c2cf525779"
+  },
+  "menu_rgb_signal_verified": true,
+  "cleanup_warnings": [],
+  "menu_pids": [
+    7929
+  ]
+}

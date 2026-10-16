@@ -34,7 +34,13 @@ def mali_contexts(root, pid):
             text = (p/'mem_allocs').read_text()
             if not text.startswith('Zone name:') and not parse_mali(text)['allocations']:
                 raise ValueError('unrecognized mem_allocs format')
-            contexts.append(dict(context=p.name, **parse_mali(text)))
+            item=dict(context=p.name, **parse_mali(text))
+            sizes=re.findall(r'^\s*[0-9a-fA-F]+,\s*[0-9a-fA-F]+,\s*([0-9a-fA-F]+),',text,re.M)
+            item['commit_histogram']={}
+            for size in sizes:
+                key=str(int(size,16))
+                item['commit_histogram'][key]=item['commit_histogram'].get(key,0)+1
+            contexts.append(item)
         except (OSError, ValueError) as e:
             errors.append(str(e))
     available = bool(contexts) and not errors

@@ -1,0 +1,8 @@
+[
+  {"label":"left-one","buttons":"0x1000","hold_ms":1500,"wait_s":4},
+  {"label":"left-two","buttons":"0x1000","hold_ms":1500,"wait_s":4},
+  {"label":"left-three","buttons":"0x1000","hold_ms":1500,"wait_s":4},
+  {"label":"interact-one","buttons":"0x1","hold_ms":180,"wait_s":6},
+  {"label":"interact-two","buttons":"0x1","hold_ms":180,"wait_s":6},
+  {"label":"interact-three","buttons":"0x1","hold_ms":180,"wait_s":6}
+]

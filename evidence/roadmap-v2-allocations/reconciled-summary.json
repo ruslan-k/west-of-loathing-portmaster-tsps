@@ -1,0 +1,3774 @@
+{
+  "runs": [
+    {
+      "label": "v2-alloc-gulch",
+      "runtime_sha256": "a8d45e4bfb87ba29bddaf58aa49c4e62bdfdadb1b6dea84953712c3aee4a7a32",
+      "section_sha256": "a25600cebbd47376d9520d2c4d648463a78911224e8bc82e645dcab6223deb36",
+      "control_save_hashes": {
+        "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+        "save-Wynona Carson-639274980123448959.json": "8a70c734feaee946b2618fa85ff6f47670667e5f6932e8d11c23f1c2cf525779"
+      },
+      "cleanup_verified": true,
+      "cleanup_warnings": [],
+      "effective_env": {
+        "WOL_ALLOC_TRACE": "1",
+        "WOL_PACKED4444": "1",
+        "WOL_TOP_RAWID": "none",
+        "COTM_GAME_PBUFFER": "1",
+        "T2_READBACK_OFF": "0",
+        "T2_MEMORY_FLOOR_MIB": "20",
+        "WOL_CPU_OFFSET": "4",
+        "COTM_RUN_ID": "1792164454",
+        "WOL_RGBA8_COPY": "1",
+        "T2_GZRAM_TARGET_MIB": "400",
+        "T2_LAZY_MESH": "0",
+        "COTM_INPUT_DIAGNOSTIC": "1",
+        "WOL_TOP_UV": "raw",
+        "WOL_PAIR_CHECK": "1",
+        "WOL_F191_UV": "none",
+        "T2_GZRAM_STATS_MS": "1000",
+        "COTM_PRESENT_READBACK_60": "1",
+        "T2_SAVE_DIR": "/mnt/SDCARD/Roms/PORTS/wol-switch/save-laboratory",
+        "WOL_RECT_TRACE_LIMIT": "90000",
+        "COTM_BLACK_LIMIT": "4000",
+        "WOL_QUIET": "1",
+        "WOL_RECT_TRACE": "off",
+        "WOL_PAIR_STENCIL": "1",
+        "WOL_DRAW_TRACE": "0",
+        "MOMO_FRAME_CLOCK": "1",
+        "T2_GPU_PIPELINE": "0",
+        "WOL_ROMFS_LIFETIME": "1",
+        "COTM_SINGLE_CONTEXT": "0",
+        "WOL_PROBE_SECONDS": "900",
+        "WOL_TOP_SMART": "0",
+        "WOL_F191_NOFOLDID": "none",
+        "T2_GUEST_ZRAM": "0",
+        "COTM_READBACK_PERIOD": "120",
+        "T2_IMAGE_FILE_MAP": "1",
+        "T2_GZRAM_POOLS": "0"
+      },
+      "phases": {
+        "startup": {
+          "samples": 38,
+          "requested_phase": "startup",
+          "scene_independently_verified": false,
+          "window_begin_ns": 47230315466337,
+          "window_end_ns": 47308443848800,
+          "pss_kib": {
+            "available": true,
+            "count": 38,
+            "minimum": 35464,
+            "median": 443902.5,
+            "p95": 625599.4,
+            "maximum": 629902
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 38,
+            "minimum": 0,
+            "median": 0.0,
+            "p95": 273362.8,
+            "maximum": 326320
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 38,
+            "minimum": 0,
+            "median": 0.0,
+            "p95": 273472.6,
+            "maximum": 326520
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 38,
+            "minimum": 51928,
+            "median": 210934.0,
+            "p95": 610095.0,
+            "maximum": 718628
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 38,
+            "minimum": 12,
+            "median": 1664.0,
+            "p95": 112993.4,
+            "maximum": 113092
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 37,
+            "minimum": 28663808,
+            "median": 137146368,
+            "p95": 144123494.39999998,
+            "maximum": 149000192
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 38,
+            "minimum": 14.334419,
+            "median": 35.293337,
+            "p95": 47.7127206,
+            "maximum": 63.826611
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 1,
+            "last_frame": 1051,
+            "intervals": 1050,
+            "seconds": 38.045046116,
+            "presents_per_s": 27.598862590375944,
+            "p50_ms": 28.4217325,
+            "p95_ms": 43.470535149999996,
+            "p99_ms": 94.24356051999997,
+            "max_ms": 4249.27139,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 435,
+          "swapin_pages_delta": 2096,
+          "swapout_pages_delta": 87671
+        },
+        "menu": {
+          "samples": 10,
+          "requested_phase": "menu",
+          "scene_independently_verified": false,
+          "window_begin_ns": 47308443848800,
+          "window_end_ns": 47328468648181,
+          "pss_kib": {
+            "available": true,
+            "count": 10,
+            "minimum": 422314,
+            "median": 519759.0,
+            "p95": 532356.2,
+            "maximum": 532943
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 10,
+            "minimum": 317784,
+            "median": 337312.0,
+            "p95": 348174.6,
+            "maximum": 351384
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 10,
+            "minimum": 318048,
+            "median": 337614.0,
+            "p95": 348525.39999999997,
+            "maximum": 351616
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 10,
+            "minimum": 42244,
+            "median": 57428.0,
+            "p95": 254139.4,
+            "maximum": 254944
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 10,
+            "minimum": 1368,
+            "median": 1760.0,
+            "p95": 3462.9999999999977,
+            "maximum": 4444
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 10,
+            "minimum": 126558208,
+            "median": 192819200.0,
+            "p95": 192819200.0,
+            "maximum": 192819200
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 10,
+            "minimum": 32.477391,
+            "median": 48.091480000000004,
+            "p95": 57.6048985,
+            "maximum": 58.830721
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 1052,
+            "last_frame": 1505,
+            "intervals": 453,
+            "seconds": 15.856305802,
+            "presents_per_s": 28.56907565082794,
+            "p50_ms": 28.749296,
+            "p95_ms": 33.98160339999999,
+            "p99_ms": 86.4760621200008,
+            "max_ms": 1102.599192,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 3247,
+          "swapin_pages_delta": 9734,
+          "swapout_pages_delta": 11488
+        },
+        "continue-load": {
+          "samples": 6,
+          "requested_phase": "continue-load",
+          "scene_independently_verified": false,
+          "window_begin_ns": 47328468648181,
+          "window_end_ns": 47341470989557,
+          "pss_kib": {
+            "available": true,
+            "count": 6,
+            "minimum": 533153,
+            "median": 534742.0,
+            "p95": 535938.25,
+            "maximum": 536184
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 6,
+            "minimum": 335044,
+            "median": 335808.0,
+            "p95": 336504.0,
+            "maximum": 336556
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 6,
+            "minimum": 335292,
+            "median": 335994.0,
+            "p95": 336673.0,
+            "maximum": 336712
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 6,
+            "minimum": 57904,
+            "median": 58246.0,
+            "p95": 60589.0,
+            "maximum": 61260
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 6,
+            "minimum": 1376,
+            "median": 2090.0,
+            "p95": 3608.0,
+            "maximum": 3784
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 6,
+            "minimum": 192819200,
+            "median": 192819200.0,
+            "p95": 194916352.0,
+            "maximum": 194916352
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 6,
+            "minimum": 47.51952,
+            "median": 56.6555265,
+            "p95": 63.83326725,
+            "maximum": 65.449491
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 1571,
+            "last_frame": 1949,
+            "intervals": 378,
+            "seconds": 10.980071761,
+            "presents_per_s": 34.42600451325047,
+            "p50_ms": 28.5200035,
+            "p95_ms": 31.73986305,
+            "p99_ms": 41.317849350000024,
+            "max_ms": 100.647889,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 215,
+          "swapin_pages_delta": 414,
+          "swapout_pages_delta": 0
+        },
+        "game-idle": {
+          "samples": 15,
+          "requested_phase": "game-idle",
+          "scene_independently_verified": false,
+          "window_begin_ns": 47341470989557,
+          "window_end_ns": 47371508136006,
+          "pss_kib": {
+            "available": true,
+            "count": 15,
+            "minimum": 536692,
+            "median": 551756,
+            "p95": 575296.9,
+            "maximum": 578134
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 15,
+            "minimum": 298892,
+            "median": 327768,
+            "p95": 339388.39999999997,
+            "maximum": 350356
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 15,
+            "minimum": 299456,
+            "median": 328092,
+            "p95": 339746.8,
+            "maximum": 350944
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 15,
+            "minimum": 55116,
+            "median": 65804,
+            "p95": 70840.4,
+            "maximum": 72288
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 15,
+            "minimum": 0,
+            "median": 1648,
+            "p95": 7137.19999999999,
+            "maximum": 14084
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 15,
+            "minimum": 183255040,
+            "median": 189546496,
+            "p95": 211376947.2,
+            "maximum": 212291584
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 15,
+            "minimum": 34.329979,
+            "median": 52.080075,
+            "p95": 62.716327999999976,
+            "maximum": 77.717111
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 2022,
+            "last_frame": 2213,
+            "intervals": 191,
+            "seconds": 23.756306181,
+            "presents_per_s": 8.039970462780087,
+            "p50_ms": 28.032877,
+            "p95_ms": 49.7985685,
+            "p99_ms": 290.0001483999963,
+            "max_ms": 16868.884018,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 6810,
+          "swapin_pages_delta": 41908,
+          "swapout_pages_delta": 44997
+        },
+        "move-right": {
+          "samples": 3,
+          "requested_phase": "move-right",
+          "scene_independently_verified": false,
+          "window_begin_ns": 47371508136006,
+          "window_end_ns": 47376986019948,
+          "pss_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 519278,
+            "median": 520845,
+            "p95": 534259.5,
+            "maximum": 535750
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 355860,
+            "median": 366788,
+            "p95": 368883.2,
+            "maximum": 369116
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 356340,
+            "median": 367108,
+            "p95": 369196.0,
+            "maximum": 369428
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 42196,
+            "median": 49376,
+            "p95": 60557.6,
+            "maximum": 61800
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 744,
+            "median": 4240,
+            "p95": 5312.8,
+            "maximum": 5432
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 3,
+            "minimum": 213086208,
+            "median": 215191552,
+            "p95": 220404121.6,
+            "maximum": 220983296
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 3,
+            "minimum": 45.793639,
+            "median": 56.469797,
+            "p95": 123.3226376,
+            "maximum": 130.750731
+          },
+          "frame_window": {
+            "available": false,
+            "frames": 0
+          },
+          "major_fault_delta": 1130,
+          "swapin_pages_delta": 5298,
+          "swapout_pages_delta": 5142
+        },
+        "move-left": {
+          "samples": 2,
+          "requested_phase": "move-left",
+          "scene_independently_verified": false,
+          "window_begin_ns": 47376986019948,
+          "window_end_ns": 47381631603816,
+          "pss_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 522490,
+            "median": 526649.5,
+            "p95": 530393.05,
+            "maximum": 530809
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 364268,
+            "median": 372106.0,
+            "p95": 379160.2,
+            "maximum": 379944
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 364768,
+            "median": 372582.0,
+            "p95": 379614.6,
+            "maximum": 380396
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 43180,
+            "median": 49124.0,
+            "p95": 54473.6,
+            "maximum": 55068
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 416,
+            "median": 1720.0,
+            "p95": 2893.6,
+            "maximum": 3024
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 2,
+            "minimum": 221728768,
+            "median": 226103296.0,
+            "p95": 230040371.2,
+            "maximum": 230477824
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 2,
+            "minimum": 40.714374,
+            "median": 51.577803,
+            "p95": 61.354889099999994,
+            "maximum": 62.441232
+          },
+          "frame_window": {
+            "available": false,
+            "frames": 1
+          },
+          "major_fault_delta": 263,
+          "swapin_pages_delta": 408,
+          "swapout_pages_delta": 4192
+        },
+        "map": {
+          "samples": 7,
+          "requested_phase": "map",
+          "scene_independently_verified": false,
+          "window_begin_ns": 47381631603816,
+          "window_end_ns": 47396369695378,
+          "pss_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 490020,
+            "median": 495740,
+            "p95": 511845.39999999997,
+            "maximum": 518608
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 402304,
+            "median": 422916,
+            "p95": 427327.6,
+            "maximum": 428140
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 402104,
+            "median": 423528,
+            "p95": 428277.6,
+            "maximum": 429108
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 68668,
+            "median": 72104,
+            "p95": 75072.8,
+            "maximum": 75956
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 356,
+            "median": 436,
+            "p95": 2233.599999999998,
+            "maximum": 3004
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 7,
+            "minimum": 234672128,
+            "median": 244527104,
+            "p95": 245055488.0,
+            "maximum": 245055488
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 7,
+            "minimum": 45.249512,
+            "median": 49.873818,
+            "p95": 135.84231239999994,
+            "maximum": 168.008385
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 2230,
+            "last_frame": 2512,
+            "intervals": 282,
+            "seconds": 12.686440702,
+            "presents_per_s": 22.22845687171683,
+            "p50_ms": 43.2391735,
+            "p95_ms": 52.22923125,
+            "p99_ms": 62.05210407999999,
+            "max_ms": 265.374723,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 437,
+          "swapin_pages_delta": 1976,
+          "swapout_pages_delta": 6750
+        },
+        "map-return": {
+          "samples": 8,
+          "requested_phase": "map-return",
+          "scene_independently_verified": false,
+          "window_begin_ns": 47396369695378,
+          "window_end_ns": 47411255933404,
+          "pss_kib": {
+            "available": true,
+            "count": 8,
+            "minimum": 496425,
+            "median": 497389.0,
+            "p95": 497733.35,
+            "maximum": 497782
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 8,
+            "minimum": 422012,
+            "median": 422108.0,
+            "p95": 422344.6,
+            "maximum": 422388
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 8,
+            "minimum": 422624,
+            "median": 422624.0,
+            "p95": 422935.6,
+            "maximum": 422972
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 8,
+            "minimum": 66240,
+            "median": 81242.0,
+            "p95": 82614.8,
+            "maximum": 82836
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 8,
+            "minimum": 436,
+            "median": 1924.0,
+            "p95": 1924.0,
+            "maximum": 1924
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 8,
+            "minimum": 245583872,
+            "median": 246112256.0,
+            "p95": 247177216.0,
+            "maximum": 247177216
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 8,
+            "minimum": 48.63044,
+            "median": 52.691889,
+            "p95": 98.30488144999998,
+            "maximum": 111.282921
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 2557,
+            "last_frame": 2852,
+            "intervals": 295,
+            "seconds": 12.813686732,
+            "presents_per_s": 23.02225785365017,
+            "p50_ms": 42.492295,
+            "p95_ms": 51.633748200000014,
+            "p99_ms": 58.35237712,
+            "max_ms": 60.1901,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 45,
+          "swapin_pages_delta": 183,
+          "swapout_pages_delta": 0
+        },
+        "pause": {
+          "samples": 2,
+          "requested_phase": "pause",
+          "scene_independently_verified": false,
+          "window_begin_ns": 47411255933404,
+          "window_end_ns": 47416074965486,
+          "pss_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 497553,
+            "median": 497603.0,
+            "p95": 497648.0,
+            "maximum": 497653
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 421916,
+            "median": 421962.0,
+            "p95": 422003.4,
+            "maximum": 422008
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 422404,
+            "median": 422514.0,
+            "p95": 422613.0,
+            "maximum": 422624
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 74600,
+            "median": 74650.0,
+            "p95": 74695.0,
+            "maximum": 74700
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 1924,
+            "median": 1924.0,
+            "p95": 1924.0,
+            "maximum": 1924
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 2,
+            "minimum": 247177216,
+            "median": 247177216.0,
+            "p95": 247177216.0,
+            "maximum": 247177216
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 2,
+            "minimum": 50.675528,
+            "median": 53.531037,
+            "p95": 56.100995100000006,
+            "maximum": 56.386546
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 2897,
+            "last_frame": 2961,
+            "intervals": 64,
+            "seconds": 2.756573324,
+            "presents_per_s": 23.21723113359128,
+            "p50_ms": 42.416399,
+            "p95_ms": 50.15357945,
+            "p99_ms": 50.640290959999994,
+            "max_ms": 50.695862,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 5,
+          "swapin_pages_delta": 28,
+          "swapout_pages_delta": 0
+        },
+        "pause-return": {
+          "samples": 8,
+          "requested_phase": "pause-return",
+          "scene_independently_verified": false,
+          "window_begin_ns": 47416074965486,
+          "window_end_ns": 47430563472145,
+          "pss_kib": {
+            "available": true,
+            "count": 8,
+            "minimum": 494637,
+            "median": 495396.5,
+            "p95": 496165.3,
+            "maximum": 496369
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 8,
+            "minimum": 421916,
+            "median": 422998.0,
+            "p95": 423495.2,
+            "maximum": 423540
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 8,
+            "minimum": 422404,
+            "median": 423676.0,
+            "p95": 424068.0,
+            "maximum": 424068
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 8,
+            "minimum": 79520,
+            "median": 86916.0,
+            "p95": 87394.0,
+            "maximum": 87436
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 8,
+            "minimum": 2968,
+            "median": 3080.0,
+            "p95": 3080.0,
+            "maximum": 3080
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 8,
+            "minimum": 247177216,
+            "median": 247705600.0,
+            "p95": 247705600.0,
+            "maximum": 247705600
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 8,
+            "minimum": 48.44073,
+            "median": 52.5150965,
+            "p95": 62.2415058,
+            "maximum": 65.111573
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 3007,
+            "last_frame": 3287,
+            "intervals": 280,
+            "seconds": 12.41372478,
+            "presents_per_s": 22.555679698257336,
+            "p50_ms": 43.142047500000004,
+            "p95_ms": 51.90275685000002,
+            "p99_ms": 65.06714333999997,
+            "max_ms": 75.714688,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 106,
+          "swapin_pages_delta": 157,
+          "swapout_pages_delta": 416
+        }
+      },
+      "astc_postcopy_hits": [],
+      "astc_fallbacks": [],
+      "bc_write_census": {
+        "total": 0,
+        "full": 0,
+        "by_path": {},
+        "by_id": {}
+      },
+      "copy_audits": [],
+      "allocation_ledger": {
+        "events": [
+          {
+            "event": "alloc",
+            "seq": "0x1",
+            "ptr": "0x107cb00000",
+            "bytes": "0x100000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5d348c837",
+            "tracked-large-live": "0x100000",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x148",
+            "parents": [
+              "main.text.seg+0x7fca74",
+              "main.text.seg+0xabeb94",
+              "main.text.seg+0x819d6c",
+              "main.text.seg+0x148"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x2",
+            "ptr": "0x1078b00000",
+            "bytes": "0x4000000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5d360f463",
+            "tracked-large-live": "0x4100000",
+            "incomplete": "0x0",
+            "parent": "rtld.text.seg+0xac",
+            "parents": [
+              "main.text.seg+0x8064a0",
+              "sdk.text.seg+0x686b4",
+              "rtld.text.seg+0xac"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x3",
+            "ptr": "0x1078700000",
+            "bytes": "0x400000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5d6f45dfe",
+            "tracked-large-live": "0x4500000",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x818d54",
+            "parents": [
+              "main.text.seg+0x7fbdd8",
+              "main.text.seg+0x7fea1c",
+              "main.text.seg+0x7fe6d4",
+              "main.text.seg+0x818d54"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x4",
+            "ptr": "0x1078600000",
+            "bytes": "0x100000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5d6f6c99f",
+            "tracked-large-live": "0x4600000",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x806624",
+            "parents": [
+              "main.text.seg+0xae707c",
+              "main.text.seg+0x7fe7ec",
+              "main.text.seg+0x818d54",
+              "main.text.seg+0x806624"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x5",
+            "ptr": "0x10784ff000",
+            "bytes": "0x100017",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5d78081ea",
+            "tracked-large-live": "0x4700017",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xa324c4",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x8392c4",
+              "main.text.seg+0xa324c4"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x6",
+            "ptr": "0x10782fe000",
+            "bytes": "0x200017",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5d86664d8",
+            "tracked-large-live": "0x490002e",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xac93a8",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0xaca66c",
+              "main.text.seg+0xac93a8"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x7",
+            "ptr": "0x10781fc000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5d8be5984",
+            "tracked-large-live": "0x4a01035",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x806688",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x806688"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x8",
+            "ptr": "0x1077ee2000",
+            "bytes": "0x319204",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5e6bef24a",
+            "tracked-large-live": "0x4d1a239",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x7a6654",
+            "parents": [
+              "main.text.seg+0x7f44b4",
+              "main.text.seg+0x7f4674",
+              "main.text.seg+0x7985d0",
+              "main.text.seg+0x7a6654"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x9",
+            "ptr": "0x10776e2000",
+            "bytes": "0x800000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a4b38",
+            "thread": "0x0",
+            "ns": "0x2af5f7f508d1",
+            "tracked-large-live": "0x551a239",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x8b183c",
+            "parents": [
+              "main.text.seg+0x7dccac",
+              "main.text.seg+0x7d51f0",
+              "main.text.seg+0x7a7540",
+              "main.text.seg+0x8b183c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0xa",
+            "ptr": "0x10775e2000",
+            "bytes": "0x100000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5fcbdaba2",
+            "tracked-large-live": "0x561a239",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x7a4030",
+            "parents": [
+              "sdk.text.seg+0x33e390",
+              "main.text.seg+0x79ccd8",
+              "main.text.seg+0x79cab4",
+              "main.text.seg+0x7a4030"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0xb",
+            "ptr": "0x1077462000",
+            "bytes": "0x180000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5fd1d78f0",
+            "tracked-large-live": "0x579a239",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x7a0bbc",
+            "parents": [
+              "sdk.text.seg+0x33e390",
+              "main.text.seg+0x79e1b4",
+              "main.text.seg+0x79df6c",
+              "main.text.seg+0x7a0bbc"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0xc",
+            "ptr": "0x1077361000",
+            "bytes": "0x100047",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5fe816108",
+            "tracked-large-live": "0x589a280",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x9180f0",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x839928",
+              "main.text.seg+0x9180f0"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0xd",
+            "ptr": "0x107725f000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5fe841c41",
+            "tracked-large-live": "0x599b287",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xbb63c0",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0xbb63c0"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0xe",
+            "ptr": "0x107715d000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5feb2df28",
+            "tracked-large-live": "0x5a9c28e",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xa30f88",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0xa30f88"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0xf",
+            "ptr": "0x107695c000",
+            "bytes": "0x800047",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af606175004",
+            "tracked-large-live": "0x629c2d5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xc7c4d0",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x839928",
+              "main.text.seg+0xc7c4d0"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x10",
+            "ptr": "0x107595c000",
+            "bytes": "0x1000000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a4b38",
+            "thread": "0x0",
+            "ns": "0x2af60ab00c43",
+            "tracked-large-live": "0x729c2d5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xaeeb78",
+            "parents": [
+              "sdk.text.seg+0x3a386c",
+              "main.text.seg+0x80a2b4",
+              "main.text.seg+0x80a1c8",
+              "main.text.seg+0xaeeb78"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x11",
+            "ptr": "0x107585c000",
+            "bytes": "0x100000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af60ab41a07",
+            "tracked-large-live": "0x739c2d5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xaee60c",
+            "parents": [
+              "sdk.text.seg+0x33e390",
+              "main.text.seg+0x80a1d4",
+              "main.text.seg+0xaeeb78",
+              "main.text.seg+0xaee60c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x12",
+            "ptr": "0x106f85a000",
+            "bytes": "0x6001007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af60abc1e71",
+            "tracked-large-live": "0xd39d2dc",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xaeeca0",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0xaf5e30",
+              "main.text.seg+0xaeeca0"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x13",
+            "ptr": "0x106d8b3000",
+            "bytes": "0x1fa6007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af60b5d7989",
+            "tracked-large-live": "0xf3432e3",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xaef5fc",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0xaf5e30",
+              "main.text.seg+0xaef5fc"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x14",
+            "ptr": "0x106d7b1000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af61544345a",
+            "tracked-large-live": "0xf4442ea",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xc7bee0",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0xc7bee0"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x15",
+            "ptr": "0x106d6af000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af6156bd0d9",
+            "tracked-large-live": "0xf5452f1",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x932fc0",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x932fc0"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x16",
+            "ptr": "0x106d5ad000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af6157da28c",
+            "tracked-large-live": "0xf6462f8",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x17",
+            "ptr": "0x106d4ab000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af615976233",
+            "tracked-large-live": "0xf7472ff",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x932fc0",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x932fc0"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x18",
+            "ptr": "0x106d3a9000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af615aa675b",
+            "tracked-large-live": "0xf848306",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x19",
+            "ptr": "0x106d2a7000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af615bec94f",
+            "tracked-large-live": "0xf94930d",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x1a",
+            "ptr": "0x106d1a5000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af615d40944",
+            "tracked-large-live": "0xfa4a314",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x1b",
+            "ptr": "0x106d0a3000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af615e788fb",
+            "tracked-large-live": "0xfb4b31b",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x1c",
+            "ptr": "0x106cfa1000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af615fc06ed",
+            "tracked-large-live": "0xfc4c322",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x1d",
+            "ptr": "0x106ce9f000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af6160f19eb",
+            "tracked-large-live": "0xfd4d329",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x1e",
+            "ptr": "0x106cd9d000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af61630c733",
+            "tracked-large-live": "0xfe4e330",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x1f",
+            "ptr": "0x106cc9b000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af616492cd3",
+            "tracked-large-live": "0xff4f337",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x20",
+            "ptr": "0x106cb99000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af6166394f0",
+            "tracked-large-live": "0x1005033e",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x21",
+            "ptr": "0x106ca97000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af6167f968e",
+            "tracked-large-live": "0x10151345",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x22",
+            "ptr": "0x106c995000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af616a53160",
+            "tracked-large-live": "0x1025234c",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x23",
+            "ptr": "0x106c893000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af616c4df97",
+            "tracked-large-live": "0x10353353",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x24",
+            "ptr": "0x106c791000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af616ed4089",
+            "tracked-large-live": "0x1045435a",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x25",
+            "ptr": "0x106c68f000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af6170c8065",
+            "tracked-large-live": "0x10555361",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x26",
+            "ptr": "0x106c58d000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af6172da231",
+            "tracked-large-live": "0x10656368",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x27",
+            "ptr": "0x106058b000",
+            "bytes": "0xc001007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x5",
+            "ns": "0x2af617c3cd82",
+            "tracked-large-live": "0x1c65736f",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xaf6264",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0xaf5e30",
+              "main.text.seg+0xaf6264"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x28",
+            "ptr": "0x106018a000",
+            "bytes": "0x400017",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x5",
+            "ns": "0x2af72a38e457",
+            "tracked-large-live": "0x1ca57386",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x9d4adc",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x9d3574",
+              "main.text.seg+0x9d4adc"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x29",
+            "ptr": "0x105c188000",
+            "bytes": "0x4001007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x5",
+            "ns": "0x2af72aedcdcc",
+            "tracked-large-live": "0x20a5838d",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xaf6264",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0xaf5e30",
+              "main.text.seg+0xaf6264"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x2a",
+            "ptr": "0x1050186000",
+            "bytes": "0xc001007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x5",
+            "ns": "0x2af72bb21217",
+            "tracked-large-live": "0x2ca59394",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xaf5b3c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0xaf5e30",
+              "main.text.seg+0xaf5b3c"
+            ]
+          },
+          {
+            "event": "free",
+            "seq": "0x2b",
+            "ptr": "0x106018a000",
+            "bytes": "0x400017",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0x5",
+            "ns": "0x2af72bc83901",
+            "tracked-large-live": "0x2c65937d",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x9f779c",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0x9d3440",
+              "main.text.seg+0x9d4adc",
+              "main.text.seg+0x9f779c"
+            ],
+            "matched": true
+          },
+          {
+            "event": "free",
+            "seq": "0x2c",
+            "ptr": "0x10782fe000",
+            "bytes": "0x200017",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0x0",
+            "ns": "0x2afc054eb2c4",
+            "tracked-large-live": "0x2c459366",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xac9a28",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0xad05e4",
+              "main.text.seg+0xad0264",
+              "main.text.seg+0xac9a28"
+            ],
+            "matched": true
+          },
+          {
+            "event": "alloc",
+            "seq": "0x2d",
+            "ptr": "0x104781e000",
+            "bytes": "0x8968000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a4b38",
+            "thread": "0x0",
+            "ns": "0x2afccb67b381",
+            "tracked-large-live": "0x34dc1366",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x7e5b1c",
+            "parents": [
+              "main.text.seg+0x809694",
+              "main.text.seg+0x7eb450",
+              "main.text.seg+0x7e5fc0",
+              "main.text.seg+0x7e5b1c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x2e",
+            "ptr": "0x104771c000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2afdaf0ca56d",
+            "tracked-large-live": "0x34ec236d",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x827c3c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x827c3c"
+            ]
+          },
+          {
+            "event": "free",
+            "seq": "0x2f",
+            "ptr": "0x104771c000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0x15",
+            "ns": "0x2afdaf9feef2",
+            "tracked-large-live": "0x34dc1366",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x826d68",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0x801e54",
+              "main.text.seg+0x8397dc",
+              "main.text.seg+0x826d68"
+            ],
+            "matched": true
+          },
+          {
+            "event": "alloc",
+            "seq": "0x30",
+            "ptr": "0x104771c000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2afdc32fbd00",
+            "tracked-large-live": "0x34ec236d",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x827c3c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x827c3c"
+            ]
+          },
+          {
+            "event": "free",
+            "seq": "0x31",
+            "ptr": "0x104771c000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0xb",
+            "ns": "0x2afdc3e57bac",
+            "tracked-large-live": "0x34dc1366",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x826d68",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0x801e54",
+              "main.text.seg+0x8397dc",
+              "main.text.seg+0x826d68"
+            ],
+            "matched": true
+          },
+          {
+            "event": "alloc",
+            "seq": "0x32",
+            "ptr": "0x100221e000",
+            "bytes": "0x16284c",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2b0568b3860c",
+            "tracked-large-live": "0x34f23bb2",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x8a1994",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0xba7e74",
+              "main.text.seg+0x8a1994"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x33",
+            "ptr": "0x100a0ae000",
+            "bytes": "0x13c338",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2b059ca5cf2c",
+            "tracked-large-live": "0x3505feea",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xba7ed0",
+            "parents": [
+              "sdk.text.seg+0x33e390",
+              "main.text.seg+0xbaf620",
+              "main.text.seg+0xba84f8",
+              "main.text.seg+0xba7ed0"
+            ]
+          },
+          {
+            "event": "free",
+            "seq": "0x34",
+            "ptr": "0x100221e000",
+            "bytes": "0x16284c",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0x0",
+            "ns": "0x2b059d32742b",
+            "tracked-large-live": "0x34efd69e",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xad5448",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0xba7ef4",
+              "main.text.seg+0x8a1994",
+              "main.text.seg+0xad5448"
+            ],
+            "matched": true
+          },
+          {
+            "event": "alloc",
+            "seq": "0x35",
+            "ptr": "0x1046d73000",
+            "bytes": "0xaaaac3",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x1a",
+            "ns": "0x2b0885c0b32c",
+            "tracked-large-live": "0x359a8161",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x980e74",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x999154",
+              "main.text.seg+0x980e74"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x36",
+            "ptr": "0x100222b000",
+            "bytes": "0x15556f",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x1a",
+            "ns": "0x2b088cd9a61f",
+            "tracked-large-live": "0x35afd6d0",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x980e74",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x999154",
+              "main.text.seg+0x980e74"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x37",
+            "ptr": "0x10462c8000",
+            "bytes": "0xaaaac3",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x1a",
+            "ns": "0x2b088e33f04b",
+            "tracked-large-live": "0x365a8193",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x980e74",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x999154",
+              "main.text.seg+0x980e74"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x38",
+            "ptr": "0x1003491000",
+            "bytes": "0x265a8d",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x1a",
+            "ns": "0x2b0891c32ce2",
+            "tracked-large-live": "0x3680dc20",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x980e74",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x999154",
+              "main.text.seg+0x980e74"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x39",
+            "ptr": "0x10057c3000",
+            "bytes": "0x3a703f",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x1a",
+            "ns": "0x2b08923332b4",
+            "tracked-large-live": "0x36bb4c5f",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x980e74",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x999154",
+              "main.text.seg+0x980e74"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x3a",
+            "ptr": "0x1045af3000",
+            "bytes": "0x7d44ee",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x1a",
+            "ns": "0x2b0897fe45b7",
+            "tracked-large-live": "0x3738914d",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x980e74",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x999154",
+              "main.text.seg+0x980e74"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x3b",
+            "ptr": "0x10451e3000",
+            "bytes": "0x90f387",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x1a",
+            "ns": "0x2b08a13eed96",
+            "tracked-large-live": "0x37c984d4",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x980e74",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x999154",
+              "main.text.seg+0x980e74"
+            ]
+          },
+          {
+            "event": "free",
+            "seq": "0x3c",
+            "ptr": "0x1046d73000",
+            "bytes": "0xaaaac3",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0x5",
+            "ns": "0x2b08a7082c01",
+            "tracked-large-live": "0x371eda11",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xc8f708",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0x982de0",
+              "main.text.seg+0xc8b18c",
+              "main.text.seg+0xc8f708"
+            ],
+            "matched": true
+          },
+          {
+            "event": "free",
+            "seq": "0x3d",
+            "ptr": "0x100222b000",
+            "bytes": "0x15556f",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0x5",
+            "ns": "0x2b08abdaf305",
+            "tracked-large-live": "0x370984a2",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xc8f708",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0x982de0",
+              "main.text.seg+0xc8b18c",
+              "main.text.seg+0xc8f708"
+            ],
+            "matched": true
+          },
+          {
+            "event": "free",
+            "seq": "0x3e",
+            "ptr": "0x10462c8000",
+            "bytes": "0xaaaac3",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0x5",
+            "ns": "0x2b08c7b4f422",
+            "tracked-large-live": "0x365ed9df",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xc8f708",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0x982de0",
+              "main.text.seg+0xc8b18c",
+              "main.text.seg+0xc8f708"
+            ],
+            "matched": true
+          },
+          {
+            "event": "free",
+            "seq": "0x3f",
+            "ptr": "0x1003491000",
+            "bytes": "0x265a8d",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0x5",
+            "ns": "0x2b08ce62cb67",
+            "tracked-large-live": "0x36387f52",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xc8f708",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0x982de0",
+              "main.text.seg+0xc8b18c",
+              "main.text.seg+0xc8f708"
+            ],
+            "matched": true
+          },
+          {
+            "event": "free",
+            "seq": "0x40",
+            "ptr": "0x10057c3000",
+            "bytes": "0x3a703f",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0x5",
+            "ns": "0x2b08d3037065",
+            "tracked-large-live": "0x35fe0f13",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xc8f708",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0x982de0",
+              "main.text.seg+0xc8b18c",
+              "main.text.seg+0xc8f708"
+            ],
+            "matched": true
+          },
+          {
+            "event": "alloc",
+            "seq": "0x41",
+            "ptr": "0x10411e1000",
+            "bytes": "0x4001007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x5",
+            "ns": "0x2b08da48c0cd",
+            "tracked-large-live": "0x39fe1f1a",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xaf6264",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0xaf5e30",
+              "main.text.seg+0xaf6264"
+            ]
+          },
+          {
+            "event": "free",
+            "seq": "0x42",
+            "ptr": "0x1045af3000",
+            "bytes": "0x7d44ee",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0x5",
+            "ns": "0x2b08e156b88b",
+            "tracked-large-live": "0x3980da2c",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xc8f708",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0x982de0",
+              "main.text.seg+0xc8b18c",
+              "main.text.seg+0xc8f708"
+            ],
+            "matched": true
+          },
+          {
+            "event": "free",
+            "seq": "0x43",
+            "ptr": "0x10451e3000",
+            "bytes": "0x90f387",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0x5",
+            "ns": "0x2b08ff7c0355",
+            "tracked-large-live": "0x38efe6a5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xc8f708",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0x982de0",
+              "main.text.seg+0xc8b18c",
+              "main.text.seg+0xc8f708"
+            ],
+            "matched": true
+          },
+          {
+            "event": "alloc",
+            "seq": "0x44",
+            "ptr": "0x1046e3e000",
+            "bytes": "0x9dff7c",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2b109c84c579",
+            "tracked-large-live": "0x398de621",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x869048",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x7fad60",
+              "main.text.seg+0x869048"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x45",
+            "ptr": "0x1045a7e000",
+            "bytes": "0x13bfed0",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2b10aa940fcd",
+            "tracked-large-live": "0x3ac9e4f1",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x7e0d68",
+            "parents": [
+              "sdk.text.seg+0x33e390",
+              "main.text.seg+0x7cbecc",
+              "main.text.seg+0x7dae4c",
+              "main.text.seg+0x7e0d68"
+            ]
+          },
+          {
+            "event": "free",
+            "seq": "0x46",
+            "ptr": "0x1045a7e000",
+            "bytes": "0x13bfed0",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7e0dbc",
+            "thread": "0x0",
+            "ns": "0x2b10ef61c24b",
+            "tracked-large-live": "0x398de621",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x3c70d8",
+            "parents": [
+              "main.text.seg+0x144fb4",
+              "main.text.seg+0x144d00",
+              "main.text.seg+0x435838",
+              "main.text.seg+0x3c70d8"
+            ],
+            "matched": true
+          },
+          {
+            "event": "realloc",
+            "seq": "0x47",
+            "ptr": "0x100351d000",
+            "bytes": "0x1d9e00",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a4ae0",
+            "thread": "0x0",
+            "ns": "0x2b1412e4fb1d",
+            "tracked-large-live": "0x39ab8421",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x7cc520",
+            "parents": [
+              "main.text.seg+0x7f977c",
+              "main.text.seg+0x7ccb08",
+              "main.text.seg+0x7cca0c",
+              "main.text.seg+0x7cc520"
+            ]
+          },
+          {
+            "event": "free",
+            "seq": "0x48",
+            "ptr": "0x100351d000",
+            "bytes": "0x1d9e00",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a4ae0",
+            "thread": "0x0",
+            "ns": "0x2b1427124602",
+            "tracked-large-live": "0x398de621",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x7cc520",
+            "parents": [
+              "main.text.seg+0x7f977c",
+              "main.text.seg+0x7ccb08",
+              "main.text.seg+0x7cca0c",
+              "main.text.seg+0x7cc520"
+            ],
+            "matched": true
+          },
+          {
+            "event": "realloc",
+            "seq": "0x49",
+            "ptr": "0x1046a8a000",
+            "bytes": "0x3b3c00",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a4ae0",
+            "thread": "0x0",
+            "ns": "0x2b14271309f9",
+            "tracked-large-live": "0x39c92221",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x7cc520",
+            "parents": [
+              "main.text.seg+0x7f977c",
+              "main.text.seg+0x7ccb08",
+              "main.text.seg+0x7cca0c",
+              "main.text.seg+0x7cc520"
+            ]
+          },
+          {
+            "event": "free",
+            "seq": "0x4a",
+            "ptr": "0x1046a8a000",
+            "bytes": "0x3b3c00",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7cc46c",
+            "thread": "0x0",
+            "ns": "0x2b1459ea8417",
+            "tracked-large-live": "0x398de621",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x8bce10",
+            "parents": [
+              "main.text.seg+0x7ccd18",
+              "main.text.seg+0x8f6148",
+              "main.text.seg+0x8bd4b4",
+              "main.text.seg+0x8bce10"
+            ],
+            "matched": true
+          },
+          {
+            "event": "free",
+            "seq": "0x4b",
+            "ptr": "0x1046e3e000",
+            "bytes": "0x9dff7c",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0x3",
+            "ns": "0x2b145a0bc740",
+            "tracked-large-live": "0x38efe6a5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x9181f0",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0x84d790",
+              "main.text.seg+0xaca9a4",
+              "main.text.seg+0x9181f0"
+            ],
+            "matched": true
+          },
+          {
+            "event": "alloc",
+            "seq": "0x4c",
+            "ptr": "0x10034f6000",
+            "bytes": "0x200019",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2b14bfd186f3",
+            "tracked-large-live": "0x390fe6be",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x980e74",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x999154",
+              "main.text.seg+0x980e74"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x4d",
+            "ptr": "0x10059b8000",
+            "bytes": "0x1b2f13",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2b14c10f2471",
+            "tracked-large-live": "0x392b15d1",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x980e74",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x999154",
+              "main.text.seg+0x980e74"
+            ]
+          },
+          {
+            "event": "free",
+            "seq": "0x4e",
+            "ptr": "0x10034f6000",
+            "bytes": "0x200019",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0x5",
+            "ns": "0x2b14c687f4cb",
+            "tracked-large-live": "0x390b15b8",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xc8f708",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0x982de0",
+              "main.text.seg+0xc8b18c",
+              "main.text.seg+0xc8f708"
+            ],
+            "matched": true
+          },
+          {
+            "event": "free",
+            "seq": "0x4f",
+            "ptr": "0x10059b8000",
+            "bytes": "0x1b2f13",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0x5",
+            "ns": "0x2b14cbce3e0b",
+            "tracked-large-live": "0x38efe6a5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xc8f708",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0x982de0",
+              "main.text.seg+0xc8b18c",
+              "main.text.seg+0xc8f708"
+            ],
+            "matched": true
+          },
+          {
+            "event": "alloc",
+            "seq": "0x50",
+            "ptr": "0x10034f6000",
+            "bytes": "0x200019",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2b1581f91af2",
+            "tracked-large-live": "0x390fe6be",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x980e74",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x999154",
+              "main.text.seg+0x980e74"
+            ]
+          },
+          {
+            "event": "free",
+            "seq": "0x51",
+            "ptr": "0x10034f6000",
+            "bytes": "0x200019",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0x5",
+            "ns": "0x2b15923887c0",
+            "tracked-large-live": "0x38efe6a5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xc8f708",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0x982de0",
+              "main.text.seg+0xc8b18c",
+              "main.text.seg+0xc8f708"
+            ],
+            "matched": true
+          },
+          {
+            "event": "alloc",
+            "seq": "0x52",
+            "ptr": "0x100359d000",
+            "bytes": "0x15994b",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2b15eda30678",
+            "tracked-large-live": "0x39057ff0",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x980e74",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x999154",
+              "main.text.seg+0x980e74"
+            ]
+          },
+          {
+            "event": "free",
+            "seq": "0x53",
+            "ptr": "0x100359d000",
+            "bytes": "0x15994b",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0x5",
+            "ns": "0x2b15f0505a5d",
+            "tracked-large-live": "0x38efe6a5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xc8f708",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0x982de0",
+              "main.text.seg+0xc8b18c",
+              "main.text.seg+0xc8f708"
+            ],
+            "matched": true
+          },
+          {
+            "event": "alloc",
+            "seq": "0x54",
+            "ptr": "0x10603e4000",
+            "bytes": "0x127019",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2b16723bc897",
+            "tracked-large-live": "0x390256be",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x980e74",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x999154",
+              "main.text.seg+0x980e74"
+            ]
+          },
+          {
+            "event": "free",
+            "seq": "0x55",
+            "ptr": "0x10603e4000",
+            "bytes": "0x127019",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0x5",
+            "ns": "0x2b168a98f96d",
+            "tracked-large-live": "0x38efe6a5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xc8f708",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0x982de0",
+              "main.text.seg+0xc8b18c",
+              "main.text.seg+0xc8f708"
+            ],
+            "matched": true
+          },
+          {
+            "event": "alloc",
+            "seq": "0x56",
+            "ptr": "0x106040b000",
+            "bytes": "0x100019",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2b16e711363a",
+            "tracked-large-live": "0x38ffe6be",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x980e74",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x999154",
+              "main.text.seg+0x980e74"
+            ]
+          },
+          {
+            "event": "free",
+            "seq": "0x57",
+            "ptr": "0x106040b000",
+            "bytes": "0x100019",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7fb908",
+            "thread": "0x5",
+            "ns": "0x2b171e83c71f",
+            "tracked-large-live": "0x38efe6a5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xc8f708",
+            "parents": [
+              "main.text.seg+0x7fe39c",
+              "main.text.seg+0x982de0",
+              "main.text.seg+0xc8b18c",
+              "main.text.seg+0xc8f708"
+            ],
+            "matched": true
+          },
+          {
+            "event": "realloc",
+            "seq": "0x58",
+            "ptr": "0x1003568000",
+            "bytes": "0x18f000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a4ae0",
+            "thread": "0x0",
+            "ns": "0x2b17e645e449",
+            "tracked-large-live": "0x3908d6a5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x7cc640",
+            "parents": [
+              "main.text.seg+0x7f977c",
+              "main.text.seg+0x7ccb08",
+              "main.text.seg+0x7cca0c",
+              "main.text.seg+0x7cc640"
+            ]
+          },
+          {
+            "event": "free",
+            "seq": "0x59",
+            "ptr": "0x1003568000",
+            "bytes": "0x18f000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a4ae0",
+            "thread": "0x0",
+            "ns": "0x2b17ec46a368",
+            "tracked-large-live": "0x38efe6a5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x7cc520",
+            "parents": [
+              "main.text.seg+0x7f977c",
+              "main.text.seg+0x7ccb08",
+              "main.text.seg+0x7cca0c",
+              "main.text.seg+0x7cc520"
+            ],
+            "matched": true
+          },
+          {
+            "event": "realloc",
+            "seq": "0x5a",
+            "ptr": "0x100584d000",
+            "bytes": "0x31e000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a4ae0",
+            "thread": "0x0",
+            "ns": "0x2b17ec474e24",
+            "tracked-large-live": "0x3921c6a5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x7cc520",
+            "parents": [
+              "main.text.seg+0x7f977c",
+              "main.text.seg+0x7ccb08",
+              "main.text.seg+0x7cca0c",
+              "main.text.seg+0x7cc520"
+            ]
+          },
+          {
+            "event": "free",
+            "seq": "0x5b",
+            "ptr": "0x100584d000",
+            "bytes": "0x31e000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a4ae0",
+            "thread": "0x0",
+            "ns": "0x2b17f8129a51",
+            "tracked-large-live": "0x38efe6a5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x7cc520",
+            "parents": [
+              "main.text.seg+0x7f977c",
+              "main.text.seg+0x7ccb08",
+              "main.text.seg+0x7cca0c",
+              "main.text.seg+0x7cc520"
+            ],
+            "matched": true
+          },
+          {
+            "event": "realloc",
+            "seq": "0x5c",
+            "ptr": "0x10471e2000",
+            "bytes": "0x63c000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a4ae0",
+            "thread": "0x0",
+            "ns": "0x2b17f8131dd4",
+            "tracked-large-live": "0x3953a6a5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x7cc520",
+            "parents": [
+              "main.text.seg+0x7f977c",
+              "main.text.seg+0x7ccb08",
+              "main.text.seg+0x7cca0c",
+              "main.text.seg+0x7cc520"
+            ]
+          },
+          {
+            "event": "free",
+            "seq": "0x5d",
+            "ptr": "0x10471e2000",
+            "bytes": "0x63c000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x7cc46c",
+            "thread": "0x0",
+            "ns": "0x2b18074b202f",
+            "tracked-large-live": "0x38efe6a5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x8bce10",
+            "parents": [
+              "main.text.seg+0x7ccd18",
+              "main.text.seg+0x8f6148",
+              "main.text.seg+0x8bd4b4",
+              "main.text.seg+0x8bce10"
+            ],
+            "matched": true
+          }
+        ],
+        "live": [
+          {
+            "event": "alloc",
+            "seq": "0x1",
+            "ptr": "0x107cb00000",
+            "bytes": "0x100000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5d348c837",
+            "tracked-large-live": "0x100000",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x148",
+            "parents": [
+              "main.text.seg+0x7fca74",
+              "main.text.seg+0xabeb94",
+              "main.text.seg+0x819d6c",
+              "main.text.seg+0x148"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x2",
+            "ptr": "0x1078b00000",
+            "bytes": "0x4000000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5d360f463",
+            "tracked-large-live": "0x4100000",
+            "incomplete": "0x0",
+            "parent": "rtld.text.seg+0xac",
+            "parents": [
+              "main.text.seg+0x8064a0",
+              "sdk.text.seg+0x686b4",
+              "rtld.text.seg+0xac"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x3",
+            "ptr": "0x1078700000",
+            "bytes": "0x400000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5d6f45dfe",
+            "tracked-large-live": "0x4500000",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x818d54",
+            "parents": [
+              "main.text.seg+0x7fbdd8",
+              "main.text.seg+0x7fea1c",
+              "main.text.seg+0x7fe6d4",
+              "main.text.seg+0x818d54"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x4",
+            "ptr": "0x1078600000",
+            "bytes": "0x100000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5d6f6c99f",
+            "tracked-large-live": "0x4600000",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x806624",
+            "parents": [
+              "main.text.seg+0xae707c",
+              "main.text.seg+0x7fe7ec",
+              "main.text.seg+0x818d54",
+              "main.text.seg+0x806624"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x5",
+            "ptr": "0x10784ff000",
+            "bytes": "0x100017",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5d78081ea",
+            "tracked-large-live": "0x4700017",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xa324c4",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x8392c4",
+              "main.text.seg+0xa324c4"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x7",
+            "ptr": "0x10781fc000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5d8be5984",
+            "tracked-large-live": "0x4a01035",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x806688",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x806688"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x8",
+            "ptr": "0x1077ee2000",
+            "bytes": "0x319204",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5e6bef24a",
+            "tracked-large-live": "0x4d1a239",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x7a6654",
+            "parents": [
+              "main.text.seg+0x7f44b4",
+              "main.text.seg+0x7f4674",
+              "main.text.seg+0x7985d0",
+              "main.text.seg+0x7a6654"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x9",
+            "ptr": "0x10776e2000",
+            "bytes": "0x800000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a4b38",
+            "thread": "0x0",
+            "ns": "0x2af5f7f508d1",
+            "tracked-large-live": "0x551a239",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x8b183c",
+            "parents": [
+              "main.text.seg+0x7dccac",
+              "main.text.seg+0x7d51f0",
+              "main.text.seg+0x7a7540",
+              "main.text.seg+0x8b183c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0xa",
+            "ptr": "0x10775e2000",
+            "bytes": "0x100000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5fcbdaba2",
+            "tracked-large-live": "0x561a239",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x7a4030",
+            "parents": [
+              "sdk.text.seg+0x33e390",
+              "main.text.seg+0x79ccd8",
+              "main.text.seg+0x79cab4",
+              "main.text.seg+0x7a4030"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0xb",
+            "ptr": "0x1077462000",
+            "bytes": "0x180000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5fd1d78f0",
+            "tracked-large-live": "0x579a239",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x7a0bbc",
+            "parents": [
+              "sdk.text.seg+0x33e390",
+              "main.text.seg+0x79e1b4",
+              "main.text.seg+0x79df6c",
+              "main.text.seg+0x7a0bbc"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0xc",
+            "ptr": "0x1077361000",
+            "bytes": "0x100047",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5fe816108",
+            "tracked-large-live": "0x589a280",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x9180f0",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x839928",
+              "main.text.seg+0x9180f0"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0xd",
+            "ptr": "0x107725f000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5fe841c41",
+            "tracked-large-live": "0x599b287",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xbb63c0",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0xbb63c0"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0xe",
+            "ptr": "0x107715d000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af5feb2df28",
+            "tracked-large-live": "0x5a9c28e",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xa30f88",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0xa30f88"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0xf",
+            "ptr": "0x107695c000",
+            "bytes": "0x800047",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af606175004",
+            "tracked-large-live": "0x629c2d5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xc7c4d0",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x839928",
+              "main.text.seg+0xc7c4d0"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x10",
+            "ptr": "0x107595c000",
+            "bytes": "0x1000000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a4b38",
+            "thread": "0x0",
+            "ns": "0x2af60ab00c43",
+            "tracked-large-live": "0x729c2d5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xaeeb78",
+            "parents": [
+              "sdk.text.seg+0x3a386c",
+              "main.text.seg+0x80a2b4",
+              "main.text.seg+0x80a1c8",
+              "main.text.seg+0xaeeb78"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x11",
+            "ptr": "0x107585c000",
+            "bytes": "0x100000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af60ab41a07",
+            "tracked-large-live": "0x739c2d5",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xaee60c",
+            "parents": [
+              "sdk.text.seg+0x33e390",
+              "main.text.seg+0x80a1d4",
+              "main.text.seg+0xaeeb78",
+              "main.text.seg+0xaee60c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x12",
+            "ptr": "0x106f85a000",
+            "bytes": "0x6001007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af60abc1e71",
+            "tracked-large-live": "0xd39d2dc",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xaeeca0",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0xaf5e30",
+              "main.text.seg+0xaeeca0"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x13",
+            "ptr": "0x106d8b3000",
+            "bytes": "0x1fa6007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af60b5d7989",
+            "tracked-large-live": "0xf3432e3",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xaef5fc",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0xaf5e30",
+              "main.text.seg+0xaef5fc"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x14",
+            "ptr": "0x106d7b1000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af61544345a",
+            "tracked-large-live": "0xf4442ea",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xc7bee0",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0xc7bee0"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x15",
+            "ptr": "0x106d6af000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af6156bd0d9",
+            "tracked-large-live": "0xf5452f1",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x932fc0",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x932fc0"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x16",
+            "ptr": "0x106d5ad000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af6157da28c",
+            "tracked-large-live": "0xf6462f8",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x17",
+            "ptr": "0x106d4ab000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af615976233",
+            "tracked-large-live": "0xf7472ff",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x932fc0",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x932fc0"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x18",
+            "ptr": "0x106d3a9000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af615aa675b",
+            "tracked-large-live": "0xf848306",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x19",
+            "ptr": "0x106d2a7000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af615bec94f",
+            "tracked-large-live": "0xf94930d",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x1a",
+            "ptr": "0x106d1a5000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af615d40944",
+            "tracked-large-live": "0xfa4a314",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x1b",
+            "ptr": "0x106d0a3000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af615e788fb",
+            "tracked-large-live": "0xfb4b31b",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x1c",
+            "ptr": "0x106cfa1000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af615fc06ed",
+            "tracked-large-live": "0xfc4c322",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x1d",
+            "ptr": "0x106ce9f000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af6160f19eb",
+            "tracked-large-live": "0xfd4d329",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x1e",
+            "ptr": "0x106cd9d000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af61630c733",
+            "tracked-large-live": "0xfe4e330",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x1f",
+            "ptr": "0x106cc9b000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af616492cd3",
+            "tracked-large-live": "0xff4f337",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x20",
+            "ptr": "0x106cb99000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af6166394f0",
+            "tracked-large-live": "0x1005033e",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x21",
+            "ptr": "0x106ca97000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af6167f968e",
+            "tracked-large-live": "0x10151345",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x22",
+            "ptr": "0x106c995000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af616a53160",
+            "tracked-large-live": "0x1025234c",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x23",
+            "ptr": "0x106c893000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af616c4df97",
+            "tracked-large-live": "0x10353353",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x24",
+            "ptr": "0x106c791000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af616ed4089",
+            "tracked-large-live": "0x1045435a",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x25",
+            "ptr": "0x106c68f000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af6170c8065",
+            "tracked-large-live": "0x10555361",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x26",
+            "ptr": "0x106c58d000",
+            "bytes": "0x101007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2af6172da231",
+            "tracked-large-live": "0x10656368",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x93300c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0x801f0c",
+              "main.text.seg+0x93300c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x27",
+            "ptr": "0x106058b000",
+            "bytes": "0xc001007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x5",
+            "ns": "0x2af617c3cd82",
+            "tracked-large-live": "0x1c65736f",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xaf6264",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0xaf5e30",
+              "main.text.seg+0xaf6264"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x29",
+            "ptr": "0x105c188000",
+            "bytes": "0x4001007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x5",
+            "ns": "0x2af72aedcdcc",
+            "tracked-large-live": "0x20a5838d",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xaf6264",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0xaf5e30",
+              "main.text.seg+0xaf6264"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x2a",
+            "ptr": "0x1050186000",
+            "bytes": "0xc001007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x5",
+            "ns": "0x2af72bb21217",
+            "tracked-large-live": "0x2ca59394",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xaf5b3c",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0xaf5e30",
+              "main.text.seg+0xaf5b3c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x2d",
+            "ptr": "0x104781e000",
+            "bytes": "0x8968000",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a4b38",
+            "thread": "0x0",
+            "ns": "0x2afccb67b381",
+            "tracked-large-live": "0x34dc1366",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0x7e5b1c",
+            "parents": [
+              "main.text.seg+0x809694",
+              "main.text.seg+0x7eb450",
+              "main.text.seg+0x7e5fc0",
+              "main.text.seg+0x7e5b1c"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x33",
+            "ptr": "0x100a0ae000",
+            "bytes": "0x13c338",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x0",
+            "ns": "0x2b059ca5cf2c",
+            "tracked-large-live": "0x3505feea",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xba7ed0",
+            "parents": [
+              "sdk.text.seg+0x33e390",
+              "main.text.seg+0xbaf620",
+              "main.text.seg+0xba84f8",
+              "main.text.seg+0xba7ed0"
+            ]
+          },
+          {
+            "event": "alloc",
+            "seq": "0x41",
+            "ptr": "0x10411e1000",
+            "bytes": "0x4001007",
+            "arena": "0xa0cd020",
+            "caller": "main.text.seg+0x13a49ec",
+            "thread": "0x5",
+            "ns": "0x2b08da48c0cd",
+            "tracked-large-live": "0x39fe1f1a",
+            "incomplete": "0x0",
+            "parent": "main.text.seg+0xaf6264",
+            "parents": [
+              "main.text.seg+0x819e50",
+              "main.text.seg+0x7fdcf0",
+              "main.text.seg+0xaf5e30",
+              "main.text.seg+0xaf6264"
+            ]
+          }
+        ],
+        "romfs_reads": [
+          {
+            "seq": "1",
+            "caller": "0xa838d94",
+            "address": "0x1077ee2000",
+            "bytes": "3248644",
+            "file-offset": "512",
+            "output-capacity": "3248644",
+            "ownership": "unknown",
+            "free-safe": "0",
+            "parents": [],
+            "containing_at_event": [
+              {
+                "event": "alloc",
+                "seq": "0x8",
+                "ptr": "0x1077ee2000",
+                "bytes": "0x319204",
+                "arena": "0xa0cd020",
+                "caller": "main.text.seg+0x13a49ec",
+                "thread": "0x0",
+                "ns": "0x2af5e6bef24a",
+                "tracked-large-live": "0x4d1a239",
+                "incomplete": "0x0",
+                "parent": "main.text.seg+0x7a6654",
+                "parents": [
+                  "main.text.seg+0x7f44b4",
+                  "main.text.seg+0x7f4674",
+                  "main.text.seg+0x7985d0",
+                  "main.text.seg+0x7a6654"
+                ]
+              }
+            ]
+          },
+          {
+            "seq": "2",
+            "caller": "0xa838d94",
+            "address": "0x104781e020",
+            "bytes": "143554106",
+            "file-offset": "4600016",
+            "output-capacity": "143554106",
+            "ownership": "unknown",
+            "free-safe": "0",
+            "parents": [],
+            "containing_at_event": [
+              {
+                "event": "alloc",
+                "seq": "0x2d",
+                "ptr": "0x104781e000",
+                "bytes": "0x8968000",
+                "arena": "0xa0cd020",
+                "caller": "main.text.seg+0x13a4b38",
+                "thread": "0x0",
+                "ns": "0x2afccb67b381",
+                "tracked-large-live": "0x34dc1366",
+                "incomplete": "0x0",
+                "parent": "main.text.seg+0x7e5b1c",
+                "parents": [
+                  "main.text.seg+0x809694",
+                  "main.text.seg+0x7eb450",
+                  "main.text.seg+0x7e5fc0",
+                  "main.text.seg+0x7e5b1c"
+                ]
+              }
+            ]
+          },
+          {
+            "seq": "3",
+            "caller": "0xa838d94",
+            "address": "0x104781e020",
+            "bytes": "11633735",
+            "file-offset": "205277456",
+            "output-capacity": "11633735",
+            "ownership": "unknown",
+            "free-safe": "0",
+            "parents": [],
+            "containing_at_event": [
+              {
+                "event": "alloc",
+                "seq": "0x2d",
+                "ptr": "0x104781e000",
+                "bytes": "0x8968000",
+                "arena": "0xa0cd020",
+                "caller": "main.text.seg+0x13a4b38",
+                "thread": "0x0",
+                "ns": "0x2afccb67b381",
+                "tracked-large-live": "0x34dc1366",
+                "incomplete": "0x0",
+                "parent": "main.text.seg+0x7e5b1c",
+                "parents": [
+                  "main.text.seg+0x809694",
+                  "main.text.seg+0x7eb450",
+                  "main.text.seg+0x7e5fc0",
+                  "main.text.seg+0x7e5b1c"
+                ]
+              }
+            ]
+          }
+        ],
+        "pool_bindings": [
+          {
+            "address": "0x107595c000",
+            "size": "0x1000000",
+            "flags": "0x12",
+            "storage": "borrowed-guest",
+            "parents": [],
+            "containing_at_event": [
+              {
+                "event": "alloc",
+                "seq": "0x10",
+                "ptr": "0x107595c000",
+                "bytes": "0x1000000",
+                "arena": "0xa0cd020",
+                "caller": "main.text.seg+0x13a4b38",
+                "thread": "0x0",
+                "ns": "0x2af60ab00c43",
+                "tracked-large-live": "0x729c2d5",
+                "incomplete": "0x0",
+                "parent": "main.text.seg+0xaeeb78",
+                "parents": [
+                  "sdk.text.seg+0x3a386c",
+                  "main.text.seg+0x80a2b4",
+                  "main.text.seg+0x80a1c8",
+                  "main.text.seg+0xaeeb78"
+                ]
+              }
+            ]
+          },
+          {
+            "address": "0x1000a80000",
+            "size": "0x54000",
+            "flags": "0x22",
+            "storage": "borrowed-guest",
+            "parents": [],
+            "containing_at_event": []
+          },
+          {
+            "address": "0x106f85b000",
+            "size": "0x6000000",
+            "flags": "0x62",
+            "storage": "borrowed-guest",
+            "parents": [],
+            "containing_at_event": [
+              {
+                "event": "alloc",
+                "seq": "0x12",
+                "ptr": "0x106f85a000",
+                "bytes": "0x6001007",
+                "arena": "0xa0cd020",
+                "caller": "main.text.seg+0x13a49ec",
+                "thread": "0x0",
+                "ns": "0x2af60abc1e71",
+                "tracked-large-live": "0xd39d2dc",
+                "incomplete": "0x0",
+                "parent": "main.text.seg+0xaeeca0",
+                "parents": [
+                  "main.text.seg+0x819e50",
+                  "main.text.seg+0x7fdcf0",
+                  "main.text.seg+0xaf5e30",
+                  "main.text.seg+0xaeeca0"
+                ]
+              }
+            ]
+          },
+          {
+            "address": "0x106d8b4000",
+            "size": "0x1fa5000",
+            "flags": "0xa2",
+            "storage": "borrowed-guest",
+            "parents": [],
+            "containing_at_event": [
+              {
+                "event": "alloc",
+                "seq": "0x13",
+                "ptr": "0x106d8b3000",
+                "bytes": "0x1fa6007",
+                "arena": "0xa0cd020",
+                "caller": "main.text.seg+0x13a49ec",
+                "thread": "0x0",
+                "ns": "0x2af60b5d7989",
+                "tracked-large-live": "0xf3432e3",
+                "incomplete": "0x0",
+                "parent": "main.text.seg+0xaef5fc",
+                "parents": [
+                  "main.text.seg+0x819e50",
+                  "main.text.seg+0x7fdcf0",
+                  "main.text.seg+0xaf5e30",
+                  "main.text.seg+0xaef5fc"
+                ]
+              }
+            ]
+          },
+          {
+            "address": "0x106058c000",
+            "size": "0xc000000",
+            "flags": "0x22",
+            "storage": "borrowed-guest",
+            "parents": [],
+            "containing_at_event": [
+              {
+                "event": "alloc",
+                "seq": "0x27",
+                "ptr": "0x106058b000",
+                "bytes": "0xc001007",
+                "arena": "0xa0cd020",
+                "caller": "main.text.seg+0x13a49ec",
+                "thread": "0x5",
+                "ns": "0x2af617c3cd82",
+                "tracked-large-live": "0x1c65736f",
+                "incomplete": "0x0",
+                "parent": "main.text.seg+0xaf6264",
+                "parents": [
+                  "main.text.seg+0x819e50",
+                  "main.text.seg+0x7fdcf0",
+                  "main.text.seg+0xaf5e30",
+                  "main.text.seg+0xaf6264"
+                ]
+              }
+            ]
+          },
+          {
+            "address": "0x105c189000",
+            "size": "0x4000000",
+            "flags": "0xa2",
+            "storage": "borrowed-guest",
+            "parents": [],
+            "containing_at_event": [
+              {
+                "event": "alloc",
+                "seq": "0x29",
+                "ptr": "0x105c188000",
+                "bytes": "0x4001007",
+                "arena": "0xa0cd020",
+                "caller": "main.text.seg+0x13a49ec",
+                "thread": "0x5",
+                "ns": "0x2af72aedcdcc",
+                "tracked-large-live": "0x20a5838d",
+                "incomplete": "0x0",
+                "parent": "main.text.seg+0xaf6264",
+                "parents": [
+                  "main.text.seg+0x819e50",
+                  "main.text.seg+0x7fdcf0",
+                  "main.text.seg+0xaf5e30",
+                  "main.text.seg+0xaf6264"
+                ]
+              }
+            ]
+          },
+          {
+            "address": "0x1050187000",
+            "size": "0xc000000",
+            "flags": "0x22",
+            "storage": "borrowed-guest",
+            "parents": [],
+            "containing_at_event": [
+              {
+                "event": "alloc",
+                "seq": "0x2a",
+                "ptr": "0x1050186000",
+                "bytes": "0xc001007",
+                "arena": "0xa0cd020",
+                "caller": "main.text.seg+0x13a49ec",
+                "thread": "0x5",
+                "ns": "0x2af72bb21217",
+                "tracked-large-live": "0x2ca59394",
+                "incomplete": "0x0",
+                "parent": "main.text.seg+0xaf5b3c",
+                "parents": [
+                  "main.text.seg+0x819e50",
+                  "main.text.seg+0x7fdcf0",
+                  "main.text.seg+0xaf5e30",
+                  "main.text.seg+0xaf5b3c"
+                ]
+              }
+            ]
+          },
+          {
+            "address": "0x10411e2000",
+            "size": "0x4000000",
+            "flags": "0xa2",
+            "storage": "borrowed-guest",
+            "parents": [],
+            "containing_at_event": [
+              {
+                "event": "alloc",
+                "seq": "0x41",
+                "ptr": "0x10411e1000",
+                "bytes": "0x4001007",
+                "arena": "0xa0cd020",
+                "caller": "main.text.seg+0x13a49ec",
+                "thread": "0x5",
+                "ns": "0x2b08da48c0cd",
+                "tracked-large-live": "0x39fe1f1a",
+                "incomplete": "0x0",
+                "parent": "main.text.seg+0xaf6264",
+                "parents": [
+                  "main.text.seg+0x819e50",
+                  "main.text.seg+0x7fdcf0",
+                  "main.text.seg+0xaf5e30",
+                  "main.text.seg+0xaf6264"
+                ]
+              }
+            ]
+          }
+        ],
+        "trace_incomplete": false,
+        "SDK_requested_live_bytes": 955246245,
+        "SDK_requested_ever_pool_bound_live_bytes": 687517738,
+        "SDK_requested_no_observed_pool_binding_live_bytes": 267728507,
+        "active_Unity_bytes": null,
+        "Unity_free_list_bytes": null,
+        "safe_reclaimable_bytes": null,
+        "caveat": "Endpoint SDK extents, not physical pages; ever pool-bound is not proof of current pool liveness. No free/reclaim safety is inferred."
+      },
+      "gl_errors": [],
+      "stop_records": [],
+      "caveats": [
+        "PSS, SwapPSS, NVN pools, Mali commit and CMA overlap: no physical total is computed.",
+        "Lightweight sampler runs are memory/performance observations, not sampler-off FPS controls.",
+        "Runtime presents are not independent panel refresh measurements.",
+        "No no-swap or battle/transition coverage is inferred from action labels."
+      ]
+    }
+  ],
+  "comparison": {
+    "arm_counts": {
+      "control": 1
+    },
+    "per_phase": {}
+  }
+}
