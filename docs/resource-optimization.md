@@ -25,7 +25,11 @@ optimization A/B; the 700–750 MiB / no-swap target remains unmet.
 - M5: read-only pool/heap-page attribution and endpoint texture lifecycle measured;
   deeper Unity owner/free-list attribution remains open. About 699 MiB of counted
   heap pages in one snapshot lie outside NVN pools; this is not reclaimable/free proof.
-- M6: compressed GPU side-cache not implemented.
+- M6: side-cache implemented and E2E-verified on the device (create-path hook; fallbacks on
+  the refresh, texel-flush and copy/image write paths; bcdec content canon; two final clean
+  runs). Physical-memory win not demonstrated on the menu/street route: all cached BC
+  textures receive content later through `CopyBufferToTexture`, so the cache only covers the
+  window before the first re-upload. Evidence: `evidence/m6-compressed-textures/`.
 - M7/M9: unsuccessful/deferred probes, not universal impossibility proofs. The
   earlier commit's 'dead end' language was too strong; see [scope corrections](memory-benchmark.md).
 - M8: no page decommit until allocator ownership and full-page freedom are proven.
