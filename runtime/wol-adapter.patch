@@ -1476,7 +1476,7 @@
      if(nvn_skip.active) {
          /* Skipped frame: no GL, no swap; keep ownership, counters and the
           * per-60-logic-frame profile line consumed by the automation. */
-@@ -172,6 +248,7 @@
+@@ -172,9 +248,13 @@
          uint64_t now=nvn_nanoseconds();nvn_profile.present_ns+=now-started;nvn_profile.frames++;
          if(nvn_profile.start && nvn_profile.frames>=60) {
              double ms=1e-6/nvn_profile.frames;
@@ -1484,7 +1484,13 @@
              printf("NVN_PROFILE frame=%u count=%u elapsed-ms=%.3f replay-ms=%.3f present-ms=%.3f readback-ms=%.3f replay-cpu-ms=%.3f scope=wall-time-per-frame frameskip=%u rendered=%"PRIu64" skipped=%"PRIu64"\n",nvn_present.frames,nvn_profile.frames,
                  (now-nvn_profile.start)*ms,nvn_profile.replay_ns*ms,nvn_profile.present_ns*ms,nvn_profile.readback_ns*ms,nvn_profile.replay_cpu_ns*ms,nvn_skip.every,nvn_skip.rendered,nvn_skip.skipped);
              nvn_phase_report(nvn_present.frames,nvn_profile.frames);
-@@ -186,7 +263,12 @@
++#if defined(WOL_SHADER_CAPTURE) && WOL_SHADER_CAPTURE
++        wol_uniform_cache_report(nvn_present.frames);
++#endif
+         }
+         if(!nvn_profile.start||nvn_profile.frames>=60){nvn_profile=(typeof(nvn_profile)){.start=now};nvn_counter_profile_reset();}
+         return 1;
+@@ -186,7 +266,12 @@
      if(!nvn_async_frame_enabled())nvn_async_present_wait_locked(q,single);
      if(!single)nvn_egl_present_reader_wait();
      if(single) {
@@ -1498,7 +1504,7 @@
          /* This is a logical context use even though its physical binding is
           * retained. Do not reuse a completion proof from before the quad. */
          if(!++nvn_gl_completion.use_serial)stop("NVN_GL_SERIAL_WRAP",nvn_caller,0,24);
-@@ -199,10 +281,16 @@
+@@ -199,10 +284,16 @@
      }
      nvn_present_setup();
      momo_stencil_selftest();
@@ -1516,7 +1522,7 @@
  #ifdef ANIMAL_WELL_SHADERS
      if(aw_fbcopy_enabled()){aw_fbcopy_open(width,height);glBindFramebuffer(GL_FRAMEBUFFER,aw_fbcopy.fbo);}
      else glBindFramebuffer(GL_FRAMEBUFFER,0);
-@@ -224,12 +312,47 @@
+@@ -224,12 +315,47 @@
          glClearColor(previous_clear[0],previous_clear[1],previous_clear[2],previous_clear[3]);
      }
      glViewport(rect->x,(int)height-rect->y-rect->h,rect->w,rect->h);
@@ -1565,7 +1571,7 @@
      glDrawArrays(GL_TRIANGLE_STRIP,0,4);nvn_present.frames++;
      if(t2_video_needs_readback()) {
          GLint viewport[4];EGLint measured_w=0,measured_h=0;
-@@ -270,6 +393,14 @@
+@@ -270,6 +396,14 @@
      cadence_pixel_proof=proof;
      const char *status=proof?"PIXELS":nonblack?"INCONCLUSIVE":"BLACK-SAMPLE";
      printf("NVN_PRESENT_PIXELS frame=%u nonblack=%u max=%u white=%u texture-draws=%u status=%s\n",nvn_present.frames,nonblack,maximum,readback.measure.white,t->draws,status);
@@ -1580,7 +1586,7 @@
      /* Native54 frame381 proves a black atlas background, RGB0 glyph vertices
       * and a transparent final overlay in the color layer; the normal target
       * still renders. Twelve samples were insufficient to observe this native
-@@ -279,6 +410,32 @@
+@@ -279,6 +413,32 @@
       * wall-clock/memory limits remain. This is not a release acceptance policy. */
      static unsigned black_limit;if(!black_limit){const char *o=getenv("COTM_BLACK_LIMIT");black_limit=o?(unsigned)strtoul(o,NULL,10):120;if(black_limit<120)black_limit=120;}
      nvn_present_receipt(nvn_present.black_streak>=black_limit?"BLACK":status,nonblack,maximum,t->draws);
@@ -1613,7 +1619,7 @@
      if(nvn_present.black_streak>=black_limit){free(pixels);stop("NVN_PRESENT_BLACK",nvn_caller,nvn_present.frames,22);}
      if(capture_requested&&!proof)printf("NVN_CAPTURE_ON_DEMAND_NO_CAPTURE pid=%ld run=%s frame=%u status=%s\n",
          (long)getpid(),getenv("COTM_RUN_ID"),nvn_present.frames,status);
-@@ -342,6 +499,7 @@
+@@ -342,6 +502,7 @@
      if(!nvn_present_from_job)nvn_window.acquired[index]=0;
      uint64_t now=nvn_nanoseconds();nvn_profile.present_ns+=now-started;nvn_profile.frames++;
      if(nvn_profile.start && nvn_profile.frames>=60) {
@@ -1621,10 +1627,13 @@
          nvn_single_report(nvn_present.frames);
          nvn_gpu_frame_gate_report(nvn_present.frames,nvn_profile.frames);
          double ms=1e-6/nvn_profile.frames;
-@@ -355,6 +513,8 @@
+@@ -355,6 +516,11 @@
          printf("NVN_PRESENT_READER_PROFILE frame=%u waits=%"PRIu64" wait-ms=%.3f scope=cumulative-context-handoff\n",
              nvn_present.frames,nvn_egl_fences.reader_waits,nvn_egl_fences.reader_wait_ns*1e-6);
          nvn_phase_report(nvn_present.frames,nvn_profile.frames);
++#if defined(WOL_SHADER_CAPTURE) && WOL_SHADER_CAPTURE
++        wol_uniform_cache_report(nvn_present.frames);
++#endif
 +        wol_gpu_residency_report(nvn_present.frames);
 +        wol_vtx_census_report(nvn_present.frames);
          zero_gpu_cost_report(nvn_present.frames);
@@ -2142,7 +2151,7 @@
      if(nvn_draw_diagnostic_active()) {
          GLint previous;GLuint fb;glGetIntegerv(GL_FRAMEBUFFER_BINDING,&previous);glGenFramebuffers(1,&fb);
          glBindFramebuffer(GL_FRAMEBUFFER,fb);glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,texture_name,0);
-@@ -507,8 +860,1344 @@
+@@ -507,8 +860,1345 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -2581,8 +2590,8 @@
 +            /* build-239: u_wol_uvk defaults to the historical half; the per-draw smart rule below may
 +             * override it for the top family. Programs without the uniform report -1: no-op. */
 +            if(wol_pair_uvk_loc>=0)glUniform1f(wol_pair_uvk_loc,0.5f);
-+            if(wol_pair_c3_loc>=0)glUniform1fv(wol_pair_c3_loc,96,words);
-+            if(wol_pair_c3f_loc>=0)glUniform1fv(wol_pair_c3f_loc,96,fwords);
++            wol_uniform_upload(&wol_cat_cur->uniform_cache,0,wol_pair_c3_loc,words);
++            wol_uniform_upload(&wol_cat_cur->uniform_cache,1,wol_pair_c3f_loc,fwords);
 +            nvn_sub_end(NPS_A2B,nvn_sub_tt);nvn_sub_begin(&nvn_sub_tt);
 +{   /* 2026-10-14: the top2 pair's first-resolving slot is the 4x4 white dummy; print every nonzero
 +     * recorded fragment-stage slot for the first few top2 draws so the real texture slot (the
@@ -3389,6 +3398,7 @@
 +                /* WOL_DRAW_RESULT_BEGIN */
 +                {
 +                    GLenum wol_gl_error=glGetError();
++                    wol_uniform_cache_error(wol_gl_error);
 +                    if(wol_gl_error||wol_draw_trace_enabled())
 +                        printf("WOL_PAIR_DRAW_ISSUED primitives=%"PRIu64" glerror=0x%x\n",count,(unsigned)wol_gl_error);
 +                    wol_color_write_account(nvn_render.target,!wol_skip_139_this&&!p2solid,wol_mask_bits,wol_gl_error);
@@ -3487,7 +3497,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +2393,7 @@
+@@ -704,6 +2394,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -3495,7 +3505,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1340,7 +3030,7 @@
+@@ -1340,7 +3031,7 @@
              if(cadence_stencil && mfc_stencil_preserve_geometry(primitive,indices,count,maximum)) {
                  nvn_mfc_require(nvn_render.depth,MFC_STENCIL,0);
                  nvn_render_color_mask(0);nvn_render_depth_mask(GL_FALSE);
@@ -3504,7 +3514,7 @@
                  nvn_render_color_mask(effective_color_mask);
                  nvn_render_depth_mask((nvn_render.depth_state[0]>>1)&1);
                  uint64_t preserved=++megaman_frame_cadence.stencil_preserved_draws;
-@@ -1411,7 +3101,7 @@
+@@ -1411,7 +3102,7 @@
          uint64_t aw_probe_t0=0;if(tpf && nvn_replay.last_frame+1==tpf){glFinish();aw_probe_t0=nvn_nanoseconds();}
          if(p->aw_noise_location>=0){glActiveTexture(GL_TEXTURE0+7);glBindTexture(GL_TEXTURE_2D,aw_noise.tex);GLint unit=7;nvn_uniform_send(p->aw_noise_location,NVN_UNIFORM_INT,&unit);glActiveTexture(GL_TEXTURE0);}
  #endif
@@ -3513,7 +3523,7 @@
          zero_depth_draw_end(&depth_draw);nvn_draw_finish_profile();
  #ifdef ANIMAL_WELL_SHADERS
          nvn_render.target->aw_draws_since_clear++;
-@@ -1535,6 +3225,433 @@
+@@ -1535,6 +3226,433 @@
          begin=end+1;
      }
  }
@@ -3947,7 +3957,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +3679,16 @@
+@@ -1562,7 +3680,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -3965,7 +3975,7 @@
      case NI_nvnCommandBufferSetLineWidth:case NI_nvnCommandBufferSetPointSize: {
          float size;memcpy(&size,r->vectors,4);
          if(!isfinite(size) || size<=0)stop("ZERO_RASTER_SIZE_INVALID",nvn_caller,r->op,24);
-@@ -1682,9 +3808,10 @@
+@@ -1682,9 +3809,10 @@
              nvn_render.framebuffer=nvn_framebuffer_bind(nvn_render.target,d);nvn_render.pass_skipped=0;
              zero_udd_restore(d);
              nvn_low_target(nvn_render.target,d);d->composition_target_seen=1;
@@ -3977,7 +3987,7 @@
          nvn_cpu_image_require_target(t);nvn_cpu_image_require_target(d);
          nvn_rt_storage_target(t,d);
          nvn_mfc_target(t);nvn_mfc_target(d);
-@@ -1697,6 +3824,7 @@
+@@ -1697,6 +3825,7 @@
              if(nvn_low_color(t)<0&&!t->host_scaled)d->composition_other_target=1;}
          nvn_packaged_require_writable(t,"NVN_LC2_PACKAGED_RENDER_TARGET_REQUIRED");
          if(!t->name||(d&&(!d->depth_buffer||d->b.width!=t->b.width||d->b.height!=t->b.height)))stop("NVN_FRAMEBUFFER_ATTACHMENTS",nvn_caller,targets[0],24);
@@ -4189,7 +4199,7 @@
          printf("NVN_SAMPLER_CREATED min=%u mag=%u wrap=%u/%u/%u lod=%g:%g bias=%g anisotropy=%g compare=%u reduction=%u\n",
 --- a/native/nvn_shaders.h
 +++ b/native/nvn_shaders.h
-@@ -46,10 +46,897 @@
+@@ -46,10 +46,964 @@
      stop("NVN_PROGRAM_INVALID",nvn_caller,object,24);return NULL;
  }
  #include "diagnostic_dump.h"
@@ -4879,7 +4889,74 @@
 +     * substitution, banks and counters are untouched. */
 +    static int v=-1;if(v<0){const char *o=getenv("WOL_QUIET");v=(o&&!strcmp(o,"1"));}return (unsigned)v;
 +}
-+struct wol_cat_linked { int v,f; GLuint name; GLint c3,c3f,tex,tex1,uvk; unsigned fullscreen; };
++/* WOL_UNIFORM_CACHE_BEGIN */
++/* Default-off experiment for adapter-owned catalogue programs only. Full bank
++ * bytes, including NaN payloads and zero-filled tails, are compared exactly.
++ * Context switches and draw errors invalidate every program through an epoch.
++ * No program binding, sampler, UV scalar, vertex bytes or guest data is cached. */
++struct wol_uniform_bank_cache {
++    uint64_t generation;
++    unsigned valid;
++    GLint location[2];
++    float values[2][96];
++};
++static struct {
++    unsigned configured,enabled,census,exhausted;
++    uintptr_t context;
++    uint64_t generation,calls,redundant,skipped,uploads,invalidations;
++} wol_uniform_state;
++static void wol_uniform_configure(void) {
++    if(wol_uniform_state.configured)return;
++    wol_uniform_state.configured=1;
++    const char *o=getenv("WOL_UNIFORM_CACHE"),*c=getenv("WOL_UNIFORM_CENSUS");
++    wol_uniform_state.enabled=o&&!strcmp(o,"1");
++    wol_uniform_state.census=c&&!strcmp(c,"1");
++    wol_uniform_state.generation=1;
++    if(wol_uniform_state.enabled||wol_uniform_state.census)
++        printf("WOL_UNIFORM_MODE cache=%u census=%u banks=2 floats=96 identity=linked-program+location+bytes context-switch=invalidate-all default=off\n",
++               wol_uniform_state.enabled,wol_uniform_state.census);
++}
++static void wol_uniform_next_generation(void) {
++    wol_uniform_state.invalidations++;
++    if(!++wol_uniform_state.generation){
++        wol_uniform_state.enabled=wol_uniform_state.census=0;
++        wol_uniform_state.exhausted=1;
++    }
++}
++static void wol_uniform_cache_error(GLenum error) {
++    if(error&&(wol_uniform_state.enabled||wol_uniform_state.census))wol_uniform_next_generation();
++}
++static void wol_uniform_upload(struct wol_uniform_bank_cache *cache,unsigned bank,GLint location,const float *values) {
++    if(location<0)return;
++    wol_uniform_configure();
++    if(!(wol_uniform_state.enabled||wol_uniform_state.census)||bank>=2){glUniform1fv(location,96,values);return;}
++    wol_uniform_state.calls++;
++    uintptr_t context=(uintptr_t)eglGetCurrentContext();
++    if(context!=wol_uniform_state.context){
++        wol_uniform_state.context=context;wol_uniform_next_generation();
++    }
++    if(!context||wol_uniform_state.exhausted){glUniform1fv(location,96,values);wol_uniform_state.uploads++;return;}
++    if(cache->generation!=wol_uniform_state.generation){
++        cache->valid=0;cache->generation=wol_uniform_state.generation;
++    }
++    unsigned same=(cache->valid&(1U<<bank)) && cache->location[bank]==location &&
++                  !memcmp(cache->values[bank],values,sizeof(cache->values[bank]));
++    if(same)wol_uniform_state.redundant++;
++    if(same&&wol_uniform_state.enabled){wol_uniform_state.skipped++;return;}
++    glUniform1fv(location,96,values);wol_uniform_state.uploads++;
++    memcpy(cache->values[bank],values,sizeof(cache->values[bank]));
++    cache->location[bank]=location;cache->valid|=1U<<bank;
++}
++static void wol_uniform_cache_report(unsigned frame) {
++    if(!(wol_uniform_state.enabled||wol_uniform_state.census))return;
++    printf("WOL_UNIFORM_STATS frame=%u calls=%llu redundant=%llu skipped=%llu uploads=%llu invalidations=%llu scope=cumulative-not-FPS\n",frame,
++        (unsigned long long)wol_uniform_state.calls,(unsigned long long)wol_uniform_state.redundant,
++        (unsigned long long)wol_uniform_state.skipped,(unsigned long long)wol_uniform_state.uploads,
++        (unsigned long long)wol_uniform_state.invalidations);
++}
++/* WOL_UNIFORM_CACHE_END */
++
++struct wol_cat_linked { int v,f; GLuint name; GLint c3,c3f,tex,tex1,uvk; unsigned fullscreen; struct wol_uniform_bank_cache uniform_cache; };
 +static struct wol_cat_linked wol_cat_linked_cache[16];static unsigned wol_cat_linked_used;
 +static GLuint wol_cat_fullscreen_buffer_gl;
 +static GLuint wol_cat_fullscreen_buffer(void) {
@@ -5088,7 +5165,7 @@
      const uint8_t *header=nvn_pointer(control,0x20,PROT_READ);
      printf("ZERO_ZX_SHADER_DISCOVERY code=0x%"PRIx64" control=0x%"PRIx64" header=",code,control);
      for(unsigned i=0;i<0x20;i++)printf("%02x",header[i]);
-@@ -507,12 +1394,29 @@
+@@ -507,12 +1461,29 @@
      /* Unity 2021 clears the stages it does not use with a null program and mask 0x3c (geometry,
       * tessellation and compute; MEDIDO run momo-048). Those stages never exist on this host, so the
       * call only has to be accepted; a non-null program outside vertex/fragment still stops. */
@@ -5119,7 +5196,7 @@
      if((p?p->id:0)!=recorded_id)stop("NVN_PROGRAM_RECORD_STALE",nvn_caller,object,24);
      unsigned empty[2]={0};
      if(!megaman_program_bind(bound,object,p?p->id:0,p?p->stage_mask:0,p?p->sources:empty,(unsigned)mask))
-@@ -613,6 +1517,28 @@
+@@ -613,6 +1584,28 @@
              }
          }
  #endif
