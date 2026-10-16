@@ -27,9 +27,14 @@ optimization A/B; the 700–750 MiB / no-swap target remains unmet.
   heap pages in one snapshot lie outside NVN pools; this is not reclaimable/free proof.
 - M6: side-cache implemented and E2E-verified on the device (create-path hook; fallbacks on
   the refresh, texel-flush and copy/image write paths; bcdec content canon; two final clean
-  runs). Physical-memory win not demonstrated on the menu/street route: all cached BC
-  textures receive content later through `CopyBufferToTexture`, so the cache only covers the
-  window before the first re-upload. Evidence: `evidence/m6-compressed-textures/`.
+  runs). Physical-memory win not demonstrated: a three-scene content probe (tut_main,
+  tut_gulch, tut_saloonbasement - the last with 74 BC textures) shows **every** BC texture is
+  created empty and filled later through `CopyBufferToTexture`, so the create-time cache has
+  no real content to match (HIT=0 on content; the earlier 16 HITs matched the empty 512x512
+  pattern only). The compressed store itself is clean (0 GL errors, visual parity between
+  cache/no-cache arms). The create-time variant is effectively **closed**; a copy-path
+  transcode would be a separate, CPU-expensive project. Evidence:
+  `evidence/m6-compressed-textures/`, `content-scene-probes.md`.
 - M7/M9: unsuccessful/deferred probes, not universal impossibility proofs. The
   earlier commit's 'dead end' language was too strong; see [scope corrections](memory-benchmark.md).
 - M8: no page decommit until allocator ownership and full-page freedom are proven.
