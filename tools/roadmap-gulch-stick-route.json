@@ -1,0 +1,44 @@
+[
+ {
+  "label": "stick-right-1",
+  "buttons": "0",
+  "stick": 32767,
+  "hold_ms": 1500,
+  "wait_s": 8
+ },
+ {
+  "label": "stick-right-2",
+  "buttons": "0",
+  "stick": 32767,
+  "hold_ms": 1500,
+  "wait_s": 8
+ },
+ {
+  "label": "stick-right-3",
+  "buttons": "0",
+  "stick": 32767,
+  "hold_ms": 1500,
+  "wait_s": 8
+ },
+ {
+  "label": "stick-right-4",
+  "buttons": "0",
+  "stick": 32767,
+  "hold_ms": 1500,
+  "wait_s": 8
+ },
+ {
+  "label": "engage-a",
+  "buttons": "0x1",
+  "stick": 0,
+  "hold_ms": 150,
+  "wait_s": 12
+ },
+ {
+  "label": "engage-a2",
+  "buttons": "0x1",
+  "stick": 0,
+  "hold_ms": 150,
+  "wait_s": 12
+ }
+]
