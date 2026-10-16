@@ -74,9 +74,10 @@ is byte-exact with the reference for the tested payloads. Evidence images:
 1. Build the owner-local content-hash cache outside UnityFS (BC/DXT → ASTC 6x6 for static
    immutable payloads; keep RGBA fallback for dynamic/render-target/partially-updated
    assets). Upload path exists now; the cache and the runtime wiring do not.
-2. Driver-allocation inspection: only acceptance was measured here; the driver's actual
-   allocation behavior for compressed uploads still needs a look (dma-buf/debugfs is not
-   mounted on the device as-is; plan for a mount attempt or `glGetInternalformativ`-based
-   checks in the first cache validation pass).
+2. Driver-allocation inspection: only acceptance was measured here. The debugfs node
+   `/sys/kernel/debug/mali0/gpu_memory` (mountable on demand; not mounted by default)
+   reports per-context bytes and is a usable instrument, but a snapshot must be taken
+   while the probe's textures are alive (the probe exits and frees them). Fold this into
+   the first cache-validation pass with a paused probe or an in-game comparison.
 3. Validation pass on the real renderer with physical captures, PSS/SwapPSS and reload
    latency, as the roadmap requires before any adoption claim.
