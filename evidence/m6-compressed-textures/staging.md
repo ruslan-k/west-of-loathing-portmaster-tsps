@@ -1,7 +1,13 @@
 # M6 compressed host GPU textures — staging inventory (not implemented)
 
-Roadmap section 6 / commit 4 status: **not implemented**. This document records the first
-inventory slice collected 2026-10-16 so the next iteration starts from measured facts.
+Roadmap section 6 / commit 4 status: **not implemented**. The main technical gate —
+native ASTC upload + decode acceptance on the device — is **proven** (2026-10-16, see
+[astc-acceptance.md](astc-acceptance.md)): `glCompressedTexImage2D` ASTC 6x6 (0x93B4)
+uploads cleanly on Mali-G57 and decodes byte-exact against the astcenc reference. The
+cache and the runtime wiring remain open.
+
+This document records the first inventory slice collected 2026-10-16 so the next
+iteration starts from measured facts.
 
 ## What is known (measured)
 
@@ -27,7 +33,10 @@ inventory slice collected 2026-10-16 so the next iteration starts from measured 
    levels, sRGB/swizzle, render-target status, guest backing bytes, measured DRAM where
    possible. Pick **one immutable BC texture** as the validated first candidate.
 2. Prove `glCompressedTexImage2D` acceptance for the chosen ASTC mode on one texture and
-   inspect actual driver allocations before building the cache.
+   inspect actual driver allocations before building the cache. **Acceptance: DONE**
+   (2026-10-16, [astc-acceptance.md](astc-acceptance.md) — upload clean, decode
+   byte-exact on Mali-G57). Driver-allocation inspection: still open (debugfs not
+   mounted as-is; fold it into the first cache-validation pass).
 3. Owner-local content-hash cache outside UnityFS (BC → ASTC RGBA/RGB; keep the guest API
    contract untouched; RGBA fallback for dynamic/partially-updated/render-target assets).
 4. Preserve mips, block sizes, alpha, linear/sRGB, wrapping, swizzle and invalidation on
