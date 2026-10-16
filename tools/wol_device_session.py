@@ -70,6 +70,11 @@ if mode=='start':
     if os.environ.get('WOL_PBO_UPLOAD'):env['WOL_PBO_UPLOAD']=os.environ['WOL_PBO_UPLOAD']
     if os.environ.get('WOL_UPLOAD_TIMING'):env['WOL_UPLOAD_TIMING']=os.environ['WOL_UPLOAD_TIMING']
     if os.environ.get('WOL_ASTC_POSTCOPY_ID'):env['WOL_ASTC_POSTCOPY_ID']=os.environ['WOL_ASTC_POSTCOPY_ID']
+    # Screen-rect draw filter: prints every draw whose transformed bbox intersects the rect,
+    # which is how a single UI region (e.g. the guide's location list) is inspected.
+    if os.environ.get('WOL_RECT_TRACE') and os.environ['WOL_RECT_TRACE']!='off':
+        env['WOL_RECT_TRACE']=os.environ['WOL_RECT_TRACE']
+        if os.environ.get('WOL_RECT_TRACE_LIMIT'):env['WOL_RECT_TRACE_LIMIT']=os.environ['WOL_RECT_TRACE_LIMIT']
     if sys.argv[3]=='normal':env={}
     standard='/mnt/SDCARD/Emu/PORTS/../../spruce/scripts/emu/standard_launch.sh'
     launch='/mnt/SDCARD/Roms/PORTS/West of Loathing Switch.sh'
