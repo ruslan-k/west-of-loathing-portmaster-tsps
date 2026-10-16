@@ -15,3 +15,14 @@ ASTC_CACHE_HIT id=546 bytes=1936 w=64 h=64
 ASTC_CACHE_HIT id=548 bytes=1936 w=64 h=64
 ASTC_CACHE_HIT id=550 bytes=1936 w=64 h=64
 STOP status=NVN_REPLAY_GL_ERROR pc=main.text.seg+0xaf2c0c detail=0x502 query_memory_calls=0xcd tls_trap_reads=0x0
+
+--- m1m5-astcerr-1 (op-name diagnostics, build astcerr1): the failing replay op named ---
+NVN_REPLAY_GL_ERROR_DETAIL op=nvnCommandBufferCopyBufferToTexture idx=84 error=0x502 frame=223 draws=1568 a0=0x10502cae00 a1=0x1000999018 a2=0x6381a8f0 a3=0x6381a928 target=30 program=0/0
+NVN_REPLAY_OP_RING nvnCommandBufferBindColorState nvnCommandBufferBindChannelMaskState nvnCommandBufferBindMultisampleState nvnCommandBufferBarrier nvnCommandBufferBindProgram nvnCommandBufferBindProgram nvnCommandBufferBindVertexBuffers nvnCommandBufferBindVertexAttribState nvnCommandBufferBindVertexStreamState nvnCommandBufferUpdateUniformBuffer nvnCommandBufferBindUniformBuffers nvnCommandBufferBindUniformBuffers nvnCommandBufferDrawElementsBaseVertex nvnCommandBufferSetRenderTargets nvnCommandBufferSetRenderTargets nvnCommandBufferCopyBufferToTexture
+
+--- m1m5-astcfix-1/2 (fix, build astcfix1): fallbacks instead of the GL error ---
+ASTC_CACHE_FALLBACK id=469 reason=copy-buffer
+ASTC_CACHE_FALLBACK id=471 reason=copy-buffer
+ASTC_CACHE_FALLBACK id=473 reason=copy-buffer
+ASTC_CACHE_FALLBACK id=475 reason=copy-buffer
+(82 fallback events total, 82 unique texture ids; 0 NVN_REPLAY_GL_ERROR; both runs CLEANUP_VERIFIED)
