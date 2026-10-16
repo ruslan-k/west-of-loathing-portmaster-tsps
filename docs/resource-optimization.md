@@ -78,6 +78,15 @@ resolve (quiet-pick), ~0.8-1.1 ms in `glUseProgram` plus the two 96-float consta
 ~820 us against ~68 us for ordinary draws. Details, methods and limits:
 [fps-frame-timeline](../evidence/fps-frame-timeline/README.md).
 
+**Texture-copy dependency trace (2026-10-16, roadmap section 4):** the per-frame colour copy
+rotates between three source buffers into a fixed destination, samples the destination twice
+right after the copy and re-draws the source afterwards; no destination read ever follows a
+source re-draw (256/256 intervals, whole run). A guarded lazy alias is rejected: the source
+mutates on every frame, so a deferred copy would have to materialise before that mutation and
+keep the full per-frame copy cost, and the no-materialisation variant needs an invariant the
+trace cannot guarantee beyond stationary scenes. The copy chain stays as-is.
+[copy460-dependency-trace](../evidence/copy460-dependency-trace/README.md)
+
 Code, scene coverage, cleanup receipts, exact artifact hashes and limitations:
 [measurement documentation](memory-benchmark.md). Game binaries, owner bundles,
 texture bytes and saves are not published.
