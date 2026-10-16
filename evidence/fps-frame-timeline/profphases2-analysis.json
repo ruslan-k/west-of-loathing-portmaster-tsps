@@ -1,0 +1,295 @@
+{
+ "build": "982cb51b266a54daf71c579b7e4292693a86192c2e72691d86431eba3d9657e9",
+ "host_base": "0x55850e0000",
+ "menu": {
+  "replay_top_ops_ms_per_frame": {},
+  "aw_profile": {
+   "windows": 1,
+   "samples": 142
+  },
+  "aw_top": [
+   [
+    "wol-horizon+0x55850f2c00",
+    16.9
+   ],
+   [
+    "wol-horizon+0x55850f2800",
+    16.2
+   ],
+   [
+    "libc.so.6+0x7f8e2eb200",
+    9.9
+   ],
+   [
+    "rtld+0x700",
+    7.7
+   ],
+   [
+    "wol-horizon+0x55850f2700",
+    4.9
+   ],
+   [
+    "wol-horizon+0x558510d200",
+    4.2
+   ],
+   [
+    "wol-horizon+0x558510d100",
+    4.2
+   ],
+   [
+    "wol-horizon+0x5585189d00",
+    3.5
+   ],
+   [
+    "wol-horizon+0x55850f2d00",
+    2.8
+   ],
+   [
+    "rtld+0x1500",
+    2.1
+   ],
+   [
+    "main+0x7e3800",
+    1.4
+   ],
+   [
+    "libpthread.so.0:__pread64",
+    1.4
+   ],
+   [
+    "main+0x7a3e00",
+    1.4
+   ],
+   [
+    "main+0x7f5300",
+    1.4
+   ],
+   [
+    "rtld+0x800",
+    1.4
+   ],
+   [
+    "libc.so.6:openat",
+    1.4
+   ],
+   [
+    "libc.so.6:__open64_nocancel",
+    0.7
+   ],
+   [
+    "sdk+0x7fe00",
+    0.7
+   ],
+   [
+    "main+0x798b00",
+    0.7
+   ],
+   [
+    "libc.so.6:symlinkat",
+    0.7
+   ]
+  ],
+  "aw_top_resolved": [
+   [
+    "wol-horizon+0x55850f2c00",
+    16.9,
+    "main [??:?]"
+   ],
+   [
+    "wol-horizon+0x55850f2800",
+    16.2,
+    "main [??:?]"
+   ],
+   [
+    "wol-horizon+0x55850f2700",
+    4.9,
+    "main [??:?]"
+   ],
+   [
+    "wol-horizon+0x558510d200",
+    4.2,
+    "megaman_movie_entry [loader.c:?]"
+   ],
+   [
+    "wol-horizon+0x558510d100",
+    4.2,
+    "thread_get [loader.c:?]"
+   ],
+   [
+    "wol-horizon+0x5585189d00",
+    3.5,
+    "nxinput_sha256_update [??:?]"
+   ],
+   [
+    "wol-horizon+0x55850f2d00",
+    2.8,
+    "main [??:?]"
+   ]
+  ]
+ },
+ "game": {
+  "replay_phases_ms_per_frame": {
+   "decode": 0.0,
+   "other": 0.0,
+   "setup": 0.0,
+   "vertex": 0.0,
+   "drawcall": 0.0,
+   "copy": 0.0,
+   "drawfirst": 0.0,
+   "draw-cpu": 0.0
+  },
+  "replay_phases_windows": 1,
+  "replay_top_ops_ms_per_frame": {},
+  "record": {
+   "ms_per_frame": 0.0,
+   "records_per_frame": 0.0,
+   "bridge_calls_per_frame": 289.4
+  },
+  "draw_setup": {
+   "draws": 0.0,
+   "resolve_ms": 0.0,
+   "prestate_ms": 0.0,
+   "state_ms": 0.0,
+   "uniforms_ms": 0.0
+  },
+  "nvn_profile_ms": {
+   "elapsed": 86.762,
+   "replay": 27.246,
+   "present": 3.054,
+   "readback": 0.498
+  },
+  "nvn_profile_windows": 1,
+  "nvn_detail_ms": {
+   "counter": 0.0,
+   "finish": 5.915,
+   "receipt": 0.0,
+   "swap": 1.984
+  },
+  "elided_vs_real_wait_last": "181/61",
+  "replay_cpu_ms": 15.363,
+  "slow_frames": {
+   "n": 13,
+   "period_med": 65.0,
+   "replay_med": 57.5,
+   "finish_med": 2.0
+  },
+  "guest": {
+   "svc_per_interval": 236,
+   "svc_per_frame": 3.93,
+   "cnt_ticks_per_frame": 8.8,
+   "thread_cpu_ms_per_frame": 19.643
+  },
+  "guest_other_last": {
+   "calls": 0,
+   "samples": 0,
+   "cpu_samples": 0
+  },
+  "guest_other_top": [],
+  "pointer_profile_last": {
+   "calls_per_60f": 96883,
+   "hint_hits": 79015,
+   "fallbacks": 17868,
+   "estimated_wait_ms_per_frame": 0.389
+  },
+  "svc_per_frame_last": {
+   "0xb": 0.017,
+   "0x1a": 0.133,
+   "0x1b": 0.333,
+   "0x1c": 2.267,
+   "0x1d": 1.183
+  },
+  "aw_profile": {
+   "windows": 17,
+   "samples": 1544
+  },
+  "aw_top": [
+   [
+    "main+0xbc3800",
+    150.7
+   ],
+   [
+    "main+0xbc3c00",
+    96.4
+   ],
+   [
+    "libc.so.6+0x7f8e2eb200",
+    80.8
+   ],
+   [
+    "main+0xbc4200",
+    67.8
+   ],
+   [
+    "main+0xbc3e00",
+    59.6
+   ],
+   [
+    "libpthread.so.0:pthread_cond_broadcast",
+    55.6
+   ],
+   [
+    "libpthread.so.0:__futex_abstimed_wait_cancelable64",
+    43.1
+   ],
+   [
+    "sdk+0x397400",
+    42.0
+   ],
+   [
+    "sdk+0x397500",
+    41.0
+   ],
+   [
+    "libc.so.6:__sbrk",
+    39.7
+   ],
+   [
+    "main+0xbc3d00",
+    39.4
+   ],
+   [
+    "libc.so.6:clock_nanosleep",
+    29.5
+   ],
+   [
+    "wol-horizon+0x5585131a00",
+    28.3
+   ],
+   [
+    "libpthread.so.0+0x7f8e3e6500",
+    22.1
+   ],
+   [
+    "main+0xbc3f00",
+    22.0
+   ],
+   [
+    "sdk+0x397300",
+    21.2
+   ],
+   [
+    "main+0xbc3b00",
+    21.1
+   ],
+   [
+    "main+0xbc3900",
+    20.3
+   ],
+   [
+    "libpthread.so.0+0x7f8e3ec900",
+    19.8
+   ],
+   [
+    "sdk+0x3bf600",
+    15.2
+   ]
+  ],
+  "aw_top_resolved": [
+   [
+    "wol-horizon+0x5585131a00",
+    28.3,
+    "signal_dispatch.isra.0 [loader.c:?]"
+   ]
+  ]
+ }
+}

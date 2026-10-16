@@ -1,0 +1,76 @@
+{
+ "build": "66434aab8c50dfb9925b4b45c7ddccd4fa7c3a8ca9a2a07c18dc48b2ab621bfa",
+ "host_base": "0x5583530000",
+ "menu": {
+  "replay_top_ops_ms_per_frame": {},
+  "nvn_profile_ms": {
+   "elapsed": 38.609,
+   "replay": 27.53,
+   "present": 2.002,
+   "readback": 0.161
+  },
+  "nvn_profile_windows": 28,
+  "nvn_detail_ms": {
+   "counter": 0.0,
+   "finish": 14.341,
+   "receipt": 0.0,
+   "swap": 1.458
+  },
+  "elided_vs_real_wait_last": "5041/1681",
+  "replay_cpu_ms": 12.948,
+  "slow_frames": {
+   "n": 317,
+   "period_med": 42.0,
+   "replay_med": 28.2,
+   "finish_med": 14.2
+  },
+  "pointer_profile_last": {
+   "calls_per_60f": 229368,
+   "hint_hits": 166953,
+   "fallbacks": 62415,
+   "estimated_wait_ms_per_frame": 0.811
+  },
+  "aw_profile": {
+   "windows": 0,
+   "samples": 0
+  },
+  "aw_top": [],
+  "aw_top_resolved": []
+ },
+ "game": {
+  "replay_top_ops_ms_per_frame": {},
+  "nvn_profile_ms": {
+   "elapsed": 37.196,
+   "replay": 25.483,
+   "present": 1.929,
+   "readback": 0.079
+  },
+  "nvn_profile_windows": 18,
+  "nvn_detail_ms": {
+   "counter": 0.0,
+   "finish": 12.1,
+   "receipt": 0.0,
+   "swap": 1.448
+  },
+  "elided_vs_real_wait_last": "8281/2761",
+  "replay_cpu_ms": 12.967,
+  "slow_frames": {
+   "n": 97,
+   "period_med": 41.4,
+   "replay_med": 25.6,
+   "finish_med": 12.2
+  },
+  "pointer_profile_last": {
+   "calls_per_60f": 283751,
+   "hint_hits": 205017,
+   "fallbacks": 78734,
+   "estimated_wait_ms_per_frame": 0.862
+  },
+  "aw_profile": {
+   "windows": 0,
+   "samples": 0
+  },
+  "aw_top": [],
+  "aw_top_resolved": []
+ }
+}

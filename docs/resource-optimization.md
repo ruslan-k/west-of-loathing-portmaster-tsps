@@ -71,6 +71,13 @@ the critical path; the option stays opt-in and the default keeps the staging cop
 Both ends of the per-frame copy/upload chain are therefore closed as FPS levers - the remaining
 measured costs sit in replay CPU work and the per-submit finish, not in this chain.
 
+**Draw-path attribution (2026-10-16, roadmap section 3):** the replay draw records cost
+8.6-9.2 ms per frame. Sub-span instrumentation places ~4.4 ms in the texture-selection first
+resolve (quiet-pick), ~0.8-1.1 ms in `glUseProgram` plus the two 96-float constant uploads and
+~1.0 ms in the GL submissions themselves; the six first-after-target-change draws average
+~820 us against ~68 us for ordinary draws. Details, methods and limits:
+[fps-frame-timeline](../evidence/fps-frame-timeline/README.md).
+
 Code, scene coverage, cleanup receipts, exact artifact hashes and limitations:
 [measurement documentation](memory-benchmark.md). Game binaries, owner bundles,
 texture bytes and saves are not published.
@@ -114,6 +121,8 @@ A read-only, 30.183-second sample of the stationary Boring Springs scene used th
 
 **Acceptance:** real menu/gameplay KMS frames unchanged, a genuine proof of visible output, sparse readback count observed, sampled readback cost reported separately from unsampled frame cost, no black-state safety regression. `T2_READBACK_OFF=1` exists as a diagnostic floor experiment but disables periodic video health and is **not** the proposed production default. Mode 2 also waits for proof, so it is not a workaround for broken accounting.
 
+**Validated 2026-10-16** (build `982cb51b…`, `COTM_PRESENT_READBACK_60=1`, period 300): pixel proof at frame 4, `texture-draws>0` on every sample, post-proof spacing exactly at the 300-frame period and 2895 honest `NOT-SAMPLED` frames. [evidence](../evidence/present-proof-sparse/README.md)
+
 ## 3. Attribute and shrink the live guest/texture working set
 
 The stored owner texture ledger (`texture-ledger.json`) still contains 500077312 bytes of DXT5 data, 48283728 of DXT1, 48116130 of ARGB4444, 36330680 of RGBA32 and 700284 of RGB24 after the selective mip promotion. Serialized payload size is not resident RAM or GPU memory. Guest source bytes, CPU-decoded pixels, temporary upload buffers and GPU storage need separate lifetime accounting.
@@ -124,6 +133,8 @@ The stored owner texture ledger (`texture-ledger.json`) still contains 500077312
 
 **Acceptance:** lower committed/live memory at matched milestones, lower startup/transition major-fault and swap-I/O rates, no stale-texture overwrite, correct screenshots including text/portrait/map, save/load and clean exit.
 
+**First read-only census 2026-10-16** (build `982cb51b…`): ~153 MiB host image estimate in gameplay, only ~7.1 MiB safely reconstructible (budgeted eviction gate not met); stationary vertex streams byte-identical between frames (100% of sampled bytes). [evidence](../evidence/gpu-texture-residency/README.md)
+
 ## 4. Evaluate physical CPU placement, not blanket overclocking
 
 **Observed:** the runtime maps guest CPU masks to physical CPUs 0–2 and pins guest main to CPU 0; the launcher enables cluster 0–3 so this works. Those CPUs are capped at 1.416 GHz while CPUs 4–7 are available at 1.992 GHz. One guest thread is close to saturating a lower-cluster core. This is a plausible latency lever, not a demonstrated gain or CPU-shortage proof.
@@ -131,6 +142,8 @@ The stored owner texture ledger (`texture-ledger.json`) still contains 500077312
 **Next isolated A/B:** preserve guest-visible core IDs/masks but remap their physical execution to the faster cluster. Keep all thread placement, HID/audio workers and cleanup explicit. Do not run a blind process-wide taskset or disable cores while threads remain affined to them. A slower-clock/fewer-active-core variant may also matter for energy, but must be tested separately.
 
 **Acceptance:** matched scene and clocks, per-thread CPU, frame-time distribution, audio continuity, input response, temperature/energy measurement if available, and restoration of original affinities/online mask. Faster frames are not synonymous with lower power.
+
+**Measured 2026-10-16** (isolated A/B with alternated order, same build and layout): no repeatable gain outside the ±1–1.5 ms run envelope in either direction; the remap stays an opt-in flag, not a default. [evidence](../evidence/cpu-remap-ab/README.md)
 
 ## 5. Defer render-target size changes until the above baseline is stable
 
