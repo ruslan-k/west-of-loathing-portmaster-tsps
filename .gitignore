@@ -29,3 +29,6 @@ evidence/**/runtime.log
 *.nro
 *.nso
 wol-romfs*
+
+# Owner-supplied reference frames: local-only, owner content
+evidence/**/reference-guide-owner.jpg
