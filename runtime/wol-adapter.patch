@@ -90,7 +90,7 @@
  static int filesystem_dispatch(uint8_t *buffer,struct session *s,struct ipc_request *req,enum endpoint endpoint,uint64_t pc) {
      if(endpoint==EP_FSP && req->command==1005) {
          uint32_t mode=0;ipc_reply(buffer,req->token,0,&mode,4,0,req->domain);return 1;
-@@ -71,8 +80,19 @@
+@@ -71,10 +80,26 @@
      if(endpoint==EP_STORAGE_ROMFS && req->command==0) {
          if(req->data_size<16)stop("INVALID_STORAGE_READ_ARGUMENTS",pc,req->data_size,24);
          uint64_t offset,size;memcpy(&offset,req->data,8);memcpy(&size,req->data+8,8);
@@ -111,8 +111,15 @@
 +        }
          struct line b={0};text(&b,"ROMFS_READ offset=");hex(&b,offset);text(&b," size=");hex(&b,size);emit(&b);
          uint64_t done=0;uint8_t *dest=size?(uint8_t *)(uintptr_t)req->outputs[0].address:NULL;
++        {static int configured,on;static unsigned logged;
++         if(!configured){const char *o=getenv("WOL_ROMFS_LIFETIME");on=o&&!strcmp(o,"1");configured=1;}
++         if(on && size>=(1U<<20) && logged<64){logged++;
++            printf("WOL_ROMFS_BUFFER seq=%u caller=0x%"PRIx64" address=0x%"PRIx64" bytes=%"PRIu64" file-offset=%"PRIu64" output-capacity=%"PRIu64" ownership=unknown free-safe=0\n",
++                logged,pc,(uint64_t)(uintptr_t)dest,size,offset,(uint64_t)req->outputs[0].size);}}
          t2_gzram_touch((uintptr_t)dest,size); /* Frente J: pread would EFAULT on a compressed block */
-@@ -83,6 +103,7 @@
+         while(done<size) {
+             ssize_t got=pread(romfs_fd,dest+done,size-done,ROMFS_OFFSET+offset+done);
+@@ -83,6 +108,7 @@
              done+=(uint64_t)got;
          }
          romfs_overlay_apply(dest,offset,size);
@@ -120,6 +127,96 @@
          ipc_reply(buffer,req->token,0,NULL,0,0,req->domain);return 1;
      }
      return 0;
+--- a/native/graphics_trace.h
++++ b/native/graphics_trace.h
+@@ -42,3 +42,87 @@
+     }
+     ctx->uc_mcontext.pc+=4;return 1;
+ }
++/* WOL_ALLOC_TRACE=1: bounded read-only SDK StandardAllocator tracing.
++ * These five instruction sites are selected from the exact pinned owner SDK's dynamic
++ * symbols and decoded prologue/return, not guessed Unity ABI. No guest allocation is replaced.
++ * Large SDK allocations are arenas, NOT proof of inner Unity object liveness/free pages. */
++static unsigned wol_alloc_on,wol_alloc_logged,wol_alloc_overflow;
++static const struct {uint64_t offset;uint32_t opcode;unsigned action;} wol_alloc_sites[]={
++    {0x830a0,0xd10103ffU,1}, /* Allocate(this,size,alignment): sub sp,sp,#64 */
++    {0x8318c,0xd65f03c0U,2}, /* Allocate return: ret */
++    {0x83198,0xa9be4ff4U,3}, /* Free(this,pointer): stp x20,x19,[sp,#-32]! */
++    {0x831f8,0xd10103ffU,4}, /* Reallocate(this,pointer,size): sub sp,sp,#64 */
++    {0x83320,0xd65f03c0U,5}  /* Reallocate return: ret */
++};
++static struct {uint64_t ptr,size,arena,caller;} wol_alloc_live[512];
++#define WOL_ALLOC_THREADS 128U
++static struct {uint64_t size,old,arena,caller,sp,fp;} wol_alloc_pending[WOL_ALLOC_THREADS][8];
++static unsigned wol_alloc_depth[WOL_ALLOC_THREADS];
++static void wol_alloc_configure(void) {
++    const char *o=getenv("WOL_ALLOC_TRACE");wol_alloc_on=o&&!strcmp(o,"1");
++    if(!wol_alloc_on)return;
++    if(strcmp(LC2_SDK_SHA256,"3c5fc6933f619271feb42f62519e9f9043d06f3ee76746552b6b4cfe9094537e"))
++        stop("WOL_ALLOC_SDK_IDENTITY",0,0,24);
++    printf("WOL_ALLOC_TRACE enabled=1 threshold=1048576 slots=512 events=2048 scope=SDK-StandardAllocator inner-Unity-ownership=unknown mutation=none\n");
++}
++static unsigned wol_alloc_site(uint64_t pc,uint32_t op) {
++    if(!wol_alloc_on)return 0;
++    for(unsigned i=0;i<sizeof(wol_alloc_sites)/sizeof(wol_alloc_sites[0]);i++)if(pc==LC2_SDK_BASE+wol_alloc_sites[i].offset) {
++        if(op!=wol_alloc_sites[i].opcode)stop("WOL_ALLOC_CODE_IDENTITY",pc,op,24);
++        return wol_alloc_sites[i].action;
++    }
++    return 0;
++}
++static void wol_alloc_emit(const char *event,uint64_t ptr,uint64_t size,uint64_t arena,uint64_t caller,uint64_t fp,uint64_t sp) {
++    if(wol_alloc_logged>=2048){wol_alloc_overflow=1;return;}
++    struct line l={0};text(&l,"WOL_ALLOC event=");text(&l,event);text(&l," seq=");hex(&l,++wol_alloc_logged);
++    text(&l," ptr=");hex(&l,ptr);text(&l," bytes=");hex(&l,size);text(&l," arena=");hex(&l,arena);
++    text(&l," caller=");location(&l,caller);text(&l," thread=");hex(&l,guest_thread_index);
++    uint64_t live=0;for(unsigned i=0;i<512;i++)live+=wol_alloc_live[i].size;
++    struct timespec now;clock_gettime(CLOCK_MONOTONIC,&now);
++    text(&l," ns=");hex(&l,(uint64_t)now.tv_sec*1000000000ULL+(uint64_t)now.tv_nsec);
++    text(&l," tracked-large-live=");hex(&l,live);text(&l," incomplete=");hex(&l,wol_alloc_overflow);
++    for(unsigned i=0;i<4 && fp>=sp && fp-sp<0x100000 && !(fp&15) && accessible(fp,16,PROT_READ);i++) {
++        uint64_t pair[2];memcpy(pair,(void *)(uintptr_t)fp,16);text(&l," parent=");location(&l,pair[1]);
++        if(pair[0]<=fp)break;
++        fp=pair[0];
++    }
++    emit(&l);
++}
++static void wol_alloc_remove(uint64_t ptr,uint64_t caller,uint64_t fp,uint64_t sp) {
++    for(unsigned i=0;i<512;i++)if(ptr && wol_alloc_live[i].ptr==ptr) {
++        uint64_t size=wol_alloc_live[i].size,arena=wol_alloc_live[i].arena;wol_alloc_live[i].ptr=0;wol_alloc_live[i].size=0;
++        wol_alloc_emit("free",ptr,size,arena,caller,fp,sp);return;
++    }
++}
++static unsigned wol_alloc_handle(uint64_t pc,uint32_t op,ucontext_t *ctx) {
++    unsigned action=wol_alloc_site(pc,op);if(!action)return 0;
++    unsigned thread=guest_thread_index;
++    if(thread>=WOL_ALLOC_THREADS)stop("WOL_ALLOC_THREAD",pc,thread,24);
++    __typeof__(ctx->uc_mcontext.regs[0]) *r=ctx->uc_mcontext.regs;
++    unsigned *depth=&wol_alloc_depth[thread];
++    if(action==1 || action==4) {
++        if(*depth>=8)stop("WOL_ALLOC_RECURSION",pc,*depth,24);
++        unsigned k=(*depth)++;
++        wol_alloc_pending[thread][k]=(typeof(wol_alloc_pending[0][0])){
++            .size=action==1?r[1]:r[2],.old=action==4?r[1]:0,.arena=r[0],.caller=r[30],.sp=ctx->uc_mcontext.sp,.fp=r[29]};
++        ctx->uc_mcontext.sp-=64;ctx->uc_mcontext.pc+=4;return 1;
++    }
++    if(action==3) {
++        wol_alloc_remove(r[1],r[30],r[29],ctx->uc_mcontext.sp);
++        uint64_t pair[2]={r[20],r[19]},sp=ctx->uc_mcontext.sp-32;
++        if(!accessible(sp,16,PROT_WRITE))stop("WOL_ALLOC_STACK",pc,sp,24);
++        memcpy((void *)(uintptr_t)sp,pair,16);ctx->uc_mcontext.sp=sp;ctx->uc_mcontext.pc+=4;return 1;
++    }
++    if(!*depth)stop("WOL_ALLOC_UNMATCHED_RETURN",pc,r[30],24);
++    typeof(wol_alloc_pending[0][0]) saved=wol_alloc_pending[thread][--(*depth)];
++    if(saved.sp!=ctx->uc_mcontext.sp || saved.caller!=r[30])stop("WOL_ALLOC_RETURN_IDENTITY",pc,r[30],24);
++    if(action==5 && (r[0] || !saved.size))wol_alloc_remove(saved.old,saved.caller,saved.fp,saved.sp);
++    if(r[0] && saved.size>=(1U<<20)) {
++        unsigned k=0;while(k<512 && wol_alloc_live[k].ptr)k++;
++        if(k<512)wol_alloc_live[k]=(typeof(wol_alloc_live[0])){r[0],saved.size,saved.arena,saved.caller};
++        else wol_alloc_overflow=1;
++        wol_alloc_emit(action==5?"realloc":"alloc",r[0],saved.size,saved.arena,saved.caller,saved.fp,saved.sp);
++    }
++    ctx->uc_mcontext.pc=r[30];return 1;
++}
 --- a/native/input.h
 +++ b/native/input.h
 @@ -3,7 +3,7 @@
@@ -453,7 +550,15 @@
          if(momo_dump_address) {
              /* Bounded stall diagnostic: hexdump of a guest range chosen by MOMO_DUMP=address:bytes. */
              const unsigned char *at=(const unsigned char *)(uintptr_t)momo_dump_address;
-@@ -380,7 +460,7 @@
+@@ -301,6 +381,7 @@
+     }
+     uint32_t instruction=bridge_instruction(pc);
+     if(!instruction || *(const uint32_t *)(uintptr_t)pc!=TRAP_OPCODE)stop("UNKNOWN_TRAP",pc,0,23);
++    if(wol_alloc_handle(pc,instruction,ctx))return;
+     if(graphics_trace_entry(pc,instruction,ctx))return;
+     if(megaman_movie_handle(pc,instruction,ctx))return;
+     if(megaman_memory_handle(pc,instruction,ctx))return;
+@@ -380,7 +461,7 @@
      if(svc==2) {
          /* SetMemoryPermission: nn::ro::ProtectRelro on the sdk data image (SDK 17). Only R/RW/none on an
           * existing private image or heap range; the split region keeps its state and attributes. */
@@ -462,7 +567,7 @@
          uint64_t address=r[0],size=r[1];unsigned perm=(unsigned)r[2];
          if((address|size)&(PAGE-1) || !size || perm>3 || perm==2)stop("INVALID_MEMORY_PERMISSION_REQUEST",pc,address,24);
          struct region old=query(address);
-@@ -391,7 +471,7 @@
+@@ -391,7 +472,7 @@
      }
      if(svc==3) {
          /* SetMemoryAttribute: SDK 17 ProtectRelro locks the permission (attribute 0x10) after making it read-only. */
@@ -471,7 +576,7 @@
          uint64_t address=r[0],size=r[1];unsigned mask=(unsigned)r[2],attr=(unsigned)r[3];
          if((address|size)&(PAGE-1) || !size || mask!=0x10 || attr!=0x10)stop("UNSUPPORTED_MEMORY_ATTRIBUTE",pc,mask,20);
          struct region old=query(address);
-@@ -401,7 +481,7 @@
+@@ -401,7 +482,7 @@
          r[0]=0;ctx->uc_mcontext.pc+=4;return;
      }
      if(svc==1) {
@@ -480,7 +585,7 @@
          uint64_t requested=r[1];
          if(requested%(2ULL<<20) || requested>HEAP_LIMIT)stop("HEAP_REQUEST_OUTSIDE_EXPERIMENT_LIMIT",pc,requested,20);
          /* The first allocation and same-size queries are supported. Growing or
-@@ -539,7 +619,14 @@
+@@ -539,7 +620,14 @@
          emit_svc(&b,svc);stack_alias(r[0],r[1],r[2],svc==5,pc);r[0]=0;ctx->uc_mcontext.pc+=4;return;
      }
      if(svc==0x13) {
@@ -496,7 +601,7 @@
          if(s->endpoint!=EP_SHARED)stop("INVALID_SHARED_MEMORY_HANDLE",pc,r[0],24);
          shared_map(s->initialized,r[1],r[2],r[3],pc);r[0]=0;ctx->uc_mcontext.pc+=4;return;
      }
-@@ -571,7 +658,7 @@
+@@ -571,7 +659,7 @@
              struct line w={0};text(&w,"MOMO_WAIT_KEY thread=");hex(&w,guest_thread_index);
              text(&w," key=");hex(&w,r[0]);text(&w," mutex=");hex(&w,r[1]);text(&w," tag=");hex(&w,r[2]);
              text(&w," timeout=");hex(&w,r[3]);emit(&w);
@@ -505,7 +610,7 @@
          }
          r[0]=key_wait(r[0],r[1],r[2],(int64_t)r[3],pc);ctx->uc_mcontext.pc+=4;return;
      }
-@@ -598,7 +685,7 @@
+@@ -598,7 +686,7 @@
      if(svc==0x33) {
          emit_svc(&b,svc);r[0]=messenger_thread_context(r[0],r[1],pc);ctx->uc_mcontext.pc+=4;return;
      }
@@ -514,7 +619,7 @@
      if(svc==0x26) {
          emit_svc(&b,svc);stop("GUEST_SVC_BREAK",pc,guest_terminate_result?guest_terminate_result:r[0],25);
      }
-@@ -621,14 +708,19 @@
+@@ -621,14 +709,19 @@
              struct line b={0};text(&b,"MOMO_SAMPLE thread=");hex(&b,guest_thread_index);
              text(&b," in-kernel=");hex(&b,signal_handler_depth);text(&b," pc=");
              location(&b,ctx->uc_mcontext.pc);emit(&b);
@@ -536,7 +641,7 @@
      ucontext_t *ctx=opaque;uint32_t instruction=bridge_instruction(ctx->uc_mcontext.pc);
      /* These instructions access only the interrupted thread's virtual register
       * state and the monotonic clock. They cannot wake a waiter or modify kernel
-@@ -695,7 +787,7 @@
+@@ -695,7 +788,7 @@
  }
  int main(int argc,char **argv) {
      (void)argv;if(argc!=1){fprintf(stderr,"Run from the verified native image directory, without arguments.\n");return 1;}
@@ -545,7 +650,7 @@
      nvn_platform_argv=argv;
      t2_runtime_health_capture();
      if(t2_video_init())return 24;
-@@ -726,7 +818,7 @@
+@@ -726,7 +819,7 @@
      struct rlimit no_core={0,0};setrlimit(RLIMIT_CORE,&no_core);
      struct rlimit address_limit={HOST_ADDRESS_LIMIT,HOST_ADDRESS_LIMIT};
      if(setrlimit(RLIMIT_AS,&address_limit)){perror("diagnostic memory quota");return 1;}
@@ -554,7 +659,24 @@
      FILE *random=fopen("/dev/urandom","rb");
      if(!random || fread(entropy,1,sizeof(entropy),random)!=sizeof(entropy)){fprintf(stderr,"entropy unavailable\n");return 1;}
      fclose(random);
-@@ -815,7 +907,9 @@
+@@ -755,6 +848,7 @@
+      * of this title's modules are passed, so MEGAMAN_LAZY_ZERO=1 fails closed (LAZY_ZERO_NSO_IDENTITY)
+      * until the hook is re-pinned for 19.3.9. Off by default. */
+     megaman_memory_configure(LC2_SDK_BASE,LC2_SDK_SHA256,LC2_RTLD_BASE,LC2_RTLD_SHA256);
++    wol_alloc_configure();
+     tls_stubs_initialize();
+     aw_prof_thread=0;aw_prof_start();
+     int tls_fast=tls_stubs_install(images,sizeof(images)/sizeof(images[0]));
+@@ -769,7 +863,7 @@
+                 if(v!=graphics_entries[j].opcode)stop("GRAPHICS_IMAGE_IDENTITY",s->base+off,v,24);
+                 graphics_entry=1;
+             }
+-            if(graphics_entry || megaman_movie_entry(s->base+off,v) ||
++            if(graphics_entry || wol_alloc_site(s->base+off,v) || megaman_movie_entry(s->base+off,v) ||
+                megaman_memory_entry(s->base+off,v) ||
+                (v&0xffe0001fU)==0xd4000001U || (v&0xffffffe0U)==0xd53bd060U ||
+                (v&0xffffffe0U)==0xd53bd040U || (v&0xffffffe0U)==0xd51bd040U ||
+@@ -815,7 +909,9 @@
      const char *budget=getenv("MEGAMAN_PROBE_SECONDS");
      if(budget) {
          char *end=NULL;unsigned long seconds=strtoul(budget,&end,10);
@@ -565,7 +687,7 @@
          probe_seconds=(unsigned)seconds;
      }
      printf("NATIVE_PROBE_TIME_BUDGET seconds=%u\n",probe_seconds);
-@@ -826,7 +920,7 @@
+@@ -826,7 +922,7 @@
      guest_profile_configure();
      hid_host_initialize();aud_host_initialize();t2_memwatch_start();
      t2_gzram_start(); /* Frente J */
@@ -662,7 +784,86 @@
      unlink(name);fcntl(fd,F_SETFD,FD_CLOEXEC);
 --- a/native/nvn_astc_cache.h
 +++ b/native/nvn_astc_cache.h
-@@ -100,13 +100,25 @@
+@@ -46,23 +46,23 @@
+     fseek(f, 0, SEEK_END);
+     long size = ftell(f);
+     fseek(f, 0, SEEK_SET);
+-    if (size < 12) { printf("ASTC_CACHE_BAD_FILE size=%ld\n", size); fclose(f); return; }
+-    uint8_t *data = malloc((size_t)size);
+-    if (!data || fread(data, 1, (size_t)size, f) != (size_t)size) {
+-        printf("ASTC_CACHE_READ_FAIL size=%ld\n", size);
+-        free(data); fclose(f); return;
++    if (size < 12 || size > (512L<<20)) { printf("ASTC_CACHE_BAD_FILE size=%ld\n", size); fclose(f); return; }
++    uint8_t *data = mmap(NULL,(size_t)size,PROT_READ,MAP_PRIVATE,fileno(f),0);
++    if (data==MAP_FAILED) {
++        printf("ASTC_CACHE_MAP_FAIL size=%ld\n", size);
++        fclose(f); return;
+     }
+     fclose(f);
+-    if (memcmp(data, "WOL6", 4)) { printf("ASTC_CACHE_BAD_MAGIC\n"); free(data); return; }
++    if (memcmp(data, "WOL6", 4)) { printf("ASTC_CACHE_BAD_MAGIC\n"); munmap(data,(size_t)size); return; }
+     uint32_t version = 0, n = 0;
+     memcpy(&version, data + 4, 4);
+     memcpy(&n, data + 8, 4);
+     if (version != 1 || n > 4096 || (size_t)12 + (size_t)64 * n > (size_t)size) {
+         printf("ASTC_CACHE_BAD_TOC version=%u entries=%u size=%ld\n", version, n, size);
+-        free(data); return;
++        munmap(data,(size_t)size); return;
+     }
+     nvn_astc_cache.entries = malloc(sizeof(struct nvn_astc_entry) * (n ? n : 1));
+-    if (!nvn_astc_cache.entries) { printf("ASTC_CACHE_TOC_MEMORY\n"); free(data); return; }
++    if (!nvn_astc_cache.entries) { printf("ASTC_CACHE_TOC_MEMORY\n"); munmap(data,(size_t)size); return; }
+     for (uint32_t i = 0; i < n; i++) {
+         const uint8_t *rec = data + 12 + (size_t)64 * i;
+         struct nvn_astc_entry *e = &nvn_astc_cache.entries[i];
+@@ -74,10 +74,13 @@
+         e->levels = rec[45];
+         memcpy(&e->len, rec + 46, 4);
+         memcpy(&e->offset, rec + 50, 8);
+-        if (e->offset + e->len > (uint64_t)size) {
++        uint64_t expected=((uint64_t)e->width+5)/6*(((uint64_t)e->height+5)/6)*16;
++        if (!e->width || !e->height || e->width>8192 || e->height>8192 || e->block!=6 || e->levels!=1 ||
++            e->gl_enum!=0x93B4U || e->len!=expected || e->offset<(uint64_t)12+64*n ||
++            e->offset>(uint64_t)size || e->len>(uint64_t)size-e->offset) {
+             printf("ASTC_CACHE_ENTRY_RANGE idx=%u\n", i);
+             free(nvn_astc_cache.entries); nvn_astc_cache.entries = NULL;
+-            free(data); return;
++            munmap(data,(size_t)size); return;
+         }
+     }
+     nvn_astc_cache.data = data;
+@@ -86,6 +89,30 @@
+     nvn_astc_cache.enabled = 1;
+     printf("ASTC_CACHE_LOADED entries=%u file-bytes=%ld\n", n, size);
+ }
++
++/* WOL_ASTC_POSTCOPY_BEGIN: narrow, default-off complete-image eligibility.
++ * Selected texture identity is explicit; 'all' is reserved for a later group A/B.
++ * No encode runs in-game. Host storage changes only after complete canonical BC decode. */
++static unsigned nvn_astc_postcopy_enabled(void) {
++    static int configured;static unsigned enabled;
++    if(!configured){const char *o=getenv("WOL_ASTC_POSTCOPY");enabled=o&&!strcmp(o,"1");configured=1;}
++    return enabled;
++}
++static unsigned nvn_astc_postcopy_allowed(const struct nvn_texture *t,unsigned level,const uint32_t box[6]) {
++    if(!nvn_astc_postcopy_enabled())return 0;
++    const char *s=getenv("WOL_ASTC_POSTCOPY_ID");
++    if(!s || !*s)return 0;
++    if(strcmp(s,"all")) {
++        char *end=NULL;unsigned long long id=strtoull(s,&end,10);
++        if(*end || !id || id!=t->id)return 0;
++    }
++    return !level && !box[0] && !box[1] && !box[2] && box[5]==1 && box[3]==t->b.width && box[4]==t->b.height &&
++        t->b.levels==1 && t->b.target==1 && t->b.depth==1 && !t->b.samples &&
++        (t->b.format==0x41 || t->b.format==0x44) && !t->composition_target_seen && !t->draws &&
++        !t->host_scaled && !t->host_half && !t->packaged_lazy && !t->b.packaged_layout && !t->b.packaged &&
++        !t->normal_unmaterialized && !t->zero_backend_deferred && !t->cpu_snapshot;
++}
++/* WOL_ASTC_POSTCOPY_END */
+ 
+ /* Returns 1 and sets the hit pointer when the RGBA decode is present in the cache.
+  * v1 accepts only single-level, non-sRGB textures; everything else stays on the RGBA path. */
+@@ -100,13 +127,25 @@
          const struct nvn_astc_entry *e = &nvn_astc_cache.entries[i];
          if (memcmp(e->hash, hash, 32)) continue;
          if (e->width != width || e->height != height || e->levels != 1 || e->gl_enum != 0x93B4U)
@@ -3264,7 +3465,7 @@
          zero_depth_draw_end(&depth_draw);nvn_draw_finish_profile();
  #ifdef ANIMAL_WELL_SHADERS
          nvn_render.target->aw_draws_since_clear++;
-@@ -1535,6 +3177,389 @@
+@@ -1535,6 +3177,433 @@
          begin=end+1;
      }
  }
@@ -3274,6 +3475,46 @@
 + * dirty mark; the host copy follows on the next refresh. Depth copies keep the zero-family path.
 + * The GPU region blit helper is defined below near the resolve blit; forward-declare it here. */
 +static unsigned wol_blit_region(struct nvn_texture *src,const uint32_t from[6],struct nvn_texture *dst,const uint32_t to[6],unsigned flip_v);
++/* Read-only semantic preflight. Hashes only, no owner pixels leave the device.
++ * A changed CPU/GPU copy-time image rejects sample redirection before rendering is changed.
++ * Sparse diagnostic readbacks deliberately perturb timing; never use these runs as FPS A/B. */
++static void wol_copy_audit(struct nvn_texture *src,struct nvn_texture *dst,const uint32_t from[6],const uint32_t to[6],const uint8_t *cpu,unsigned which) {
++    static int configured,on;static unsigned last_frame[2],shots[2];
++    if(!configured){const char *o=getenv("WOL_COPY_AUDIT");on=o&&!strcmp(o,"1");configured=1;}
++    if(!on || which>1 || shots[which]>=24)return;
++    unsigned frame=(unsigned)nvn_replay.last_frame+1;
++    if(shots[which] && frame-last_frame[which]<240)return;
++    if(src->b.format!=0x25 || dst->b.format!=0x25 || from[3]!=to[3] || from[4]!=to[4] ||
++       to[0] || to[1] || to[3]!=dst->b.width || to[4]!=dst->b.height ||
++       src->host_scaled || dst->host_scaled || src->depth_buffer || !src->name)return;
++    size_t row=(size_t)to[3]*4,bytes=row*to[4];
++    if(!bytes || bytes>16U*1024U*1024U)return;
++    uint8_t *gpu=malloc(bytes);if(!gpu)return;
++    last_frame[which]=frame;shots[which]++;
++    GLint previous,alignment;GLuint fb;
++    glGetIntegerv(GL_FRAMEBUFFER_BINDING,&previous);glGetIntegerv(GL_PACK_ALIGNMENT,&alignment);
++    glGenFramebuffers(1,&fb);glBindFramebuffer(GL_FRAMEBUFFER,fb);
++    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,src->name,0);
++    unsigned complete=glCheckFramebufferStatus(GL_FRAMEBUFFER)==GL_FRAMEBUFFER_COMPLETE;
++    glPixelStorei(GL_PACK_ALIGNMENT,1);
++    if(complete)glReadPixels(from[0],from[1],from[3],from[4],GL_RGBA,GL_UNSIGNED_BYTE,gpu);
++    GLenum error=glGetError();
++    glPixelStorei(GL_PACK_ALIGNMENT,alignment);glBindFramebuffer(GL_FRAMEBUFFER,previous);glDeleteFramebuffers(1,&fb);
++    if(complete && !error) {
++        size_t mismatch=0,flipped=0,nonzero=0;
++        for(unsigned y=0;y<to[4];y++)for(size_t x=0;x<row;x++) {
++            mismatch+=cpu[(size_t)y*row+x]!=gpu[(size_t)y*row+x];
++            flipped+=cpu[(size_t)y*row+x]!=gpu[(size_t)(to[4]-1-y)*row+x];
++            nonzero+=cpu[(size_t)y*row+x]!=0;
++        }
++        uint8_t ch[32],gh[32];char cs[65],gs[65];zero_sha256(cpu,bytes,ch);zero_sha256(gpu,bytes,gh);
++        for(unsigned i=0;i<32;i++){sprintf(cs+2*i,"%02x",ch[i]);sprintf(gs+2*i,"%02x",gh[i]);}
++        printf("WOL_COPY_AUDIT frame=%u src=%"PRIu64" dst=%"PRIu64" src-name=%u dst-name=%u src-size=%ux%u dst-size=%ux%u region=%ux%u@%u,%u src-samples=%u src-draws=%u src-dirty=%u bytes=%zu mismatched=%zu flipped-mismatched=%zu cpu-nonzero=%zu cpu-sha256=%s gpu-sha256=%s context=%p snapshot=cpu-copy-retained\n",
++            frame,src->id,dst->id,src->name,dst->name,src->b.width,src->b.height,dst->b.width,dst->b.height,
++            from[3],from[4],from[0],from[1],src->b.samples,src->draws,src->zero_cpu_dirty,bytes,mismatch,flipped,nonzero,cs,gs,(void *)eglGetCurrentContext());
++    } else printf("WOL_COPY_AUDIT_UNAVAILABLE frame=%u complete=%u gl-error=0x%x\n",frame,complete,error);
++    free(gpu);
++}
 +static unsigned wol_color_texture_copy(const struct nvn_record *r) {
 +    const uint64_t *a=r->args;
 +    if(!a[0] || !a[3])return 0;
@@ -3358,7 +3599,11 @@
 +        if(told++<4)printf("WOL_COLOR_COPY source=%"PRIu64" destination=%"PRIu64" region=%ux%u->%ux%u filter=box-average note=approximation-until-blit-shader\n",
 +            src->id,dst->id,fw,fh,tw,th);
 +    }
-+    if(!gpu_done)dst->zero_cpu_dirty=1;
++    if(!gpu_done) {
++        wol_copy_audit(src,dst,from,to,d,0);
++        wol_copy_audit(dst,dst,to,to,d,1);
++        dst->zero_cpu_dirty=1;
++    }
 +    wol_res_mark_gpu_write(dst);
 +    {   /* PROFDIAG (2026-10-15): per-destination colour-copy attribution, bounded to 8 ids. */
 +        static struct {uint64_t id,calls,bytes;} cc[8];static unsigned ccn;
@@ -3654,7 +3899,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +3587,16 @@
+@@ -1562,7 +3631,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -3672,7 +3917,7 @@
      case NI_nvnCommandBufferSetLineWidth:case NI_nvnCommandBufferSetPointSize: {
          float size;memcpy(&size,r->vectors,4);
          if(!isfinite(size) || size<=0)stop("ZERO_RASTER_SIZE_INVALID",nvn_caller,r->op,24);
-@@ -1682,7 +3716,7 @@
+@@ -1682,9 +3760,10 @@
              nvn_render.framebuffer=nvn_framebuffer_bind(nvn_render.target,d);nvn_render.pass_skipped=0;
              zero_udd_restore(d);
              nvn_low_target(nvn_render.target,d);d->composition_target_seen=1;
@@ -3680,8 +3925,11 @@
 +            zero_texture_storage_state(d)->composition_target_seen=1;wol_res_mark_rt(d);return 1;
          }
          struct nvn_texture *t=nvn_texture_find(targets[0]);
++        nvn_astc_restore_rgba(zero_texture_storage_state(t),"render-target");
          nvn_cpu_image_require_target(t);nvn_cpu_image_require_target(d);
-@@ -1697,6 +3731,7 @@
+         nvn_rt_storage_target(t,d);
+         nvn_mfc_target(t);nvn_mfc_target(d);
+@@ -1697,6 +3776,7 @@
              if(nvn_low_color(t)<0&&!t->host_scaled)d->composition_other_target=1;}
          nvn_packaged_require_writable(t,"NVN_LC2_PACKAGED_RENDER_TARGET_REQUIRED");
          if(!t->name||(d&&(!d->depth_buffer||d->b.width!=t->b.width||d->b.height!=t->b.height)))stop("NVN_FRAMEBUFFER_ATTACHMENTS",nvn_caller,targets[0],24);
@@ -3713,7 +3961,7 @@
          unsigned level_width=t->b.width>>copy_level,level_height=t->b.height>>copy_level;
          if(!level_width)level_width=1;
          if(!level_height)level_height=1;
-@@ -267,6 +274,44 @@
+@@ -267,6 +274,58 @@
             box[0]>level_width || box[3]>level_width-box[0] ||
             box[1]>level_height || box[4]>level_height-box[1])stop("NVN_COPY_REGION_REQUIRED",nvn_caller,a[1],24);
          unsigned bpp=nvn_texture_format_bytes(t->b.format);
@@ -3741,14 +3989,28 @@
 +            size_t rgba_bytes=(size_t)box[3]*box[4]*4;uint8_t *rgba=malloc(rgba_bytes);
 +            if(!rgba)stop("NVN_TEXTURE_UPLOAD_MEMORY",nvn_caller,rgba_bytes,21);
 +            zero_texture_bc_pixels(t,copy_level,box,rgba,rgba_bytes);
++            {static int configured,on;static unsigned logged;
++             if(!configured){const char *o=getenv("WOL_BC_WRITE_TRACE");on=o&&!strcmp(o,"1");configured=1;}
++             if(on && logged<2048){logged++;uint8_t hash[32];char hex[65];zero_sha256(rgba,rgba_bytes,hash);
++                for(unsigned i=0;i<32;i++)sprintf(hex+2*i,"%02x",hash[i]);
++                unsigned full=!box[0]&&!box[1]&&box[3]==level_width&&box[4]==level_height;
++                printf("WOL_BC_WRITE seq=%u id=%"PRIu64" object=0x%"PRIx64" path=buffer-copy level=%u layer=0 box=%u,%u,%u,%u image=%ux%u levels=%u format=0x%x target=%u draws=%u full=%u hash=%s context=%p\n",
++                    logged,t->id,t->object,copy_level,box[0],box[1],box[3],box[4],t->b.width,t->b.height,t->b.levels,t->b.format,t->b.target,t->draws,full,hex,(void *)eglGetCurrentContext());}}
 +            glBindTexture(GL_TEXTURE_2D,t->name);glPixelStorei(GL_UNPACK_ALIGNMENT,1);
-+            if(t->astc_from_cache) {
-+                /* M6: this copy decodes to RGBA and writes with glTexSubImage2D, illegal on the
-+                 * compressed store - rebuild the uncompressed store and continue; levels above 0
-+                 * are untouched (only level 0 was ever cached). */
-+                glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,(GLsizei)t->b.width,(GLsizei)t->b.height,0,GL_RGBA,nvn_cpu_image_upload_type(t),NULL);
-+                t->astc_from_cache=0;printf("ASTC_CACHE_FALLBACK id=%"PRIu64" reason=copy-buffer\n",t->id);
++            if(nvn_astc_postcopy_allowed(t,copy_level,box) &&
++               nvn_astc_cache_try(t->id,rgba,rgba_bytes,t->b.width,t->b.height,1)) {
++                glCompressedTexImage2D(GL_TEXTURE_2D,0,0x93B4U,t->b.width,t->b.height,0,(GLsizei)nvn_astc_cache_hit_len,nvn_astc_cache_hit_ptr);
++                GLenum error=glGetError();
++                if(!error) {
++                    t->astc_from_cache=1;
++                    printf("WOL_ASTC_POSTCOPY_HIT id=%"PRIu64" rgba-bytes=%zu astc-bytes=%zu content=complete cpu-BC=retained\n",t->id,rgba_bytes,nvn_astc_cache_hit_len);
++                    free(rgba);return;
++                }
++                printf("WOL_ASTC_POSTCOPY_GL_FAIL id=%"PRIu64" error=0x%x fallback=full-rgba\n",t->id,error);
++                glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,t->b.width,t->b.height,0,GL_RGBA,GL_UNSIGNED_BYTE,rgba);
++                t->astc_from_cache=0;free(rgba);return;
 +            }
++            nvn_astc_restore_rgba(t,"copy-buffer");
 +            glTexSubImage2D(GL_TEXTURE_2D,(GLint)copy_level,box[0],box[1],box[3],box[4],GL_RGBA,GL_UNSIGNED_BYTE,rgba);
 +            free(rgba);
 +            static unsigned told;if(told++<8)printf("WOL_BC_COPY texture=%"PRIu64" level=%u box=%u,%u,%u,%u format=0x%x blocks=%zu note=linear-to-tiled-and-decoded\n",
@@ -3758,7 +4020,7 @@
          if(!bpp || nvn_texture_format_depth(t->b.format))stop("NVN_COPY_TEXTURE_FORMAT_REQUIRED",nvn_caller,t->b.format,20);
          uint64_t row=(uint64_t)box[3]*bpp,stride=nvn_replay.row_stride?nvn_replay.row_stride:row;
          if(stride<row || stride>64U*1024U*1024U)stop("NVN_COPY_ROW_STRIDE",nvn_caller,stride,24);
-@@ -294,10 +339,30 @@
+@@ -294,10 +353,30 @@
                  stop("NVN_COPY_TEXTURE_DECODE_REQUIRED",nvn_caller,t->b.format,20);
          nvn_texture_copy_cpu(t,box,src,stride,copy_level);
          glBindTexture(GL_TEXTURE_2D,t->name);glPixelStorei(GL_UNPACK_ALIGNMENT,1);
@@ -3789,7 +4051,7 @@
  }
  static uint64_t nvn_replay_run_list(struct nvn_command_list *list,unsigned batch_errors,unsigned snapshot) {
      struct nvn_queue *q=NULL;unsigned asynchronous=nvn_async_enabled();(void)q;(void)asynchronous;
-@@ -327,12 +392,14 @@
+@@ -327,12 +406,14 @@
                      if(is_draw){k=nvn_phase.target_changed?NPH_DRAWFIRST:NPH_DRAWCALL;nvn_phase.target_changed=0;uint64_t c=0;if(nvn_cpu_nanoseconds(&c)&&c>=draw_cpu0)nvn_phase.draw_cpu_ns+=c-draw_cpu0;}
                      if(r.op==NI_nvnCommandBufferSetRenderTargets)nvn_phase.target_changed=1;
                      uint64_t before=nvn_phase.mark;nvn_phase_end(k);if(r.op<NI_COUNT){nvn_phase.op_ns[r.op]+=nvn_phase.mark-before;nvn_phase.op_calls[r.op]++;}}
@@ -5143,7 +5405,43 @@
      unsigned x=box?box[0]/4:0,y=box?box[1]/4:0,width=box?box[3]:m.width,height=box?box[4]:m.height;
      unsigned nx=(width+3)/4,ny=(height+3)/4;size_t linear_bytes=(size_t)nx*ny*m.bytes;
      uint8_t *linear=malloc(linear_bytes);if(!linear)stop("ZERO_BC_LINEAR_MEMORY",nvn_caller,linear_bytes,21);
-@@ -488,32 +589,72 @@
+@@ -485,35 +586,108 @@
+         stop("ZERO_BC_TILED_DECODE",nvn_caller,t->id,24);
+     free(linear);
+ }
++/* Rebuild the ENTIRE retained level before a partial write leaves ASTC storage.
++ * CPU BC bytes were preserved by the normal copy path; untouched regions must not become zero. */
++static void nvn_astc_restore_rgba(struct nvn_texture *t,const char *reason) {
++    if(!t->astc_from_cache)return;
++    if(t->b.levels!=1 || !zero_bc_bytes(t->b.format))stop("WOL_ASTC_RESTORE_CONTRACT",nvn_caller,t->id,24);
++    size_t bytes=(size_t)t->b.width*t->b.height*4;uint8_t *rgba=malloc(bytes);
++    if(!rgba)stop("WOL_ASTC_RESTORE_MEMORY",nvn_caller,bytes,21);
++    zero_texture_bc_pixels(t,0,NULL,rgba,bytes);
++    GLint bound,alignment;glGetIntegerv(GL_TEXTURE_BINDING_2D,&bound);glGetIntegerv(GL_UNPACK_ALIGNMENT,&alignment);
++    glBindTexture(GL_TEXTURE_2D,t->name);glPixelStorei(GL_UNPACK_ALIGNMENT,1);
++    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,t->b.width,t->b.height,0,GL_RGBA,GL_UNSIGNED_BYTE,rgba);
++    GLenum error=glGetError();free(rgba);glPixelStorei(GL_UNPACK_ALIGNMENT,alignment);glBindTexture(GL_TEXTURE_2D,(GLuint)bound);
++    if(error)stop("WOL_ASTC_RESTORE_GL",nvn_caller,error,21);
++    t->astc_from_cache=0;printf("ASTC_CACHE_FALLBACK id=%"PRIu64" reason=%s restored-full-image=1\n",t->id,reason);
++}
++/* WOL_UPLOAD_TIMING=1 is a bounded, perturbing diagnostic, never an FPS arm.
++ * Drain the prior queue separately from the upload call and the upload retirement.
++ * It preserves pixels/order but adds explicit finishes on at most 16 sampled calls. */
++static uint64_t wol_upload_clock(void) {
++    struct timespec n;clock_gettime(CLOCK_MONOTONIC,&n);
++    return (uint64_t)n.tv_sec*1000000000ULL+(uint64_t)n.tv_nsec;
++}
++static void wol_texture_upload(struct nvn_texture *t,unsigned level,unsigned width,unsigned height,unsigned type,const void *pixels) {
++    static int configured,on;static unsigned calls,shots;
++    if(!configured){const char *o=getenv("WOL_UPLOAD_TIMING");on=o&&!strcmp(o,"1");configured=1;}
++    unsigned sampled=on && t->id==460 && !level && shots<16 && !(calls++%240);
++    uint64_t a=0,b=0,c=0,d=0;
++    if(sampled){a=wol_upload_clock();glFinish();b=wol_upload_clock();}
++    glTexSubImage2D(GL_TEXTURE_2D,level,0,0,width,height,zero_bc_srgb(t->b.format)?0x8c42U:GL_RGBA,type,pixels);
++    if(sampled){c=wol_upload_clock();glFinish();d=wol_upload_clock();shots++;
++        printf("WOL_UPLOAD_TIMING id=%"PRIu64" shot=%u before_ns=%"PRIu64" upload_ns=%"PRIu64" after_ns=%"PRIu64" bytes=%"PRIu64" diagnostic=queue-drained-not-FPS\n",
++            t->id,shots,b-a,c-b,d-c,(uint64_t)width*height*nvn_texture_upload_bytes(type));}
++}
  static void zero_texture_refresh(struct nvn_texture *t) {
      t=zero_texture_storage_state(t);
      if(!__atomic_exchange_n(&t->zero_cpu_dirty,0,__ATOMIC_ACQ_REL))return;
@@ -5206,7 +5504,7 @@
 +                stop("ZERO_TEXTURE_REFRESH_FORMAT",nvn_caller,t->b.format,20);
 +            upload=pixels;
 +        }
-+        glTexSubImage2D(GL_TEXTURE_2D,level,0,0,width,height,zero_bc_srgb(t->b.format)?0x8c42U:GL_RGBA,type,upload);free(pixels);
++        wol_texture_upload(t,level,width,height,type,upload);free(pixels);
          if(width>1)width>>=1;
          if(height>1)height>>=1;
      }
@@ -5225,7 +5523,7 @@
  }
  #include "zero_texture_writes.h"
  static unsigned nvn_texture_dispatch(unsigned id,struct nvn_frame *f,uint64_t *result) {
-@@ -602,6 +743,7 @@
+@@ -602,6 +776,7 @@
          }
          if(slot==4096)stop("NVN_TEXTURE_CAPACITY",nvn_caller,slot,21);
          struct nvn_texture *t=&nvn_textures[slot];*t=(struct nvn_texture){.object=a[0],.id=zero_next_object_id(),.size=size,.b=b,.pool=pool};
@@ -5233,12 +5531,12 @@
          /* Frente F: an eligible page gets no GL storage now (the pool holds nothing yet, MEDIDO pc-008: the
           * copy arrives later) and no budget; the copy decides between the palettized form and RGBA8. */
          t->t2_page.deferred=t2_page_eligible(&b);
-@@ -693,12 +835,21 @@
+@@ -693,12 +868,21 @@
                      for(unsigned y=0;y<height;y++)if(!nvn_texture_decode_upload(b.format,b.swizzle,upload_type,rgba+(size_t)y*width*upload_bpp,src+y*stride,width))
                          stop("NVN_TEXTURE_INITIAL_FORMAT",nvn_caller,b.format,20);
                  }
 +                int astc_hit=0;
-+                if(bc && i==0 && !zero_bc_srgb(b.format) && !t->host_scaled)
++                if(bc && i==0 && !zero_bc_srgb(b.format) && !t->host_scaled && !nvn_astc_postcopy_enabled())
 +                    astc_hit=nvn_astc_cache_try(t->id,rgba,bytes,width,height,b.levels);
                  if(upload_type==GL_UNSIGNED_BYTE)nvn_rt_storage_initial(t,rgba,bytes,i);
                  /* Uniformity was checked across the complete original decode.
@@ -5256,7 +5554,7 @@
  #if MEGAMAN_HOST_DIAGNOSTIC
                  /* Observation remains an independent RGBA8 reference; packed
                   * UNORM5 may truthfully differ by one readback code value. */
-@@ -721,6 +872,7 @@
+@@ -721,6 +905,7 @@
  #if ZERO_ZX_GAME
              zero_mip_complete_storage(t,zero_bc_srgb(b.format)?0x8c42U:GL_RGBA,nvn_cpu_image_upload_type(t));
  #endif
@@ -5264,7 +5562,7 @@
              nvn_texture_parameters(t,GL_NEAREST,GL_NEAREST,GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE);
              glBindTexture(GL_TEXTURE_2D,0);
          }
-@@ -739,6 +891,7 @@
+@@ -739,6 +924,7 @@
              printf("MOMO_TEXTURE_IDENTITY id=%"PRIu64" object=0x%"PRIx64" pool=0x%"PRIx64" offset=0x%"PRIx64" bytes=%"PRIu64" size=%ux%u format=0x%x flags=0x%x levels=%u target=%u\n",
                  t->id,a[0],b.pool,b.offset,size,b.width,b.height,b.format,b.flags,b.levels,b.target);
          printf("NVN_TEXTURE_REAL object=0x%"PRIx64" format=0x%x size=%ux%u levels=%u bytes=%"PRIu64" texture=%u depth=%u gpu-storage=%s no-draw\n",a[0],b.format,b.width,b.height,b.levels,size,t->name,t->depth_buffer,t->zero_backend_deferred?"unavailable-native-backing-retained":t->packaged_lazy?"deferred":"allocated");
@@ -5272,7 +5570,7 @@
          if(t->host_scaled)printf("NVN_LC2_SCALED_STORAGE id=%"PRIu64" texture=%u depth=%u flags=0x%x pool=0x%x logical=%ux%u actual=%ux%u initial=%s\n",
              t->id,t->name,t->depth_buffer,b.flags,pool->flags,b.width,b.height,t->host_width,t->host_height,
              shared_storage?"existing-GPU-owner":t->name?"full-decode-uniform":"native-depth-uninitialized");
-@@ -841,3 +994,36 @@
+@@ -841,3 +1027,36 @@
      }
      return 1;
  }
@@ -5419,15 +5717,23 @@
      /* SDK 18.3.2 view (16 bytes, megaman_texture_view.h): flags at [7], level base/count at [4]/[5],
       * layer base/count as u16 at [0]/[2]. A texel write selects one level of one layer. */
      memcpy(&first,view,2);memcpy(&count,view+2,2);
-@@ -98,6 +119,11 @@
+@@ -33,6 +54,11 @@
+        (t->pool->flags&1))
+         stop("ZERO_TEXEL_STORAGE_REQUIRED",nvn_caller,t->id,20);
+     uint32_t box[6];memcpy(box,nvn_pointer(a[2],sizeof(box),PROT_READ),sizeof(box));
++    {static int configured,on;static unsigned logged;
++     if(!configured){const char *o=getenv("WOL_BC_WRITE_TRACE");on=o&&!strcmp(o,"1");configured=1;}
++     if(on && zero_bc_bytes(t->b.format) && logged<2048){logged++;
++        printf("WOL_BC_WRITE seq=%u id=%"PRIu64" object=0x%"PRIx64" path=%s level=%u layer=%u box=%u,%u,%u,%u image=%ux%u levels=%u format=0x%x target=%u draws=%u context=%p\n",
++            logged,t->id,t->object,flush?"flush":"write",level,layer,box[0],box[1],box[3],box[4],t->b.width,t->b.height,t->b.levels,t->b.format,t->b.target,t->draws,(void *)eglGetCurrentContext());}}
+     unsigned width=t->b.width>>level,height=t->b.height>>level;
+     if(!width)width=1;
+     if(!height)height=1;
+@@ -98,6 +124,7 @@
      __atomic_thread_fence(__ATOMIC_SEQ_CST);
      GLenum binding=t->b.target==8?GL_TEXTURE_CUBE_MAP:GL_TEXTURE_2D;
      glBindTexture(binding,t->name);GLint alignment;glGetIntegerv(GL_UNPACK_ALIGNMENT,&alignment);glPixelStorei(GL_UNPACK_ALIGNMENT,1);
-+    if(t->astc_from_cache) {
-+        /* M6: leave the compressed storage before RGBA subimage writes (v1: single-level 2D only). */
-+        glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,(GLsizei)t->b.width,(GLsizei)t->b.height,0,GL_RGBA,nvn_cpu_image_upload_type(t),NULL);
-+        t->astc_from_cache=0;printf("ASTC_CACHE_FALLBACK id=%"PRIu64" reason=texel-flush\n",t->id);
-+    }
++    nvn_astc_restore_rgba(t,"texel-flush");
      glTexSubImage2D(t->b.target==8?GL_TEXTURE_CUBE_MAP_POSITIVE_X+layer:GL_TEXTURE_2D,level,box[0],box[1],box[3],box[4],
                      zero_bc_srgb(t->b.format)?0x8c42U:GL_RGBA,type,pixels);
      free(pixels);glPixelStorei(GL_UNPACK_ALIGNMENT,alignment);
