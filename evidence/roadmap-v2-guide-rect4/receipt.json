@@ -1,0 +1,59 @@
+{
+  "label": "v2-guide-rect4",
+  "owner_save_hashes": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "4a86756d8bf5e11577efd653dd34e7ab4d3603705e10f5b7d31d486ce5901af0"
+  },
+  "stages": [
+    {
+      "name": "startup",
+      "t_ns": 60836429927970
+    },
+    {
+      "name": "menu",
+      "t_ns": 60917520297381
+    },
+    {
+      "name": "continue-load",
+      "t_ns": 60937548297004
+    },
+    {
+      "name": "game-idle",
+      "t_ns": 60950317472619
+    },
+    {
+      "name": "guide-open",
+      "t_ns": 60980354805724
+    },
+    {
+      "name": "guide-hold",
+      "t_ns": 60992952995018
+    }
+  ],
+  "cleanup_verified": true,
+  "probe_sha256": "40b83ce8ebe44455a205226c7da76c89fcc1f410d9d7d55a7ef6dbaeca96fc17",
+  "session_sha256": "6da1c13dd34a93c5933de70e5db54af449a0e85b6ebb52659eee88911ebc61bd",
+  "launcher_sha256": "fa30af838b22e01b7a5eeeb7c4f34c4b5eaf3f67c7a984eee0ba87ba90581f3a",
+  "layout_sha256": "e8f8c2df12325e69fffe3c2b4f3befad7d60a3ea567f839eb228fc186e637e71",
+  "ordinary_title_only": false,
+  "draw_trace": false,
+  "phase_labels_are_requests_not_scene_classifications": true,
+  "heavy_guest_page_sampling": false,
+  "control_save_hashes": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "4a86756d8bf5e11577efd653dd34e7ab4d3603705e10f5b7d31d486ce5901af0"
+  },
+  "runtime_sha256": "ba5a0dd51d5c5618f8ab5761b9af9c5f341d83d3da021be6bd8d98c2dc6387ba",
+  "section_sha256": "a25600cebbd47376d9520d2c4d648463a78911224e8bc82e645dcab6223deb36",
+  "route_sha256": "bd6104eeb898a2f97359994e1e31118275d0adfebef16a784f98a38e9063bbd7",
+  "ledger_exit": 0,
+  "restored_save_hashes": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "4a86756d8bf5e11577efd653dd34e7ab4d3603705e10f5b7d31d486ce5901af0"
+  },
+  "menu_rgb_signal_verified": true,
+  "cleanup_warnings": [],
+  "menu_pids": [
+    16416
+  ]
+}
