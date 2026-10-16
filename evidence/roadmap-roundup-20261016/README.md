@@ -15,6 +15,7 @@ Scope: one day of device rounds on `main` (baseline `a6acb0e` → `54ef07f`), ow
 | 5. Evidence/report + next candidate | This document | — |
 | Section 2 (present proof) | Validated (proof frame 4, sparse period 300, 2895 NOT-SAMPLED) | `evidence/present-proof-sparse/` |
 | Section 4 (CPU remap A/B) | Measured: no repeatable gain; stays opt-in | `evidence/cpu-remap-ab/` |
+| Phase F — M4 wave2 device A/B | Done: −4.7 MiB menu / −1.7 MiB game PSS+SwapPSS (near noise), −7.5 MiB game swap, no visual regression on the checked frame; baseline section restored | `evidence/m4-wave2-device-ab/` |
 
 ## Measured frame split (stationary game, ~37.6 ms frame)
 

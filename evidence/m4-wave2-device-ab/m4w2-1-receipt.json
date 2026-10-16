@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "label": "m1m5-m4w2-1",
+  "owner_save_sha256": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "a49ed035c8eb74874d8b6d71a08d1d854a2a39832e5c4ca4680f252fecefeb54"
+  },
+  "harness_sha256": "e334ef1c1f844bd51a68b612ecdbf249e5be173af5f2de1409246350467b377c",
+  "cold_cache_requested": true,
+  "runtime_sha256": "8a8d113f3fd4d86aa81f7ac431291769e13f40dd48f6c97df36518438a9645a0",
+  "section_sha256": "0deca8e9ab2c0723e3891c3404a35e3cdb19d369875586830d385e7e1fff902c",
+  "cleanup_verified": true,
+  "game_remaining": [],
+  "menu_pids": [
+    4262
+  ],
+  "restored_save_sha256": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "a49ed035c8eb74874d8b6d71a08d1d854a2a39832e5c4ca4680f252fecefeb54"
+  }
+}
