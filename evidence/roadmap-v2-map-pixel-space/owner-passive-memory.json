@@ -1,0 +1,50 @@
+{
+  "samples": 20,
+  "pid": 30847,
+  "scene": "guide-map, owner session",
+  "collector_ms": {
+    "min": 49.303286,
+    "max": 65.313879,
+    "median": 54.7990535
+  },
+  "status_rss_mib": {
+    "min": 676.6796875,
+    "max": 691.90625,
+    "median": 686.39453125
+  },
+  "status_swap_mib": {
+    "min": 492.66796875,
+    "max": 498.34765625,
+    "median": 495.529296875
+  },
+  "pss_mib": {
+    "min": 425.4658203125,
+    "max": 429.5986328125,
+    "median": 427.76025390625
+  },
+  "swap_pss_mib": {
+    "min": 492.0625,
+    "max": 497.69921875,
+    "median": 494.75
+  },
+  "mem_available_mib": {
+    "min": 62.64453125,
+    "max": 91.890625,
+    "median": 82.37109375
+  },
+  "cma_free_mib": {
+    "min": 2.1484375,
+    "max": 7.1953125,
+    "median": 4.08203125
+  },
+  "mali_commit_mib": {
+    "min": 278.8828125,
+    "max": 283.01171875,
+    "median": 283.01171875
+  },
+  "caveats": [
+    "Passive owner window, not a matched optimization A/B.",
+    "Status RSS, PSS, swap and Mali can overlap; never sum into total physical RAM.",
+    "No full per-present clock in ordinary owner log: no FPS claim."
+  ]
+}

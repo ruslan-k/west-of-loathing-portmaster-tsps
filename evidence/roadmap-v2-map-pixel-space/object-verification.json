@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "status": "OFFLINE_VERIFIED",
+  "objects": 53965,
+  "max_mip_levels": 1,
+  "protected_texture_count": 57,
+  "original_sprite_count": 57,
+  "changed_textures": 23,
+  "changed_sprites": 23,
+  "unchanged_objects_byte_exact": 53919,
+  "baseline_payload_bytes": 395677236,
+  "candidate_payload_bytes": 438636084,
+  "payload_delta_bytes": 42958848,
+  "candidate_bundle_bytes": 144392040,
+  "caveat": "No device visual, memory or frame-rate claim from this offline check.",
+  "original_core_sha256": "3158b5140fca8638ed349cfe934fe3049c5f5ff6007240d69097d1854937154b",
+  "baseline_core_sha256": "74e8e32864bb7aaaea1c5064da682eb4dac344e8ddb5fd332f88945db4d095c6",
+  "candidate_core_sha256": "2561879e0685b2a71008dfe90ff2564bf0e1c7452cb3d7f541f8df08cf3ec12f"
+}

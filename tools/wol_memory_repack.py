@@ -10,8 +10,10 @@ Two independent, combinable passes over the owner's UnityFS bundle:
    texture stores a full mip chain, so level 1 (a box-filtered half-resolution
    copy) already exists in the bytes: re-slicing the chain and halving
    m_Width/m_Height/m_MipCount shrinks the payload with zero re-encoding.
-   Measured: 1450 textures modified, payload 1899.7 -> 603.2 MB. This is the
-   currently deployed baseline; its Sprite RenderData corrections are part of it.
+   The historical baseline promoted 1450 textures (1899.7 -> 603.2 MB).
+   Runtime map backgrounds/icons are now dimension-protected: the game places
+   nodes in authored sprite pixels, not rect/PPU units. Their mip tails may
+   still be stripped. Sprite RenderData corrections remain for other textures.
 
 2. `--max-mip-levels N`: drop every mip level beyond the first N (N=1 keeps
    only level 0). Dimensions do not change, so Sprite RenderData stays valid:
@@ -120,6 +122,25 @@ def should_promote_texture(width, mip_count, image_count, path_id, keep_ids, min
             and mip_count >= 2 and image_count == 1)
 
 
+def map_pixel_coordinate_texture_ids(sprites):
+    """Keep the authored pixel coordinate space used by runtime map placement.
+
+    Map layout reads background Sprite.rect.height and icon Sprite.rect.width,
+    not rect/PPU. Scaling rect and PPU together preserves UGUI size but doubles
+    map positions relative to the paper. Preserve dimensions and dependent
+    Sprite metadata for these textures; dropping mip tails is still safe.
+    """
+    texture_ids = set()
+    for sprite in sprites:
+        if not is_dynamic_map_ui_sprite(sprite['m_Name']):
+            continue
+        ref = sprite['m_RD']['texture']
+        if ref['m_FileID'] != 0:
+            raise ValueError('external map texture reference needs explicit resolution')
+        texture_ids.add(ref['m_PathID'])
+    return texture_ids
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("core", type=pathlib.Path)
@@ -153,6 +174,10 @@ def main():
     if not a.dry_run:
         a.out_dir.mkdir(parents=True, exist_ok=True)
     env = UnityPy.load(str(a.core))
+    map_texture_ids = map_pixel_coordinate_texture_ids(
+        x.read_typetree() for x in env.objects if x.type.name == 'Sprite')
+    promotion_keep_ids = keep_ids | map_texture_ids
+    print(f"map pixel-coordinate textures: {len(map_texture_ids)} dimension-preserved; mip-tail stripping allowed")
     before = after = mod = 0
     changed_textures = {}
     strip_rows = []
@@ -170,9 +195,9 @@ def main():
         before += d.m_CompleteImageSize
         dirt = False
         steps = 1 if should_promote_texture(d.m_Width, d.m_MipCount, d.m_ImageCount,
-                                            x.path_id, keep_ids, a.min_width) else 0
+                                            x.path_id, promotion_keep_ids, a.min_width) else 0
         steps += extra_steps.get(x.path_id, 0)
-        if steps and x.path_id not in keep_ids and d.m_MipCount >= steps + 1:
+        if steps and x.path_id not in promotion_keep_ids and d.m_MipCount >= steps + 1:
             prefix = mip_chain_size(d.m_Width, d.m_Height, f, steps)
             raw = bytes(d.image_data)
             if prefix is not None and prefix < len(raw):
