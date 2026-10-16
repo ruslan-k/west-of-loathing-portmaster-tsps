@@ -1,0 +1,920 @@
+{
+  "note": "Every run launches through the Spruce principal flow; logs and menu captures are the evidence.",
+  "runs": [
+    {
+      "run": "device-01",
+      "stop": "NVN_QUEUE_DEVICE",
+      "stop_pc": "main.text.seg+0x8097dc",
+      "rss_kib": 157812,
+      "programs": 0,
+      "textures": 0,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-02",
+      "stop": "NVN_MEMORY_POOL_DEVICE",
+      "stop_pc": "main.text.seg+0x80a344",
+      "rss_kib": 158748,
+      "programs": 0,
+      "textures": 0,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-03",
+      "stop": "NVN_BUFFER_DEVICE",
+      "stop_pc": "main.text.seg+0xafe424",
+      "rss_kib": 158744,
+      "programs": 0,
+      "textures": 0,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-04",
+      "stop": "ZERO_SHADER_CONTROL_LAYOUT",
+      "stop_pc": "main.text.seg+0xafe4c8",
+      "rss_kib": 158840,
+      "programs": 0,
+      "textures": 0,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-05",
+      "stop": "WOL_SHADER_TRANSLATION_REQUIRED",
+      "stop_pc": "main.text.seg+0xafe4c8",
+      "rss_kib": 159040,
+      "programs": 0,
+      "textures": 0,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-06",
+      "stop": "NVN_CAPTURE_OPEN",
+      "stop_pc": "main.text.seg+0xafe4c8",
+      "rss_kib": 159036,
+      "programs": 1,
+      "textures": 0,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-07",
+      "stop": "NVN_SAMPLER_PARAMETERS",
+      "stop_pc": "main.text.seg+0xaeee1c",
+      "rss_kib": 159224,
+      "programs": 12,
+      "textures": 0,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-08",
+      "stop": "NVN_SAMPLER_ALREADY_LIVE",
+      "stop_pc": "main.text.seg+0xaef25c",
+      "rss_kib": 159096,
+      "programs": 12,
+      "textures": 0,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-09",
+      "stop": "NVN_TEXTURE_DEVICE",
+      "stop_pc": "main.text.seg+0xaef4d4",
+      "rss_kib": 159448,
+      "programs": 12,
+      "textures": 0,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-10",
+      "stop": "NVN_WINDOW_CONTRACT",
+      "stop_pc": "main.text.seg+0xaef9d0",
+      "rss_kib": 219396,
+      "programs": 12,
+      "textures": 4,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-11",
+      "stop": "ZERO_TEXEL_VIEW_RESERVED",
+      "stop_pc": "main.text.seg+0xaf9a64",
+      "rss_kib": 221704,
+      "programs": 16,
+      "textures": 5,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-13",
+      "stop": "ZERO_TEXEL_VIEW_REQUIRED",
+      "stop_pc": "main.text.seg+0xafa19c",
+      "rss_kib": 221964,
+      "programs": 16,
+      "textures": 14,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-14",
+      "stop": "CPU_FAULT",
+      "stop_pc": "0x7f87d45dac",
+      "rss_kib": 233604,
+      "programs": 18,
+      "textures": 22,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-15",
+      "stop": "CPU_FAULT",
+      "stop_pc": "0x7f94ae7dac",
+      "rss_kib": 233532,
+      "programs": 18,
+      "textures": 22,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-16",
+      "stop": "CPU_FAULT",
+      "stop_pc": "0x7fa0148dac",
+      "rss_kib": 233544,
+      "programs": 18,
+      "textures": 22,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-17",
+      "stop": "CPU_FAULT",
+      "stop_pc": "0x7f810f7dac",
+      "rss_kib": 233380,
+      "programs": 18,
+      "textures": 22,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-18",
+      "stop": "CPU_FAULT",
+      "stop_pc": "sdk.text.seg+0x397210",
+      "rss_kib": 233496,
+      "programs": 18,
+      "textures": 22,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-19",
+      "stop": "CPU_FAULT",
+      "stop_pc": "sdk.text.seg+0x397210",
+      "rss_kib": 233760,
+      "programs": 18,
+      "textures": 22,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-20",
+      "stop": "CPU_FAULT",
+      "stop_pc": "sdk.text.seg+0x397210",
+      "rss_kib": 234492,
+      "programs": 18,
+      "textures": 22,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-21",
+      "stop": "NVN_TEXTURE_DIMENSIONS_REQUIRED",
+      "stop_pc": "main.text.seg+0xaf64a0",
+      "rss_kib": 213644,
+      "programs": 116,
+      "textures": 23,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-22",
+      "stop": "NVN_OPERATION_REQUIRED",
+      "stop_pc": "main.text.seg+0xaf7d48",
+      "rss_kib": 298324,
+      "programs": 116,
+      "textures": 32,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-23",
+      "stop": "NVN_COPY_TEXTURE_FORMAT_REQUIRED",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 302076,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-24",
+      "stop": "ZERO_BC_MIP_STORAGE",
+      "stop_pc": "main.text.seg+0xaf6518",
+      "rss_kib": 232488,
+      "programs": 18,
+      "textures": 21,
+      "frames_presented": 0,
+      "bc_uploads": 0,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-25",
+      "stop": "NVN_PROGRAM_INVALID",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 303980,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 0,
+      "bc_uploads": 8,
+      "draws_skipped_logged": 0,
+      "color_copies": 0
+    },
+    {
+      "run": "device-26",
+      "stop": "ZERO_TEXTURE_COPY_FORMAT_REQUIRED",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 327436,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 0,
+      "bc_uploads": 8,
+      "draws_skipped_logged": 1,
+      "color_copies": 0
+    },
+    {
+      "run": "device-27",
+      "stop": "WOL_COLOR_COPY_CONTRACT",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 325568,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 0,
+      "bc_uploads": 8,
+      "draws_skipped_logged": 1,
+      "color_copies": 0
+    },
+    {
+      "run": "device-28",
+      "stop": "WOL_COLOR_COPY_CONTRACT",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 323580,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 0,
+      "bc_uploads": 8,
+      "draws_skipped_logged": 1,
+      "color_copies": 0
+    },
+    {
+      "run": "device-29",
+      "stop": "WOL_COLOR_COPY_REGION",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 316204,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 0,
+      "bc_uploads": 8,
+      "draws_skipped_logged": 1,
+      "color_copies": 0
+    },
+    {
+      "run": "device-30",
+      "stop": "WOL_COLOR_COPY_REGION",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 315972,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 0,
+      "bc_uploads": 8,
+      "draws_skipped_logged": 1,
+      "color_copies": 0
+    },
+    {
+      "run": "device-31",
+      "stop": "NVN_QUEUE_CONTEXT",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 327180,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 1,
+      "bc_uploads": 8,
+      "draws_skipped_logged": 6,
+      "color_copies": 1
+    },
+    {
+      "run": "device-32",
+      "stop": "NVN_QUEUE_CONTEXT",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 327044,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 1,
+      "submits": 1
+    },
+    {
+      "run": "device-33",
+      "stop": "NVN_QUEUE_CONTEXT",
+      "stop_pc": "main.text.seg+0xaf2c0c",
+      "rss_kib": 327304,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 1,
+      "submits": 1
+    },
+    {
+      "run": "device-34",
+      "stop": "NVN_PRESENT_CONTEXT",
+      "stop_pc": "main.text.seg+0xaf2d14",
+      "rss_kib": 327236,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 1,
+      "submits": 2
+    },
+    {
+      "run": "device-35",
+      "stop": "NVN_EGL_INITIALIZE",
+      "stop_pc": "main.text.seg+0xaeea9c",
+      "rss_kib": 152852,
+      "programs": 0,
+      "textures": 0,
+      "frames_presented": 0,
+      "submits": 0
+    },
+    {
+      "run": "device-36",
+      "stop": "NVN_PRESENT_CONTEXT",
+      "stop_pc": "main.text.seg+0xaf2d14",
+      "rss_kib": 327268,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 1,
+      "submits": 2
+    },
+    {
+      "run": "device-37",
+      "stop": "INVALID_ROMFS_READ_RANGE",
+      "stop_pc": "sdk.text.seg+0xa9d94",
+      "rss_kib": 511736,
+      "programs": 116,
+      "textures": 33,
+      "frames_presented": 33,
+      "submits": 8
+    },
+    {
+      "run": "device-38",
+      "stop": "INVALID_ROMFS_READ_RANGE",
+      "stop_pc": "sdk.text.seg+0xa9d94",
+      "rss_kib": 520808,
+      "frames_presented": 32,
+      "submits": 8
+    },
+    {
+      "run": "device-39",
+      "stop": "T2_MEMORY_FLOOR",
+      "stop_pc": "0x0",
+      "rss_kib": 681904,
+      "frames_presented": 32,
+      "submits": 8
+    },
+    {
+      "run": "device-40",
+      "stop": "T2_MEMORY_FLOOR",
+      "stop_pc": "0x0",
+      "rss_kib": 693304,
+      "frames_presented": 33,
+      "submits": 8
+    },
+    {
+      "run": "device-41",
+      "stop": "CPU_FAULT",
+      "stop_pc": "0x5594c49ab4",
+      "rss_kib": 700264,
+      "frames_presented": 120,
+      "submits": 9
+    },
+    {
+      "run": "device-42",
+      "stop": "CPU_FAULT",
+      "stop_pc": "0x557d659abc",
+      "rss_kib": 706696,
+      "frames_presented": 120,
+      "submits": 9
+    },
+    {
+      "run": "device-43",
+      "stop": "CPU_FAULT",
+      "stop_pc": "0x557dea9abc",
+      "rss_kib": 700148,
+      "frames_presented": 120,
+      "submits": 9
+    },
+    {
+      "run": "device-44",
+      "stop": "CPU_FAULT",
+      "stop_pc": "0x556bc99abc",
+      "rss_kib": 687060,
+      "frames_presented": 120,
+      "submits": 9,
+      "diagnostic_crash": 1
+    },
+    {
+      "run": "device-45",
+      "stop": "T2_MEMORY_FLOOR",
+      "stop_pc": "0x0",
+      "rss_kib": 682160,
+      "frames_presented": 33,
+      "submits": 8,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-46",
+      "stop": "T2_MEMORY_FLOOR",
+      "stop_pc": "0x0",
+      "rss_kib": 680460,
+      "frames_presented": 33,
+      "submits": 8,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-47",
+      "stop": "T2_MEMORY_FLOOR",
+      "stop_pc": "0x0",
+      "rss_kib": 689348,
+      "frames_presented": 33,
+      "submits": 8,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-48",
+      "stop": "T2_MEMORY_FLOOR",
+      "stop_pc": "0x0",
+      "rss_kib": 616332,
+      "frames_presented": 34,
+      "submits": 8,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-49",
+      "stop": "T2_MEMORY_FLOOR",
+      "stop_pc": "0x0",
+      "rss_kib": 631740,
+      "frames_presented": 33,
+      "submits": 8,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-50",
+      "stop": "T2_MEMORY_FLOOR",
+      "rss_kib": 671112,
+      "frames_presented": 32,
+      "diagnostic_crash": 0,
+      "pair_compile": "ok"
+    },
+    {
+      "run": "device-51",
+      "stop": "T2_MEMORY_FLOOR",
+      "frames_presented": 31,
+      "pair_draws": 93,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-52",
+      "stop": "NVN_RENDER_SAMPLER_FEATURE_REQUIRED",
+      "pair_draws": 0,
+      "blits": 0,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-53",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 51,
+      "blits": 0,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-54",
+      "stop": "NVN_GUEST_POINTER",
+      "pair_draws": 1,
+      "blits": 0,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-55",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 52,
+      "blits": 0,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-56",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 27,
+      "blits": 0,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-57",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 27,
+      "blits": 0,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-58",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 29,
+      "blits": 0,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-59",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 51,
+      "blits": 34,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-60",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 48,
+      "blits": 32,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-61",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 66,
+      "blits": 44,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-62",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 66,
+      "blits": 44,
+      "presents": 22,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-63",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 63,
+      "blits": 42,
+      "presents": 21,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-64",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 63,
+      "blits": 42,
+      "presents": 21,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-65",
+      "stop": "T2_MEMORY_FLOOR",
+      "pair_draws": 129,
+      "blits": 86,
+      "presents": 42,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-66",
+      "stop": "NVN_PRESENT_BLACK",
+      "presents": 120,
+      "pair_draws": 360,
+      "blits": 240,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-67",
+      "stop": "NVN_COMMAND_ARENA_OVERLAP",
+      "presents": 147,
+      "nonblack_presents": 0,
+      "diagnostic_crash": 0
+    },
+    {
+      "run": "device-68",
+      "stop": "NVN_COMMAND_ARENA_OVERLAP",
+      "presents": 146,
+      "nonblack_presents": 0,
+      "arena_resizes": 0
+    },
+    {
+      "run": "device-69",
+      "stop": "NVN_COMMAND_ARENA_OVERLAP",
+      "presents": 146,
+      "arena_retired": 0
+    },
+    {
+      "run": "device-70",
+      "stop": "NVN_GUEST_POINTER",
+      "presents": 146,
+      "arena_retired": 0
+    },
+    {
+      "run": "device-71",
+      "stop": "NVN_GUEST_POINTER",
+      "presents": 146,
+      "arena_retired": 1
+    },
+    {
+      "run": "device-72",
+      "stop": "NVN_GUEST_POINTER",
+      "presents": 146,
+      "arena_events": 1
+    },
+    {
+      "run": "device-73",
+      "stop": "NVN_GUEST_POINTER",
+      "stop_pc": "main.text.seg+0xaf4684",
+      "presents": 146,
+      "probe_rejected": 1,
+      "note": "instrumented: the stop is the runtime's own callback-vtable probe"
+    },
+    {
+      "run": "device-74",
+      "stop": "T2_MEMORY_FLOOR",
+      "presents": 600,
+      "rss_kib": 712316,
+      "note": "probe guarded: 600 frames (was 146), all black, diagnostic 32 MiB floor reached"
+    },
+    {
+      "run": "device-75",
+      "stop": "T2_MEMORY_FLOOR",
+      "presents": 303,
+      "note": "identity catalogue + boot heartbeat + downsample trace instrumented; all six stage identities matched in-run; stopped before the draw phase (30 MiB available vs 32 MiB floor)"
+    },
+    {
+      "run": "device-76",
+      "stop": "NVN_TEXTURE_SWIZZLE_REQUIRED",
+      "stop_pc": "main.text.seg+0xaf64a0",
+      "presents": 213,
+      "cat_links": 3,
+      "pair_draws_issued": 639,
+      "diag_fullscreen_draws": 852,
+      "note": "scene draws execute: translated pair f309b86a#0184+f08bad2f#a9b0 on target 32/1920x1080 (glerror 0), f191/f268 TEST fullscreen on 280/1280x720; present still black (213/213 nonblack=0); new swizzle gate (format 0x39)"
+    },
+    {
+      "run": "device-77",
+      "stop": "NVN_TEXTURE_SWIZZLE_REQUIRED",
+      "stop_pc": "main.text.seg+0xaf64a0",
+      "presents": 260,
+      "note": "swizzle gate measured: format=0x39 swizzle=4,3,2,5 256x256 levels=9 target=1; fix implemented (gate accepts 0x39 any-channel; decode applies the B,G,R,A swizzle)"
+    },
+    {
+      "run": "device-101",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 196,
+      "note": "sampler landed only in the inactive frameskip path - no samples; same shape as 124"
+    },
+    {
+      "run": "device-106",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 148,
+      "textures_real": 247,
+      "note": "repacked bundle (payload 603.2MB, padded to original size, patched in place at section+0x4DB0D0): textures 247 (was 128), object ids past 740, AUDIO ALIVE (nonzero-total 916868 vs 0 always before) - the user heard sound with a black screen"
+    },
+    {
+      "run": "device-109",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 386,
+      "note": "STRIP CONFIRMED: the user's 'half black half gray' = 6-vertex strip draws drawn as triangles; WOL_PAIR_PRIM=strip gives presented nonblack 912488 vs 460800 (exactly double, the half filled, 99% of frame), frame 386 = record, textures 251, audio 1.46M; strip is now the default; coherence A/B re-confirmed STALE-OVERWRITE (897->0) with the fix"
+    },
+    {
+      "run": "device-107",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 310,
+      "note": "COHERENCE FIX: A/B measured STALE-OVERWRITE (before 659/max255 -> after refresh 0/0) - the CPU mirror was overwriting the GPU blit result before the sampler; fix leaves GPU authoritative; result: 308/310 present readbacks carry content (nonblack=460800), frame 310 = highest ever; WOL_THREAD_TOP parser fixed (prints now); WOL_VMA_TOP: dominant mapping = 1.76GB Unity arena (rss 358MB + swap 502MB); external watchdog running"
+    },
+    {
+      "run": "device-105",
+      "stop": "none (governor SIGTERM, exit 143; 7200s budget)",
+      "presents": 172,
+      "textures_real": 128,
+      "note": "TWO-HOUR VERDICT: 172 presents (LESS than the 196 of 3600s runs), same 128 textures, same 3 pairs, no menu phase; swap grew 538->686MB while anon 522MB - the load self-strangles with time; the wall is the ~1.1GiB guest heap (Unity decompressed assets) on a 963MiB device; next levers are data/architecture (bundle repack / RT downscale), not tweaks"
+    },
+    {
+      "run": "device-104",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 169,
+      "textures_real": 44,
+      "note": "UDISK-first: majflt rate down (15575->6181) but less progress (169/44 vs 196/128). lsblk: both swap areas are partitions of the one 7.3GiB eMMC (mmcblk0p4 'sdcard', mmcblk0p6 UDISK) - configuration is a coin toss, baseline priorities restored. WOL_MEM_SPLIT: rss 636MB anon 627MB swap 462MB = ~1.1GiB anonymous guest heap on a 963MiB device - the hard reason for the crawl. Run 129 = 7200s endurance to see whether the load ever reaches the menu phase."
+    },
+    {
+      "run": "device-103",
+      "stop": "SIGKILL (OOM) mid-run at frame 31",
+      "presents": 31,
+      "note": "zram-first swap A/B is worse on this 963 MiB device: zram's compressed pages still live in RAM, available fell to 25 MiB (vs 49-66 SD-first) and the run was killed early; final ordering chosen: UDISK swapfile first (frees RAM, faster than SD), SD second, zram last - run 128 tests it"
+    },
+    {
+      "run": "device-102",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 196,
+      "note": "first 3 samples of the present path: utime ~21s/min, majflt ~390/s (15575 in 90s) = swap-thrash; device /proc/swaps had SD cachefile priority 40 > UDISK -2 > zram -3 with zram effectively unused; reprioritised on device (zram 100 / UDISK 40 / SD 5, reversible); sampler extended to the command path + smaps_rollup for run 127"
+    },
+    {
+      "run": "device-100",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 196,
+      "note": "glBindTexture fix verified (real GL names 26/29/21 bound); f268-draft links clean; screen black because the composite samples the empty 1080p scene; re-reading run 123: the loading phase is SWAP-BOUND (available 49-66 MiB, vmswap ~650-790 MiB, vmrss ~580-736 MiB; object counter past 466, small 256x256 re-creations in a loop) - next block = measured memory work per the review's list"
+    },
+    {
+      "run": "device-99",
+      "stop": "none (governor SIGTERM, exit 143; 3600s budget)",
+      "presents": 191,
+      "note": "ENDURANCE RESULT: 3600s produced the same ~191 frames / ~128 textures / 573 draws as 1800s runs - the load is STALLED at ~frame 180-190, not slow; extra budget buys nothing; next diagnostic block must find what the main thread waits on after that point (IPC/fence/job)"
+    },
+    {
+      "run": "device-98",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 196,
+      "note": "f191-draft textured sprites: WOL_SPRITE_SCAN content varies per draw (10840/10750/5751, max 255/205) - real UVs sampling the bound texture with real vertex tint; windows stay black via pair-1's faithful single-texel fills; run 123 = 3600s endurance (loader cap 7200) to see how far the load gets"
+    },
+    {
+      "run": "device-97",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 193,
+      "note": "faithful binding: the composite's unit resolves to id=275 (1920x1080 scene target); the sampled texel is black in these loading frames, so the screen stays black faithfully - the pair-1 pipeline is now real vertex + real fragment + real binding; run 122 swaps the f191 magenta for a TEST-DRAFT textured fragment (texture2D(tex0,v9)*v8)"
+    },
+    {
+      "run": "device-96",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 187,
+      "note": "levels-filter drop alone insufficient: the sole bound texture resolves to id=275 (1920x1080 scene target) and the screen-size filter rejected it (id=0 0x0 -> 4x4 fallback); run 121 binds the first resolvable recorded texture unit with no size/level filters - the faithful binding for the composite"
+    },
+    {
+      "run": "device-95",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 190,
+      "note": "WOL_SPRITE_SCAN: sprite draws leave nonblack=10840 max=255 in target 280 - the d88c64a6 geometry paints on-screen; present stays black because the pair-1 composite samples a 4x4 fallback: the quiet pick's levels==1 filter excluded the BC atlases (11-12 mips); run 120 drops that filter"
+    },
+    {
+      "run": "device-94",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 196,
+      "note": "pair-2 (v189/v266 + f191/f268 diag) now draws on REAL sprite geometry with the authored d88c64a6 vertex (no fullscreen diag draws); pair-1's real fragment paints near-black via its fallback-texture texel -> window textures black this run; run 119 adds WOL_SPRITE_SCAN (whole-target nonblack scan for stride-24 draws) + a separate math-probe budget for the sprite layout"
+    },
+    {
+      "run": "device-93",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 197,
+      "note": "real fragment + known UV-gradient texture: (25,25,128,255) everywhere with max=128 - the gradient's blue passes through the real fragment to the presented frame; the uniform (0.1,0.1) texel matches the fragment's SASS (u = v8.y = vertex's st a[0x84] <- r5 <- a[0x88]=pos.z) - the hand translation is faithful and this pair is a solid/tint quad pass; the sprite pairs are d88c64a6+f191/f268 (fragments read v9=uv per the access map) - the next translation target"
+    },
+    {
+      "run": "device-92",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 193,
+      "note": "real hand vertex (WOL_VS_TRIVIAL=0) drives the same green pixels as the trivial pass-through: center+3 corners of every window texture, all 193 present readbacks nonblack=460800 (half of 1280x720); quiet texture pick finds no atlas among recorded slots (id=0 0x0 -> 4x4 fallback) - the sampler binding fidelity work the review asked for"
+    },
+    {
+      "run": "device-91",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 193,
+      "note": "MILESTONE: pair draws produce pixels - green (0,255,0,255) at center+3 corners of every window texture, and ALL 193 present readbacks report nonblack=460800 (half of 1280x720) = rasterized geometry through target -> window texture -> present -> readback; root cause was the stale GL_ARRAY_BUFFER binding from the fullscreen diagnostics (guest pointers read as offsets -> zero vertices -> no fragments); fixed by uploading vertices into a stream VBO and unbinding"
+    },
+    {
+      "run": "device-90",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 185,
+      "note": "bisection: with the matrix-free trivial vertex + green fragment all five readback points stay 0 -> the fault is the attribute plumbing, not c3; the guest-pointer attributes (vs the working fullscreen path's real GL buffer) are the prime suspect; run 115 uploads the vertices into a stream VBO (old path behind WOL_PAIR_DIRECT=1)"
+    },
+    {
+      "run": "device-89",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 210,
+      "note": "WOL_PAIR_PIXELS: every window-texture pair draw executes (glerror 0, scissor off, depth off, FBO bound, vp 0,0,1280,720) but the center of its own target reads 0,0,0,0 right after the draw - no fragments land; run 114 ships WOL_VS_TRIVIAL (matrix-free vertex) + 5-point readback to bisect plumbing vs c3-data"
+    },
+    {
+      "run": "device-88",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 198,
+      "note": "matrix fix verified on device: pair clip = (-1..1, -1..1, -0.98, w=1) - unit quad fills the viewport; still green fragment, still 594 draws (1/frame into each window texture), still all-black present -> the loss is downstream of the draw; run 113 adds WOL_PAIR_PIXELS (center-pixel readback + scissor/depth/viewport/FBO state right after the draw)"
+    },
+    {
+      "run": "device-87",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 182,
+      "note": "c3 dump: M1 identity at c3[0..15], M2=[2,0,0,0;0,2,0,0;0,0,-0.019802,0;-1,-1,-0.980198,1] at c3[16..31], GL column-major; correct clip=(2x-1,2y-1,-0.98-0.0198z,1) with w=1; hand vertex GLSL replaced with the honest two-matrix column-major transform; CPU probe updated; run 112 carries the fix with the green fragment"
+    },
+    {
+      "run": "device-86",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 210,
+      "note": "WOL_PAIR_MATH CPU probe: the translated pair's quad comes out with clip.w=-0.98 on every vertex - negative w, so the triangle is clipped off-screen (explains the green test); fed c3 bank is not the real matrix; run 111 dumps the full c3/fragment banks and all bound slots"
+    },
+    {
+      "run": "device-85",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 977,
+      "textures_real": 130,
+      "note": "downsample views decoded by id (269/270, 280/281) - UNRESOLVED 0 for the run; green pair test: all 977 readbacks black even with a solid-green fragment, so the translated pair's geometry/target attachment is the break; WOL_PAIR_MATH CPU transform probe queued for run 110"
+    },
+    {
+      "run": "device-84",
+      "stop": "none (governor SIGTERM, exit 143)",
+      "presents": 433,
+      "note": "marker truly off: all 433 present readbacks black - game content does not reach window textures 30/31/32 yet; translated pair draws once per frame into each of them (145/144/144); downsample view words decoded to ids 269/270 (high half) with constant tag 0xd4f5544d, id lookup added; pair-test green instrumentation queued for run 109"
+    },
+    {
+      "run": "device-83",
+      "stop": "none (governor SIGTERM, exit 143; floor 20 MiB)",
+      "presents": 420,
+      "textures_real": 144,
+      "note": "endurance run survived the full 1800s with no runtime stop; load advanced to 144 textures (2048x1024 sprite atlases with 12 mips); marker value-check bug found (readbacks again showed the 4096 marker) and fixed; downsample views now recorded at record time (arena recycling defeats replay-side reads)"
+    },
+    {
+      "run": "device-82",
+      "stop": "T2_MEMORY_FLOOR (available 25 MiB vs floor 26)",
+      "presents": 163,
+      "note": "HID 123-129 unlocked (no IPC stops); pixel route PROVEN: window textures = ids 30/31/32 (1920x1080), WOL_PRESENT_TEST magenta marker visible as nonblack=4096 in all 163 present readbacks; quiet-mode unbound-texture fault and the Downsample payload overwrite found and fixed; draws counter now reports 420/840"
+    },
+    {
+      "run": "device-81",
+      "stop": "UNIMPLEMENTED_IPC_COMMAND (HID cmd 128, endpoint 0x2d)",
+      "stop_pc": "sdk.text.seg+0xa9d94",
+      "presents": 924,
+      "note": "quiet hot path (WOL_QUIET=1): 924 frames vs 279 in run 102 under the same 1800s budget; leftover dump files (14.7k) found and cleaned; capture writes now gated behind WOL_DUMP=1; new stop named the HID family 123-129; draws counter fixed in the catalogue hook"
+    },
+    {
+      "run": "device-79",
+      "stop": "none (harness time governor, exit 143, budget 1800s)",
+      "presents": 279,
+      "textures_real": 124,
+      "pair_draws_issued": 837,
+      "diag_fullscreen_draws": 1116,
+      "note": "no stop; load advances (33 -> 108 -> 124 real textures incl. R8 256x256 glyphs); all three pairs draw incl. the second pair diag; end state = repeating IPC poll loop (handle 0x42e endpoint 0x3f cmd 0x7/0x8) with texture creation; present still black; frame period ~86 ms with long non-present stretches"
+    },
+    {
+      "run": "device-78",
+      "stop": "none (harness time governor, exit 143)",
+      "presents": 254,
+      "textures_real": 108,
+      "pair_draws_issued": 763,
+      "diag_fullscreen_draws": 1016,
+      "note": "swizzle fix unlocked further loading: textures 33 -> 108 (boot heartbeat shows the load advancing), draws into targets 30/31/269/280, no swizzle rejections, no stop; present still black while loading is unfinished"
+    }
+  ]
+}

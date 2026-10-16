@@ -1,0 +1,46 @@
+{
+  "verdict": "PARTIAL_NO_GAME_FRAME",
+  "runs": [
+    {
+      "run": "device-01",
+      "stop": "NVN_QUEUE_DEVICE",
+      "guest_pc": "main.text.seg+0x8097dc",
+      "exit_status": 24,
+      "rss_kib": 157812,
+      "after_menu_sha256": "5c8a11b85201fb67192207c16856b4cb2fad81fc9a102455c15a2e86e1460857"
+    },
+    {
+      "run": "device-02",
+      "stop": "NVN_MEMORY_POOL_DEVICE",
+      "guest_pc": "main.text.seg+0x80a344",
+      "exit_status": 24,
+      "rss_kib": 158748,
+      "after_menu_sha256": "88e807ebc277c0f23f87a483b659b40afa84b8c2dd88db70c493e548b5756ac0"
+    },
+    {
+      "run": "device-03",
+      "stop": "NVN_BUFFER_DEVICE",
+      "guest_pc": "main.text.seg+0xafe424",
+      "exit_status": 24,
+      "rss_kib": 158744,
+      "after_menu_sha256": "12989d7b54c7ea56f9fb6b559d5a7808844e9c88b6f37a157e1b55cd89e394e1"
+    },
+    {
+      "run": "device-04",
+      "stop": "ZERO_SHADER_CONTROL_LAYOUT",
+      "guest_pc": "main.text.seg+0xafe4c8",
+      "exit_status": 24,
+      "rss_kib": 158840,
+      "after_menu_sha256": "0d699f03cbd70cdf55dbeb5cd42ae3b52439c7d187531a2b033f148d3649df75"
+    },
+    {
+      "run": "device-05",
+      "stop": "WOL_SHADER_TRANSLATION_REQUIRED",
+      "guest_pc": "main.text.seg+0xafe4c8",
+      "exit_status": 20,
+      "rss_kib": 159040,
+      "after_menu_sha256": "26545911efc12f1be5fd4c7ca36ac59bfebabe76c126448927a922b54997353f"
+    }
+  ],
+  "installed_runtime_sha256": "0e400a8de03bd4bd2ae0e72e2ab96c7edfe0801f434a7203984b950e2c768c97"
+}

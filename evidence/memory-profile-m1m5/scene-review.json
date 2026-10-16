@@ -1,0 +1,16 @@
+{
+  "reviewed": "actual kmsgrab frames",
+  "a-menu": "CONTINUE main menu, complete WANTED portrait",
+  "a-game": "Boring Springs street in front of closed Alice clinic",
+  "a-sheriff": "interior: sheriff desk and jail cell",
+  "a-returned": "outdoor street: bar and sheriff facade",
+  "b-menu": "CONTINUE main menu",
+  "b-game": "same street/clinic position",
+  "cleanup": "Spruce PORTS menu in both final captures; initial B black capture and idle clock were rejected; clock dismissed by synthetic B, not physical input",
+  "not_covered": [
+    "map",
+    "combat",
+    "later world locations",
+    "long-run leak behaviour"
+  ]
+}

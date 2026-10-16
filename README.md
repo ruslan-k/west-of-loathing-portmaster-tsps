@@ -1,19 +1,29 @@
 # West of Loathing — experimental Switch-to-Linux ARM64 port
 
-**Status: early native-runtime bring-up, not a playable PortMaster release.**
+**Status: experimental native runtime with real menu/gameplay frames; not a validated PortMaster release.**
+
+Latest device evidence: [gfx265](evidence/gfx265/README.md). Skinned PC/Cactus Bill bodies and the WANTED portrait mask are restored. The map paper-size repair is installed, but marker/title overlap remains open. Code, tests, hashes, physical captures and a measured resource baseline are recorded together. [Next resource-optimization tests](docs/resource-optimization.md) are candidates, not claimed gains.
 
 This project explores executing the owner's Nintendo Switch ARM64/IL2CPP build on Linux ARM64, rather than repeating the previous x64/Box64 path. No game code, assets, keys, saves, NSP/NSZ or third-party runtime binaries are distributed here.
 
-## Proven frontier
+## Independent minimal-probe frontier (historical baseline)
 
 - Base Switch release inspected: Unity **5.6.5p1**, AArch64, IL2CPP; four NSO modules.
 - Local data-stage mapping: 49.613 MiB; 215,921 relocations applied and read back by the independent Python preflight.
 - The experimental C runtime enters the **original guest rtld**, without manually relocating that execution image.
 - Under local `qemu-aarch64-static`, real guest code reaches Nintendo SDK startup, connects to `sm:` and completes CMIF SM Initialize.
-- Current bounded stop: `UNIMPLEMENTED_SERVICE`, requested service **lm**, `sdk+0xa9d94`, 42 SVC calls after segment-permission hardening. See `evidence/native-run-12.log` (the earlier run is retained separately).
-- The updated full local suite passes **21 tests** with owner inputs present: 15 native tests, one preparation integration test and five parser/preflight tests. Without owner inputs, 17 pass and four integration tests skip explicitly.
+- Native-probe/QEMU bounded stop: `UNIMPLEMENTED_SERVICE`, requested service **lm**, `sdk+0xa9d94`, 42 SVC calls after segment-permission hardening. See `evidence/native-run-12.log` (the earlier run is retained separately).
+- The full local suite passes **22 tests** with owner inputs present: 15 native tests, two preparation integration tests and five parser/preflight tests. Without owner inputs, 17 pass and five integration tests skip explicitly.
 
-**Not proven:** Unity application startup, NVN rendering, audio, controls, scene-transition memory usage, native device execution or gameplay. QEMU execution is a bring-up test, not a handheld-performance benchmark.
+These minimal-probe tests do not prove application rendering or performance. The recovered adapter below has progressed further; QEMU is not a handheld-performance benchmark.
+
+## Native TSPS adapter — current verified scope
+
+A separate, recovered-GPL Horizon adapter executes the original WoL modules **on TSPS**, through the Spruce principal launcher flow. It presents the actual menu and Boring Springs scene through Mali/EGL/KMSDRM. The owner-bundle mip repack is paired with repaired Sprite metadata and matching launcher UV defaults; an old bundle and new defaults are not interchangeable.
+
+The current overlay honors multi-stream mesh attributes, samples mesh UV x/y with the material transform, keeps mesh/display-composite identities separate, and replays the game's portrait stencil. Focused regression checks and 22 existing tests pass. Physical captures verify restored bodies, portrait clipping and return to Spruce; this is not full-game, physical-control, scene-transition or endurance certification.
+
+Current runtime SHA-256: `c25640beebcfb86000545438725a52c4bf5d8a1a440f22aab43218154969b5b7`. Owner payload and launcher read-back receipts are in [gfx265/deployment.json](evidence/gfx265/deployment.json); proprietary bundle/binary data is not committed. The own diagnostic session was stopped, CPU mask restored to `4-7`, and the real Spruce PORTS screen checked. Historical development notes: [docs/tsps-horizon-adapter.md](docs/tsps-horizon-adapter.md).
 
 ## Build and test without game data
 
@@ -71,8 +81,35 @@ This repository is GPL-3.0. Third-party reference packages remain local; the rep
 
 ## Next gates
 
-1. Implement real LM/logging behavior, then the exact additional services requested by this SDK.
-2. Add memory/thread/synchronization support with separate ABI tests; never fabricate successful service replies.
-3. Establish Unity startup and resource-loading behavior before graphics adaptation.
-4. Implement the WoL-specific NVN/shader path and bounded native device tests.
-5. Require a real frame, controls/audio, scene transition and clean menu return before claiming a working port.
+1. Finish map marker/title placement against a reference; paper size alone is not a complete map fix.
+2. Run the isolated logging/readback/memory/CPU-placement experiments in [resource-optimization.md](docs/resource-optimization.md), preserving the verified visual baseline.
+3. Measure startup and scene-transition live memory and active swap I/O, not only stationary-scene RSS.
+4. Require physical controls/audio, scene transitions, save/load and sustained gameplay before claiming a release.
+5. Keep the independent minimal probe’s LM/service frontier separate from the recovered adapter’s progress.
+
+## Historical status snapshot (gfx252; superseded by gfx265 above)
+
+| Subsystem | State |
+|-----------|-------|
+| ARM64 / IL2CPP guest | runs on the device |
+| Horizon SVC / IPC | game runtime reached |
+| Mali-G57 / EGL context | created and used |
+| NVN command record + replay | works; 146-147 consecutive presents |
+| Command arenas | **unused-tail overlap solved with evidence** (see below) |
+| GLSL ES translation | shader catalogue keyed by code/control SHA-256; the TOP pair (menu/world sprites), top2, f191 and f268 are live; the f191 tiled-uv fold (fract) restored the WANTED-poster figure and the control-box button icons (gfx251/252, build-227) |
+| Render targets | real GPU blit 1920x1080 -> 1280x720 |
+| Present | **rasterized geometry reaching the presented frame (run 115: the real pair draw turns all 193 present readbacks green - nonblack=460800 = half of 1280x720; the VBO upload fixed the stale GL_ARRAY_BUFFER binding that had silenced every pair fragment)**; drawn content is still the TEST green fragment. Route proven earlier (run 106: the WOL_PRESENT_TEST marker written into the presenting texture appears as nonblack=4096 in every present readback; window textures are ids 30/31/32); the title's own content is still dark while loading is unfinished (run 100: 254/254 samples; textures 33 -> 108, terminated by the time governor); 763 translated + 1016 TEST diagnostic draws execute |
+| Current state | gfx252 (build-227, sha d776be3d...): the main menu renders with its WANTED poster figure + name, the MOVE/AIM/FIRE control box with button glyphs, the hanging sign and planks - production defaults, no env overrides; the f191 family's out-of-range uv are the page/tiled convention and the draft fragment folds them with `fract(v9)`; the probe tool no longer ships shader selectors in its base env (`WOL_F191_UV=''` = the true draft; experiments go through `--set`). Earlier: run 104 (device-81) 924 presented frames with the quiet hot path; the swizzle gate (format 0x39) measured and fixed; `T2_MEMORY_FLOOR` stops (runs 91/95) |
+
+### Command arena: what was measured
+
+```
+WOL_ARENA_OVERLAP owner=0x1000a7f010 pool=... old=0x107595c000 old_size=2097152 old_used=2097088
+                 limit=2097152 new=0x1075b5bfc0 new_size=2083008 overlap=64 current=0 recording=1
+                 generation=2 safe_end=0x1075b5bfc0 classification=UNUSED_TAIL
+WOL_COMMAND_ARENA_RETIRE ... action=RETIRED_TAIL
+```
+
+The previous arena's `used` cursor ends exactly where the new arena begins, and no retained range or live
+list reaches into the overlap, so the tail is retired and the new arena is registered. Everything else stays
+fail-closed with the original `NVN_COMMAND_ARENA_OVERLAP`.

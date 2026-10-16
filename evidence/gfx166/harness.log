@@ -1,0 +1,11 @@
+KMS before-menu 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx166/before-menu.png (FB ID: 161, 1280x720) 
+RUNTIME [6435] {'WOL_PROBE_SECONDS': '90', 'WOL_MEMORY_FLOOR_MIB': '20', 'WOL_QUIET': '1', 'WOL_PRESENT_TEST': '0', 'WOL_PAIR_TEST': '0', 'WOL_FS_TESTTEX': '0', 'WOL_PAIR_MATH': '1', 'WOL_VS_TRIVIAL': '0', 'WOL_COHERENCE': '1', 'WOL_DUMP': '1', 'WOL_F191_UV': 'xy', 'WOL_COMPOSITE_PROBE': '0', 'COTM_PRESENT_READBACK_60': '1', 'COTM_READBACK_PERIOD': '600', 'COTM_CAPTURE_PERIOD': '600'}
+KMS during-15 0 1  No active framebuffers found on planes
+KMS during-15 1 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx166/during-15.png (FB ID: 160, 1280x720) 
+KMS during-45 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx166/during-45.png (FB ID: 160, 1280x720) 
+KMS during-90 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx166/during-90.png (FB ID: 161, 1280x720) 
+KMS after-menu 0 1  No active framebuffers found on planes
+KMS after-menu 1 1  No active framebuffers found on planes
+KMS after-menu 2 1  No active framebuffers found on planes
+FINAL_STATE [6784] []
+RUNTIME_SEEN True

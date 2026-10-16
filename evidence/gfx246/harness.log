@@ -1,0 +1,12 @@
+KMS before-menu 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx246/before-menu.png (FB ID: 160, 1280x720) 
+RUNTIME [24173] {'WOL_PROBE_SECONDS': '200', 'WOL_MEMORY_FLOOR_MIB': '20', 'WOL_QUIET': '1', 'WOL_PRESENT_TEST': '0', 'WOL_PAIR_TEST': '0', 'WOL_FS_TESTTEX': '0', 'WOL_PAIR_MATH': '1', 'WOL_VS_TRIVIAL': '0', 'WOL_COHERENCE': '0', 'WOL_DUMP': '0', 'WOL_F191_UV': 'xy', 'WOL_COMPOSITE_PROBE': '0', 'COTM_PRESENT_READBACK_60': '1', 'COTM_READBACK_PERIOD': '600', 'COTM_CAPTURE_PERIOD': '600', 'WOL_CAPTURE_MARKS': '40,70,100,130,170', 'WOL_FORCE_WRAP': 'repeat', 'WOL_VDATA': 'f191', 'WOL_VDATA_STRIDE': '60', 'WOL_TRACE_PAIR': 'f191', 'WOL_TRACE_STRIDE': '60', 'WOL_TRACE_FIRST': '152', 'WOL_TRACE_SKIP': '50', 'WOL_TRACE_LIMIT': '2'}
+KMS during-40 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx246/during-40.png (FB ID: 160, 1280x720) 
+KMS during-70 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx246/during-70.png (FB ID: 160, 1280x720) 
+KMS during-100 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx246/during-100.png (FB ID: 160, 1280x720) 
+KMS during-130 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx246/during-130.png (FB ID: 161, 1280x720) 
+KMS during-170 0 0 Screenshot saved to /mnt/SDCARD/Roms/PORTS/wol-switch/logs/gfx246/during-170.png (FB ID: 160, 1280x720) 
+KMS after-menu 0 1  No active framebuffers found on planes
+KMS after-menu 1 1  No active framebuffers found on planes
+KMS after-menu 2 1  No active framebuffers found on planes
+FINAL_STATE [24695] []
+RUNTIME_SEEN True
