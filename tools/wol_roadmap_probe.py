@@ -67,6 +67,7 @@ def main():
     ap.add_argument('--layout',type=Path,required=True)
     ap.add_argument('--control-save',type=Path)
     ap.add_argument('--route',type=Path,help='bounded data-free action list; requested actions are not observed scenes')
+    ap.add_argument('--ordinary-title',action='store_true',help='unaltered launcher environment; title-only, no injected input')
     ap.add_argument('--guest-pages',action='store_true',help='heavy diagnostic pagemap snapshots; not an FPS benchmark')
     a=ap.parse_args()
     route=json.loads(a.route.read_text()) if a.route else None
@@ -91,6 +92,7 @@ def main():
                  session_sha256=hashlib.sha256(Path('/mnt/UDISK/session.py').read_bytes()).hexdigest(),
                  launcher_sha256=hashlib.sha256((root.parent/'West of Loathing Switch.sh').read_bytes()).hexdigest(),
                  layout_sha256=hashlib.sha256(a.layout.read_bytes()).hexdigest(),
+                 ordinary_title_only=a.ordinary_title,
                  phase_labels_are_requests_not_scene_classifications=True,
                  heavy_guest_page_sampling=a.guest_pages)
     ledger=None
@@ -111,7 +113,7 @@ def main():
                 if p.is_file():shutil.copyfile(p,save/p.name)
         receipt['control_save_hashes']=hashes(save)
         stage('startup')
-        launch=subprocess.Popen([sys.executable,'/mnt/UDISK/session.py','start',a.label,'0'])
+        launch=subprocess.Popen([sys.executable,'/mnt/UDISK/session.py','start',a.label,'normal' if a.ordinary_title else '0'])
         deadline=time.monotonic()+120
         while not pids('wol-horizon') and time.monotonic()<deadline:
             if launch.poll() is not None:raise RuntimeError('launch ended before runtime')
@@ -132,6 +134,7 @@ def main():
         raw=(Path('/proc')/str(ps[0])/'environ').read_bytes().split(b'\0')
         (out/'effective-env.json').write_text(json.dumps({x.split(b'=',1)[0].decode():x.split(b'=',1)[1].decode(errors='replace') for x in raw if b'=' in x and x.split(b'=',1)[0].startswith((b'WOL_',b'COTM_',b'T2_',b'MOMO_'))},indent=2)+'\n')
         stage('menu');time.sleep(20)
+        if a.ordinary_title:return
         stage('continue-load');cmd('press','0x1','0','12','world','180')
         stage('game-idle');time.sleep(30)
         if route is not None:

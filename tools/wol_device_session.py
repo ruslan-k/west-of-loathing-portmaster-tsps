@@ -36,7 +36,7 @@ if mode=='start':
     if cmd.exists():
         old=cmd.read_text();assert 'West of Loathing Switch.sh' in old,('foreign handoff',old)
         (out/(label+'-previous-handoff.txt')).write_text(old);cmd.unlink()
-    assert sys.argv[3] in ('0','1')
+    assert sys.argv[3] in ('0','1','normal')
     env=dict(WOL_PROBE_SECONDS='900',COTM_INPUT_DIAGNOSTIC='1',WOL_RECT_TRACE='off',MOMO_FRAME_CLOCK='1',WOL_DRAW_TRACE=sys.argv[3])
     if os.environ.get('WOL_PL_CMD4_REPLY'):env['WOL_PL_CMD4_REPLY']=os.environ['WOL_PL_CMD4_REPLY']
     if os.environ.get('WOL_PL_CMD1_REPLY'):env['WOL_PL_CMD1_REPLY']=os.environ['WOL_PL_CMD1_REPLY']
@@ -67,8 +67,10 @@ if mode=='start':
     if os.environ.get('WOL_ROMFS_LIFETIME'):env['WOL_ROMFS_LIFETIME']=os.environ['WOL_ROMFS_LIFETIME']
     if os.environ.get('WOL_ALLOC_TRACE'):env['WOL_ALLOC_TRACE']=os.environ['WOL_ALLOC_TRACE']
     if os.environ.get('WOL_ASTC_POSTCOPY'):env['WOL_ASTC_POSTCOPY']=os.environ['WOL_ASTC_POSTCOPY']
+    if os.environ.get('WOL_PBO_UPLOAD'):env['WOL_PBO_UPLOAD']=os.environ['WOL_PBO_UPLOAD']
     if os.environ.get('WOL_UPLOAD_TIMING'):env['WOL_UPLOAD_TIMING']=os.environ['WOL_UPLOAD_TIMING']
     if os.environ.get('WOL_ASTC_POSTCOPY_ID'):env['WOL_ASTC_POSTCOPY_ID']=os.environ['WOL_ASTC_POSTCOPY_ID']
+    if sys.argv[3]=='normal':env={}
     standard='/mnt/SDCARD/Emu/PORTS/../../spruce/scripts/emu/standard_launch.sh'
     launch='/mnt/SDCARD/Roms/PORTS/West of Loathing Switch.sh'
     line='env '+' '.join(shlex.quote(k+'='+v) for k,v in env.items())+' '+shlex.quote(standard)+' '+shlex.quote(launch)+'\n'

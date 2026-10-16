@@ -44,6 +44,7 @@ struct nvn_vertex_format nvn_vertex_format_decode(unsigned f) {
            (struct nvn_vertex_format){0,0,0,0};
 }
 struct {unsigned attributes;} nvn_device={4};
+struct {unsigned frame;} wol_residency={1};
 struct {unsigned attrib_count,stream_count;uint32_t attrib[16];uint64_t streams[32][2];
         struct {uint64_t address,size;} vertex[32];} nvn_render;
 uint64_t nvn_caller;
@@ -116,6 +117,8 @@ int main(void) {
     exercise(0);exercise(1);return 0;
 }
 '''.replace('BINDING', binding)
+if 'static void wol_vtx_census_report(' in helper:
+    cases=cases.replace('exercise(0);exercise(1);return 0;', 'exercise(0);exercise(1);wol_vtx_census_report(1);return 0;')
 with tempfile.TemporaryDirectory(prefix='wol-streams-', dir=os.environ.get('TMPDIR')) as tmp:
     c = Path(tmp)/'streams.c'
     c.write_text(preamble+helper+cases)
@@ -124,4 +127,7 @@ with tempfile.TemporaryDirectory(prefix='wol-streams-', dir=os.environ.get('TMPD
     subprocess.run([str(exe)],check=True)
     off=dict(os.environ);off['WOL_PAIR_RING']='0'
     subprocess.run([str(exe)],check=True,env=off)
+    if 'static void wol_vtx_census_report(' in helper:
+        census=dict(os.environ);census['WOL_VTX_CENSUS']='1'
+        subprocess.run([str(exe)],check=True,env=census)
 print('PASS actual hook binds the guest descriptor stream, not only its offset')

@@ -1,0 +1,16 @@
+[
+  {
+    "label": "v2-groupab-control-1",
+    "variant": "control",
+    "pair": 1,
+    "path": "evidence/roadmap-v2-postcopy-group/v2-groupab-control-1",
+    "runtime_sha256": "a8f63d0313d9d0b0984d26004166b94d440443fbba33865908ec9c44e381a6d1"
+  },
+  {
+    "label": "v2-groupab-postcopy-1",
+    "variant": "postcopy",
+    "pair": 1,
+    "path": "evidence/roadmap-v2-postcopy-group/v2-groupab-postcopy-1",
+    "runtime_sha256": "a8f63d0313d9d0b0984d26004166b94d440443fbba33865908ec9c44e381a6d1"
+  }
+]

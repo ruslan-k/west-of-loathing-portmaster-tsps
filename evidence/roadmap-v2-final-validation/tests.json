@@ -1,0 +1,20 @@
+{
+  "data_free_unit": {
+    "exit_code": 0,
+    "count": 39,
+    "kind": "unittest test cases"
+  },
+  "source_contract_cli": {
+    "exit_code": 0,
+    "count": 11,
+    "kind": "CLI programs"
+  },
+  "native_probe_unit": {
+    "exit_code": 0,
+    "count": 22,
+    "kind": "unittest test cases"
+  },
+  "runtime_source_parity_files": 199,
+  "runtime_elf_sha256": "0cca40eca762c984acb53ecd7af1f56caba8b9756041406f154a07daad74b8fc",
+  "caveat": "Generic tools/test_*.py discovery is not supported by legacy argv-based source-contract programs; these were executed with their required frozen-source arguments, not skipped."
+}

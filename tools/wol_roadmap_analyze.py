@@ -101,6 +101,8 @@ def summarize(root):
         result['phases'][phase] = item
     hits = records(text, 'WOL_ASTC_POSTCOPY_HIT ')
     writes = records(text, 'WOL_BC_WRITE ')
+    result['pbo_stats'] = records(text, 'WOL_PBO_STATS ')
+    result['upload_timing_diagnostics'] = records(text, 'WOL_UPLOAD_TIMING ')
     result['astc_postcopy_hits'] = hits
     result['astc_fallbacks'] = records(text, 'ASTC_CACHE_FALLBACK ')
     result['bc_write_census'] = dict(total=len(writes), full=sum(x.get('full')=='1' for x in writes),
@@ -122,7 +124,10 @@ def summarize(root):
 def compare(runs):
     arms = defaultdict(list)
     for r in runs:
-        variant = 'postcopy' if r['effective_env'].get('WOL_ASTC_POSTCOPY')=='1' else 'control'
+        env=r['effective_env']
+        variant=('pbo' if env.get('WOL_PBO_UPLOAD')=='1' else
+                 'direct' if env.get('WOL_REFRESH_DIRECT')=='1' else
+                 'postcopy' if env.get('WOL_ASTC_POSTCOPY')=='1' else 'control')
         arms[variant].append(r)
     out: dict[str, Any] = dict(arm_counts={k:len(v) for k,v in arms.items()}, per_phase={})
     if not all(k in arms for k in ('control','postcopy')):

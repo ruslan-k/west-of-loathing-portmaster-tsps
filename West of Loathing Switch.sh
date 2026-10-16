@@ -2,9 +2,9 @@
 # Experimental WoL Switch runtime. Launch only through Spruce/PortMaster principal flow.
 GAMEDIR=/mnt/SDCARD/Roms/PORTS/wol-switch
 cd "$GAMEDIR" || exit 1
-# TEMP-DIAG (2026-10-14 remote verification): UV diagnostics during the investigation.
-# NOTE: on the device the same block is live; harmless defaults, all overridable.
-export COTM_INPUT_DIAGNOSTIC=${COTM_INPUT_DIAGNOSTIC:-1}
+# Diagnostic input injection is opt-in; ordinary menu launches expose no socket.
+# Test harnesses pass COTM_INPUT_DIAGNOSTIC=1 explicitly.
+export COTM_INPUT_DIAGNOSTIC=${COTM_INPUT_DIAGNOSTIC:-0}
 # Installed owner-bundle baseline: repaired Sprite RenderData metadata now tracks
 # the promoted mip dimensions. Legacy renderer-side UV halving would apply the
 # adjustment twice and break the menu/world on an ordinary menu launch.

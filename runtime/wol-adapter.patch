@@ -5405,7 +5405,7 @@
      unsigned x=box?box[0]/4:0,y=box?box[1]/4:0,width=box?box[3]:m.width,height=box?box[4]:m.height;
      unsigned nx=(width+3)/4,ny=(height+3)/4;size_t linear_bytes=(size_t)nx*ny*m.bytes;
      uint8_t *linear=malloc(linear_bytes);if(!linear)stop("ZERO_BC_LINEAR_MEMORY",nvn_caller,linear_bytes,21);
-@@ -485,35 +586,108 @@
+@@ -485,35 +586,166 @@
          stop("ZERO_BC_TILED_DECODE",nvn_caller,t->id,24);
      free(linear);
  }
@@ -5424,6 +5424,63 @@
 +    if(error)stop("WOL_ASTC_RESTORE_GL",nvn_caller,error,21);
 +    t->astc_from_cache=0;printf("ASTC_CACHE_FALLBACK id=%"PRIu64" reason=%s restored-full-image=1\n",t->id,reason);
 +}
++/* WOL_PBO_UPLOAD_BEGIN */
++/* Default-off bounded unpack buffers: same pixels/order, never wait or overwrite an
++ * in-flight slot. This is not the earlier VBO ring nor a compositor async toggle. */
++static unsigned wol_pbo_upload(struct nvn_texture *t,unsigned level,unsigned width,unsigned height,unsigned type,const void *pixels) {
++    static int configured,on;static EGLContext context;
++    static GLuint buffers[2];static void *fences[2];static unsigned initialized;
++    static void *(*map_range)(GLenum,GLintptr,GLsizeiptr,GLbitfield);
++    static GLboolean (*unmap)(GLenum);
++    static void *(*fence_sync)(GLenum,GLbitfield);
++    static GLenum (*wait_sync)(void *,GLbitfield,uint64_t);
++    static void (*delete_sync)(void *);
++    static uint64_t attempts,uploaded,busy;
++    if(!configured){const char *o=getenv("WOL_PBO_UPLOAD");on=o&&!strcmp(o,"1");configured=1;}
++    if(!on || t->id!=460 || level || width!=1280 || height!=720 || type!=GL_UNSIGNED_BYTE || t->b.format!=0x25)return 0;
++    EGLContext current=eglGetCurrentContext();if(!current || (context && context!=current))return 0;
++    GLint previous=0;glGetIntegerv(0x88efU,&previous);if(previous)return 0;
++    if(!initialized) {
++        const char *timing=getenv("WOL_UPLOAD_TIMING");
++        if(timing&&!strcmp(timing,"1"))stop("WOL_PBO_TIMING_CONFLICT",nvn_caller,0,24);
++        map_range=(void *)eglGetProcAddress("glMapBufferRange");unmap=(void *)eglGetProcAddress("glUnmapBuffer");
++        fence_sync=(void *)eglGetProcAddress("glFenceSync");wait_sync=(void *)eglGetProcAddress("glClientWaitSync");
++        delete_sync=(void *)eglGetProcAddress("glDeleteSync");
++        if(!map_range || !unmap || !fence_sync || !wait_sync || !delete_sync){on=0;printf("WOL_PBO_UPLOAD unavailable=1 fallback=ordinary\n");return 0;}
++        GLenum old=glGetError();if(old)stop("WOL_PBO_PRIOR_GL",nvn_caller,old,21);
++        glGenBuffers(2,buffers);
++        for(unsigned i=0;i<2;i++) {
++            if(!buffers[i])stop("WOL_PBO_BUFFER_REQUIRED",nvn_caller,i,21);
++            glBindBuffer(0x88ecU,buffers[i]);glBufferData(0x88ecU,3686400,NULL,GL_STREAM_DRAW);
++        }
++        glBindBuffer(0x88ecU,0);GLenum error=glGetError();if(error)stop("WOL_PBO_ALLOC_GL",nvn_caller,error,21);
++        context=current;initialized=1;
++        printf("WOL_PBO_UPLOAD enabled=1 slots=2 requested-buffer-bytes=7372800 wait-timeout-ns=0 fallback=ordinary id=460\n");
++    }
++    attempts++;unsigned slot=2;
++    for(unsigned i=0;i<2;i++) {
++        if(fences[i]) {
++            GLenum status=wait_sync(fences[i],0,0);
++            if(status==0x911bU)continue;
++            if(status!=0x911aU && status!=0x911cU)stop("WOL_PBO_WAIT_STATUS",nvn_caller,status,21);
++            delete_sync(fences[i]);fences[i]=NULL;
++        }
++        slot=i;break;
++    }
++    if(slot==2){busy++;return 0;}
++    glBindBuffer(0x88ecU,buffers[slot]);
++    void *mapped=map_range(0x88ecU,0,3686400,2U);
++    if(!mapped){glBindBuffer(0x88ecU,0);on=0;return 0;}
++    memcpy(mapped,pixels,3686400);
++    if(!unmap(0x88ecU)){glBindBuffer(0x88ecU,0);on=0;return 0;}
++    glTexSubImage2D(GL_TEXTURE_2D,0,0,0,width,height,GL_RGBA,type,NULL);
++    fences[slot]=fence_sync(0x9117U,0);glBindBuffer(0x88ecU,0);
++    GLenum error=glGetError();if(error || !fences[slot])stop("WOL_PBO_SUBMIT_GL",nvn_caller,error,21);
++    uploaded++;
++    if(uploaded<=3 || !(uploaded&255))printf("WOL_PBO_STATS attempts=%"PRIu64" uploaded=%"PRIu64" busy-fallback=%"PRIu64" bytes-per-upload=3686400\n",attempts,uploaded,busy);
++    return 1;
++}
++/* WOL_PBO_UPLOAD_END */
 +/* WOL_UPLOAD_TIMING=1 is a bounded, perturbing diagnostic, never an FPS arm.
 + * Drain the prior queue separately from the upload call and the upload retirement.
 + * It preserves pixels/order but adds explicit finishes on at most 16 sampled calls. */
@@ -5432,6 +5489,7 @@
 +    return (uint64_t)n.tv_sec*1000000000ULL+(uint64_t)n.tv_nsec;
 +}
 +static void wol_texture_upload(struct nvn_texture *t,unsigned level,unsigned width,unsigned height,unsigned type,const void *pixels) {
++    if(wol_pbo_upload(t,level,width,height,type,pixels))return;
 +    static int configured,on;static unsigned calls,shots;
 +    if(!configured){const char *o=getenv("WOL_UPLOAD_TIMING");on=o&&!strcmp(o,"1");configured=1;}
 +    unsigned sampled=on && t->id==460 && !level && shots<16 && !(calls++%240);
@@ -5523,7 +5581,7 @@
  }
  #include "zero_texture_writes.h"
  static unsigned nvn_texture_dispatch(unsigned id,struct nvn_frame *f,uint64_t *result) {
-@@ -602,6 +776,7 @@
+@@ -602,6 +834,7 @@
          }
          if(slot==4096)stop("NVN_TEXTURE_CAPACITY",nvn_caller,slot,21);
          struct nvn_texture *t=&nvn_textures[slot];*t=(struct nvn_texture){.object=a[0],.id=zero_next_object_id(),.size=size,.b=b,.pool=pool};
@@ -5531,7 +5589,7 @@
          /* Frente F: an eligible page gets no GL storage now (the pool holds nothing yet, MEDIDO pc-008: the
           * copy arrives later) and no budget; the copy decides between the palettized form and RGBA8. */
          t->t2_page.deferred=t2_page_eligible(&b);
-@@ -693,12 +868,21 @@
+@@ -693,12 +926,21 @@
                      for(unsigned y=0;y<height;y++)if(!nvn_texture_decode_upload(b.format,b.swizzle,upload_type,rgba+(size_t)y*width*upload_bpp,src+y*stride,width))
                          stop("NVN_TEXTURE_INITIAL_FORMAT",nvn_caller,b.format,20);
                  }
@@ -5554,7 +5612,7 @@
  #if MEGAMAN_HOST_DIAGNOSTIC
                  /* Observation remains an independent RGBA8 reference; packed
                   * UNORM5 may truthfully differ by one readback code value. */
-@@ -721,6 +905,7 @@
+@@ -721,6 +963,7 @@
  #if ZERO_ZX_GAME
              zero_mip_complete_storage(t,zero_bc_srgb(b.format)?0x8c42U:GL_RGBA,nvn_cpu_image_upload_type(t));
  #endif
@@ -5562,7 +5620,7 @@
              nvn_texture_parameters(t,GL_NEAREST,GL_NEAREST,GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE);
              glBindTexture(GL_TEXTURE_2D,0);
          }
-@@ -739,6 +924,7 @@
+@@ -739,6 +982,7 @@
              printf("MOMO_TEXTURE_IDENTITY id=%"PRIu64" object=0x%"PRIx64" pool=0x%"PRIx64" offset=0x%"PRIx64" bytes=%"PRIu64" size=%ux%u format=0x%x flags=0x%x levels=%u target=%u\n",
                  t->id,a[0],b.pool,b.offset,size,b.width,b.height,b.format,b.flags,b.levels,b.target);
          printf("NVN_TEXTURE_REAL object=0x%"PRIx64" format=0x%x size=%ux%u levels=%u bytes=%"PRIu64" texture=%u depth=%u gpu-storage=%s no-draw\n",a[0],b.format,b.width,b.height,b.levels,size,t->name,t->depth_buffer,t->zero_backend_deferred?"unavailable-native-backing-retained":t->packaged_lazy?"deferred":"allocated");
@@ -5570,7 +5628,7 @@
          if(t->host_scaled)printf("NVN_LC2_SCALED_STORAGE id=%"PRIu64" texture=%u depth=%u flags=0x%x pool=0x%x logical=%ux%u actual=%ux%u initial=%s\n",
              t->id,t->name,t->depth_buffer,b.flags,pool->flags,b.width,b.height,t->host_width,t->host_height,
              shared_storage?"existing-GPU-owner":t->name?"full-decode-uniform":"native-depth-uninitialized");
-@@ -841,3 +1027,36 @@
+@@ -841,3 +1085,36 @@
      }
      return 1;
  }
