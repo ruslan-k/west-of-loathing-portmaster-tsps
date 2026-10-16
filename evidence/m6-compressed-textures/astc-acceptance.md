@@ -73,7 +73,9 @@ is byte-exact with the reference for the tested payloads. Evidence images:
 
 1. Build the owner-local content-hash cache outside UnityFS (BC/DXT → ASTC 6x6 for static
    immutable payloads; keep RGBA fallback for dynamic/render-target/partially-updated
-   assets). Upload path exists now; the cache and the runtime wiring do not.
+   assets). Builder + format + first 24-texture cache: **done** (`tools/wol_m6_cache_build.py`,
+   `cache-design.md`, `cache-audit-24.json`). The runtime first-upload hook and its fallback
+   remain the open step.
 2. Driver-allocation inspection: only acceptance was measured here. The debugfs node
    `/sys/kernel/debug/mali0/gpu_memory` (mountable on demand; not mounted by default)
    reports per-context bytes and is a usable instrument, but a snapshot must be taken
