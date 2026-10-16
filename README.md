@@ -4,7 +4,7 @@
 
 Latest device evidence: [gfx265](evidence/gfx265/README.md). Skinned PC/Cactus Bill bodies and the WANTED portrait mask are restored. The map paper-size repair is installed, but marker/title overlap remains open. Code, tests, hashes, physical captures and a measured resource baseline are recorded together. [Next resource-optimization tests](docs/resource-optimization.md) are candidates, not claimed gains.
 
-This project explores executing the owner's Nintendo Switch ARM64/IL2CPP build on Linux ARM64, rather than repeating the previous x64/Box64 path. No game code, assets, keys, saves, NSP/NSZ or third-party runtime binaries are distributed here.
+This project explores executing the owner's Nintendo Switch ARM64/IL2CPP build on Linux ARM64, rather than repeating the previous x64/Box64 path. No game code, assets, keys, saves, NSP/NSZ or third-party runtime binaries are distributed here. Raw texture/framebuffer dumps and extracted shader binaries are excluded and were purged from the repository history on 2026-10-16.
 
 ## Independent minimal-probe frontier (historical baseline)
 

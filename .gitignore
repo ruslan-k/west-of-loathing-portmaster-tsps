@@ -21,3 +21,11 @@ wol-horizon
 owner-horizon-image/
 horizon-build*/
 evidence/**/runtime.log
+# License hygiene (history purged 2026-10-16): raw game/framebuffer dumps and extracted binaries are never committed.
+*.ppm
+*wol-tex-*
+*.pam
+*.xci
+*.nro
+*.nso
+wol-romfs*
