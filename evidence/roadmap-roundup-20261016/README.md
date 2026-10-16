@@ -9,9 +9,9 @@ Scope: one day of device rounds on `main` (baseline `a6acb0e` → `54ef07f`), ow
 | Item | Status | Evidence |
 | --- | --- | --- |
 | 1. Frame timeline + GPU-wait attribution (instrumentation) | Done: `NVN_REPLAY_PHASES` + `NVN_DRAW_SPLIT` sub-spans, profiler-overhead A/B in noise | `evidence/fps-frame-timeline/` |
-| 2. Heap/AssetBundle owner + residency inventory | Partial: residency + vertex census measured; phase comparison done; allocation-owner trace and VMA diffs **not implemented** | `evidence/gpu-texture-residency/`, `evidence/m5-heap-owners/` |
+| 2. Heap/AssetBundle owner + residency inventory | Partial: residency + vertex census + phase VMA diffs measured; allocation-owner trace **not implemented** | `evidence/gpu-texture-residency/`, `evidence/m5-heap-owners/` |
 | 3. Texture-460 dependency trace → lazy copy | Trace done; **lazy alias rejected** with reasons (source mutates every frame; deferred copy keeps full cost) | `evidence/copy460-dependency-trace/` |
-| 4. M6 compressed upload (one texture) | **Not implemented**; first inventory + format-support gate recorded | `evidence/m6-compressed-textures/staging.md` |
+| 4. M6 compressed upload (one texture) | Gate cleared: native ASTC 6x6 (0x93B4) upload + byte-exact decode proven on Mali-G57 (GBM pbuffer probe, no scanout); cache + runtime wiring still open | `evidence/m6-compressed-textures/astc-acceptance.md` |
 | 5. Evidence/report + next candidate | This document | — |
 | Section 2 (present proof) | Validated (proof frame 4, sparse period 300, 2895 NOT-SAMPLED) | `evidence/present-proof-sparse/` |
 | Section 4 (CPU remap A/B) | Measured: no repeatable gain; stays opt-in | `evidence/cpu-remap-ab/` |
@@ -54,6 +54,7 @@ Scope: one day of device rounds on `main` (baseline `a6acb0e` → `54ef07f`), ow
   (`HID_DIAGNOSTIC_REJECT`).
 - Allocation-owner trace (≥1 MiB allocations with call sites and lifetimes) and repeated
   street→sheriff→street cycles.
-- M6 cache implementation and encoder provisioning; texture-460 lazy-copy implementation
+- M6 cache implementation and runtime wiring (acceptance gate cleared 2026-10-16, see
+  `evidence/m6-compressed-textures/astc-acceptance.md`); texture-460 lazy-copy implementation
   (rejected on trace evidence, revisit only with a new mechanism).
 - `glFinish`/GPU-wait classification beyond the existing finish measurement.
