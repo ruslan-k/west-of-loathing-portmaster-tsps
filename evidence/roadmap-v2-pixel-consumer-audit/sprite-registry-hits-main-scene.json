@@ -1,0 +1,149 @@
+{
+  "schema": 1,
+  "objects_with_name_lists": 13,
+  "hits": [
+    {
+      "type": "Material",
+      "path_id": 4,
+      "container": null,
+      "names": [
+        "PC_test_torso"
+      ],
+      "name_count": 1,
+      "bytes": 112
+    },
+    {
+      "type": "Mesh",
+      "path_id": 101,
+      "container": null,
+      "names": [
+        "PC_test_torso"
+      ],
+      "name_count": 1,
+      "bytes": 5784
+    },
+    {
+      "type": "GameObject",
+      "path_id": 675,
+      "container": null,
+      "names": [
+        "PC_test_arm_left_upper"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": 680,
+      "container": null,
+      "names": [
+        "PC_test_arm_right_lower"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": 701,
+      "container": null,
+      "names": [
+        "PC_test_arm_right_upper"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": 820,
+      "container": null,
+      "names": [
+        "hair_female_tails"
+      ],
+      "name_count": 1,
+      "bytes": 59
+    },
+    {
+      "type": "GameObject",
+      "path_id": 841,
+      "container": null,
+      "names": [
+        "PC_test_arm_left_lower"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": 871,
+      "container": null,
+      "names": [
+        "PC_test_leg_right_upper"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": 872,
+      "container": null,
+      "names": [
+        "PC_test_torso"
+      ],
+      "name_count": 1,
+      "bytes": 87
+    },
+    {
+      "type": "GameObject",
+      "path_id": 899,
+      "container": null,
+      "names": [
+        "PC_test_leg_left_lower"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": 902,
+      "container": null,
+      "names": [
+        "PC_test_leg_right_lower"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": 925,
+      "container": null,
+      "names": [
+        "hair_female_tails"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    },
+    {
+      "type": "GameObject",
+      "path_id": 953,
+      "container": null,
+      "names": [
+        "PC_test_leg_left_upper"
+      ],
+      "name_count": 1,
+      "bytes": 63
+    }
+  ],
+  "covered_names": [
+    "PC_test_arm_left_lower",
+    "PC_test_arm_left_upper",
+    "PC_test_arm_right_lower",
+    "PC_test_arm_right_upper",
+    "PC_test_leg_left_lower",
+    "PC_test_leg_left_upper",
+    "PC_test_leg_right_lower",
+    "PC_test_leg_right_upper",
+    "PC_test_torso",
+    "hair_female_tails"
+  ],
+  "caveat": "A container hit proves the object carries the names; the semantic registry owner is read from its typetree."
+}
