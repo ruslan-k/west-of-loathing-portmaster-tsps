@@ -2142,7 +2142,7 @@
      if(nvn_draw_diagnostic_active()) {
          GLint previous;GLuint fb;glGetIntegerv(GL_FRAMEBUFFER_BINDING,&previous);glGenFramebuffers(1,&fb);
          glBindFramebuffer(GL_FRAMEBUFFER,fb);glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,texture_name,0);
-@@ -507,8 +860,1305 @@
+@@ -507,8 +860,1344 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -3014,6 +3014,45 @@
 +                        }}
 +                    }
 +                }
++                /* WOL_DRAW_SNAPSHOT: arm-file-triggered, read-only census of ONE frame.
++                 * Unlike the legacy rect probe, visit only vertices referenced by the draw's indices.
++                 * Unreferenced gaps in a shared UI vertex buffer are not this draw's geometry. */
++                {
++                    static int configured;static const char *arm;
++                    static unsigned previous=UINT32_MAX,armed_frame=UINT32_MAX,done,draws;
++                    if(!configured){arm=getenv("WOL_DRAW_SNAPSHOT");configured=1;}
++                    unsigned frame=nvn_replay.last_frame;
++                    if(arm&&*arm&&!done&&frame!=previous){
++                        previous=frame;
++                        if(armed_frame==UINT32_MAX&&access(arm,F_OK)==0)armed_frame=frame;
++                        else if(armed_frame!=UINT32_MAX&&frame!=armed_frame)done=1;
++                    }
++                    if(arm&&*arm&&!done&&frame==armed_frame&&draws<256&&avail>=32*4){
++                        draws++;
++                        GLint vp[4],sc[4];glGetIntegerv(GL_VIEWPORT,vp);glGetIntegerv(GL_SCISSOR_BOX,sc);
++                        printf("WOL_DRAW_SNAPSHOT n=%u frame=%u v=%s f=%s first=%"PRIu64" count=%"PRIu64" vertices=%"PRIu64" indexed=%u target=%"PRIu64"/%ux%u viewport=%d,%d,%d,%d scissor=%d,%d,%d,%d scissor_on=%u\n",
++                            draws,frame,wol_cat_bindings[wol_cat_cur->v].name,wol_cat_bindings[wol_cat_cur->f].name,
++                            first,count,vertex_count,geometry.indices!=NULL,nvn_render.target?nvn_render.target->id:0,
++                            nvn_render.target?nvn_render.target->b.width:0,nvn_render.target?nvn_render.target->b.height:0,
++                            vp[0],vp[1],vp[2],vp[3],sc[0],sc[1],sc[2],sc[3],(unsigned)glIsEnabled(GL_SCISSOR_TEST));
++                        printf("WOL_DRAW_SNAPSHOT c3v=");for(unsigned i=0;i<36;i++)printf(" %.9g",words[i]);putchar('\n');
++                        float bounds[4]={1e9f,1e9f,-1e9f,-1e9f};
++                        for(uint64_t i=0;i<count;i++){
++                            uint64_t k=geometry.indices?geometry.indices[i]:i;
++                            const float *p=(const float *)(base+k*stride);float q[4],c[4];
++                            for(unsigned j=0;j<4;j++)q[j]=words[j]*p[0]+words[4+j]*p[1]+words[8+j]*p[2]+words[12+j];
++                            for(unsigned j=0;j<4;j++)c[j]=words[16+j]*q[0]+words[20+j]*q[1]+words[24+j]*q[2]+words[28+j]*q[3];
++                            if(c[3]!=0.0f){float x=(c[0]/c[3]+1.0f)*640.0f,y=(1.0f-c[1]/c[3])*360.0f;
++                                if(x<bounds[0])bounds[0]=x;
++                                if(y<bounds[1])bounds[1]=y;
++                                if(x>bounds[2])bounds[2]=x;
++                                if(y>bounds[3])bounds[3]=y;}
++                            if(i<6)printf("WOL_DRAW_SNAPSHOT vertex=%"PRIu64" index=%"PRIu64" pos=%.9g,%.9g,%.9g raw_w=%.9g clip=%.9g,%.9g,%.9g,%.9g\n",i,k,p[0],p[1],p[2],stride>=16?p[3]:1.0f,c[0],c[1],c[2],c[3]);
++                        }
++                        printf("WOL_DRAW_SNAPSHOT ndc_screen=%.3f,%.3f,%.3f,%.3f\n",bounds[0],bounds[1],bounds[2],bounds[3]);
++                        wol_trace_tex_state();
++                    }
++                }
 +                /* WOL_RECT_TRACE="sx0,sy0,sx1,sy1": print every draw whose transformed quad bbox
 +                 * (screen px, 1280x720, origin top-left) intersects the rect - pair/stride/count/bbox/
 +                 * uv0/c3uv/texture. 2026-10-14: locate the exact draw class of a screen element (the
@@ -3448,7 +3487,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +2354,7 @@
+@@ -704,6 +2393,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -3456,7 +3495,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1340,7 +2991,7 @@
+@@ -1340,7 +3030,7 @@
              if(cadence_stencil && mfc_stencil_preserve_geometry(primitive,indices,count,maximum)) {
                  nvn_mfc_require(nvn_render.depth,MFC_STENCIL,0);
                  nvn_render_color_mask(0);nvn_render_depth_mask(GL_FALSE);
@@ -3465,7 +3504,7 @@
                  nvn_render_color_mask(effective_color_mask);
                  nvn_render_depth_mask((nvn_render.depth_state[0]>>1)&1);
                  uint64_t preserved=++megaman_frame_cadence.stencil_preserved_draws;
-@@ -1411,7 +3062,7 @@
+@@ -1411,7 +3101,7 @@
          uint64_t aw_probe_t0=0;if(tpf && nvn_replay.last_frame+1==tpf){glFinish();aw_probe_t0=nvn_nanoseconds();}
          if(p->aw_noise_location>=0){glActiveTexture(GL_TEXTURE0+7);glBindTexture(GL_TEXTURE_2D,aw_noise.tex);GLint unit=7;nvn_uniform_send(p->aw_noise_location,NVN_UNIFORM_INT,&unit);glActiveTexture(GL_TEXTURE0);}
  #endif
@@ -3474,7 +3513,7 @@
          zero_depth_draw_end(&depth_draw);nvn_draw_finish_profile();
  #ifdef ANIMAL_WELL_SHADERS
          nvn_render.target->aw_draws_since_clear++;
-@@ -1535,6 +3186,433 @@
+@@ -1535,6 +3225,433 @@
          begin=end+1;
      }
  }
@@ -3908,7 +3947,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +3640,16 @@
+@@ -1562,7 +3679,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -3926,7 +3965,7 @@
      case NI_nvnCommandBufferSetLineWidth:case NI_nvnCommandBufferSetPointSize: {
          float size;memcpy(&size,r->vectors,4);
          if(!isfinite(size) || size<=0)stop("ZERO_RASTER_SIZE_INVALID",nvn_caller,r->op,24);
-@@ -1682,9 +3769,10 @@
+@@ -1682,9 +3808,10 @@
              nvn_render.framebuffer=nvn_framebuffer_bind(nvn_render.target,d);nvn_render.pass_skipped=0;
              zero_udd_restore(d);
              nvn_low_target(nvn_render.target,d);d->composition_target_seen=1;
@@ -3938,7 +3977,7 @@
          nvn_cpu_image_require_target(t);nvn_cpu_image_require_target(d);
          nvn_rt_storage_target(t,d);
          nvn_mfc_target(t);nvn_mfc_target(d);
-@@ -1697,6 +3785,7 @@
+@@ -1697,6 +3824,7 @@
              if(nvn_low_color(t)<0&&!t->host_scaled)d->composition_other_target=1;}
          nvn_packaged_require_writable(t,"NVN_LC2_PACKAGED_RENDER_TARGET_REQUIRED");
          if(!t->name||(d&&(!d->depth_buffer||d->b.width!=t->b.width||d->b.height!=t->b.height)))stop("NVN_FRAMEBUFFER_ATTACHMENTS",nvn_caller,targets[0],24);
