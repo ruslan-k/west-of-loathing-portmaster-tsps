@@ -1,0 +1,186 @@
+{
+  "scene": "v2-pboab",
+  "visible_threshold": 8,
+  "frames": [
+    {
+      "path": "evidence/roadmap-v2-pbo-ab/v2-pboab-control-1/map.png",
+      "arm": "control"
+    },
+    {
+      "path": "evidence/roadmap-v2-pbo-ab/v2-pboab-direct-1/map.png",
+      "arm": "direct"
+    },
+    {
+      "path": "evidence/roadmap-v2-pbo-ab/v2-pboab-pbo-1/map.png",
+      "arm": "pbo"
+    }
+  ],
+  "pairs": [
+    {
+      "a": "evidence/roadmap-v2-pbo-ab/v2-pboab-control-1/map.png",
+      "b": "evidence/roadmap-v2-pbo-ab/v2-pboab-direct-1/map.png",
+      "same_arm": false,
+      "differing_pixels": 54595,
+      "differing_pct": 5.924,
+      "mean_max_channel_delta": 4.6344,
+      "pixels_over_threshold": 39595,
+      "pixels_over_threshold_pct": 4.2963,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 4859,
+          "x": 150,
+          "y": 426,
+          "w": 119,
+          "h": 98
+        },
+        {
+          "pixels": 4247,
+          "x": 992,
+          "y": 394,
+          "w": 107,
+          "h": 194
+        },
+        {
+          "pixels": 3030,
+          "x": 19,
+          "y": 446,
+          "w": 81,
+          "h": 125
+        },
+        {
+          "pixels": 2332,
+          "x": 1095,
+          "y": 597,
+          "w": 92,
+          "h": 123
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-pbo-ab/v2-pboab-control-1/map.png",
+      "b": "evidence/roadmap-v2-pbo-ab/v2-pboab-pbo-1/map.png",
+      "same_arm": false,
+      "differing_pixels": 57888,
+      "differing_pct": 6.281,
+      "mean_max_channel_delta": 5.1465,
+      "pixels_over_threshold": 42536,
+      "pixels_over_threshold_pct": 4.6155,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 5151,
+          "x": 992,
+          "y": 394,
+          "w": 169,
+          "h": 194
+        },
+        {
+          "pixels": 4911,
+          "x": 128,
+          "y": 426,
+          "w": 145,
+          "h": 98
+        },
+        {
+          "pixels": 3353,
+          "x": 8,
+          "y": 446,
+          "w": 111,
+          "h": 125
+        },
+        {
+          "pixels": 3182,
+          "x": 113,
+          "y": 601,
+          "w": 157,
+          "h": 119
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-pbo-ab/v2-pboab-direct-1/map.png",
+      "b": "evidence/roadmap-v2-pbo-ab/v2-pboab-pbo-1/map.png",
+      "same_arm": false,
+      "differing_pixels": 55965,
+      "differing_pct": 6.073,
+      "mean_max_channel_delta": 4.7524,
+      "pixels_over_threshold": 40345,
+      "pixels_over_threshold_pct": 4.3777,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 4606,
+          "x": 141,
+          "y": 426,
+          "w": 147,
+          "h": 98
+        },
+        {
+          "pixels": 4498,
+          "x": 992,
+          "y": 394,
+          "w": 96,
+          "h": 194
+        },
+        {
+          "pixels": 3089,
+          "x": 8,
+          "y": 446,
+          "w": 84,
+          "h": 125
+        },
+        {
+          "pixels": 3050,
+          "x": 76,
+          "y": 601,
+          "w": 188,
+          "h": 119
+        }
+      ]
+    }
+  ],
+  "within_arm": {
+    "differing_pct": {
+      "n": 0,
+      "min": null,
+      "max": null,
+      "mean": null
+    },
+    "mean_max_channel_delta": {
+      "n": 0,
+      "min": null,
+      "max": null,
+      "mean": null
+    },
+    "pixels_over_threshold_pct": {
+      "n": 0,
+      "min": null,
+      "max": null,
+      "mean": null
+    }
+  },
+  "between_arm": {
+    "differing_pct": {
+      "n": 3,
+      "min": 5.924,
+      "max": 6.281,
+      "mean": 6.093
+    },
+    "mean_max_channel_delta": {
+      "n": 3,
+      "min": 4.6344,
+      "max": 5.1465,
+      "mean": 4.844
+    },
+    "pixels_over_threshold_pct": {
+      "n": 3,
+      "min": 4.2963,
+      "max": 4.6155,
+      "mean": 4.43
+    }
+  },
+  "verdict": "review: at least one between-arm difference exceeds the same-arm repeat spread",
+  "pairs_with_visible_delta": 3,
+  "max_pixels_over_threshold": 42536
+}

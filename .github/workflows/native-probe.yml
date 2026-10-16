@@ -17,7 +17,7 @@ jobs:
       - name: Read-only memory profiler and staged selection tests
         run: |
           python3 -m unittest discover -s tools -p 'test_wol_memory*.py' -v
-          PYTHONPATH=tools python3 -m unittest -v test_wol_m4_wave2 test_wol_sprite_metadata
+          PYTHONPATH=tools python3 -m unittest -v test_wol_m4_wave2 test_wol_sprite_metadata test_wol_frame_parity
       - name: Install cross compiler and QEMU
         run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu qemu-user-static
       - name: Build with warnings as errors

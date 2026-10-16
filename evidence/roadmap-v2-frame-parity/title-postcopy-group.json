@@ -1,0 +1,825 @@
+{
+  "scene": "v2-group",
+  "visible_threshold": 8,
+  "frames": [
+    {
+      "path": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-control-1/title.png",
+      "arm": "control"
+    },
+    {
+      "path": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-control-2/title.png",
+      "arm": "control"
+    },
+    {
+      "path": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-postcopy-1/title.png",
+      "arm": "postcopy"
+    },
+    {
+      "path": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-postcopy-2/title.png",
+      "arm": "postcopy"
+    },
+    {
+      "path": "evidence/roadmap-v2-postcopy-group/v2-groupab-control-1/title.png",
+      "arm": "control"
+    },
+    {
+      "path": "evidence/roadmap-v2-postcopy-group/v2-groupab-postcopy-1/title.png",
+      "arm": "postcopy"
+    }
+  ],
+  "pairs": [
+    {
+      "a": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-control-1/title.png",
+      "b": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-control-2/title.png",
+      "same_arm": true,
+      "differing_pixels": 53657,
+      "differing_pct": 5.822,
+      "mean_max_channel_delta": 4.3242,
+      "pixels_over_threshold": 38364,
+      "pixels_over_threshold_pct": 4.1628,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 6968,
+          "x": 316,
+          "y": 491,
+          "w": 121,
+          "h": 165
+        },
+        {
+          "pixels": 5407,
+          "x": 417,
+          "y": 445,
+          "w": 97,
+          "h": 87
+        },
+        {
+          "pixels": 4872,
+          "x": 970,
+          "y": 424,
+          "w": 87,
+          "h": 108
+        },
+        {
+          "pixels": 2069,
+          "x": 0,
+          "y": 75,
+          "w": 166,
+          "h": 65
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-control-1/title.png",
+      "b": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-postcopy-1/title.png",
+      "same_arm": false,
+      "differing_pixels": 72862,
+      "differing_pct": 7.906,
+      "mean_max_channel_delta": 6.1998,
+      "pixels_over_threshold": 52800,
+      "pixels_over_threshold_pct": 5.7292,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 13563,
+          "x": 1106,
+          "y": 434,
+          "w": 174,
+          "h": 145
+        },
+        {
+          "pixels": 5371,
+          "x": 0,
+          "y": 538,
+          "w": 48,
+          "h": 178
+        },
+        {
+          "pixels": 4850,
+          "x": 622,
+          "y": 452,
+          "w": 248,
+          "h": 159
+        },
+        {
+          "pixels": 3745,
+          "x": 566,
+          "y": 135,
+          "w": 368,
+          "h": 220
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-control-1/title.png",
+      "b": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-postcopy-2/title.png",
+      "same_arm": false,
+      "differing_pixels": 78932,
+      "differing_pct": 8.565,
+      "mean_max_channel_delta": 7.4295,
+      "pixels_over_threshold": 59360,
+      "pixels_over_threshold_pct": 6.441,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 27595,
+          "x": 566,
+          "y": 92,
+          "w": 476,
+          "h": 519
+        },
+        {
+          "pixels": 6968,
+          "x": 316,
+          "y": 491,
+          "w": 121,
+          "h": 165
+        },
+        {
+          "pixels": 2844,
+          "x": 444,
+          "y": 454,
+          "w": 44,
+          "h": 78
+        },
+        {
+          "pixels": 2091,
+          "x": 0,
+          "y": 61,
+          "w": 166,
+          "h": 79
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-control-1/title.png",
+      "b": "evidence/roadmap-v2-postcopy-group/v2-groupab-control-1/title.png",
+      "same_arm": true,
+      "differing_pixels": 82089,
+      "differing_pct": 8.907,
+      "mean_max_channel_delta": 9.0752,
+      "pixels_over_threshold": 69134,
+      "pixels_over_threshold_pct": 7.5015,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 14978,
+          "x": 49,
+          "y": 396,
+          "w": 172,
+          "h": 178
+        },
+        {
+          "pixels": 14918,
+          "x": 566,
+          "y": 112,
+          "w": 408,
+          "h": 499
+        },
+        {
+          "pixels": 6146,
+          "x": 0,
+          "y": 570,
+          "w": 84,
+          "h": 146
+        },
+        {
+          "pixels": 5763,
+          "x": 348,
+          "y": 491,
+          "w": 56,
+          "h": 165
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-control-1/title.png",
+      "b": "evidence/roadmap-v2-postcopy-group/v2-groupab-postcopy-1/title.png",
+      "same_arm": false,
+      "differing_pixels": 88284,
+      "differing_pct": 9.579,
+      "mean_max_channel_delta": 9.5461,
+      "pixels_over_threshold": 69509,
+      "pixels_over_threshold_pct": 7.5422,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 24158,
+          "x": 566,
+          "y": 39,
+          "w": 505,
+          "h": 572
+        },
+        {
+          "pixels": 17009,
+          "x": 411,
+          "y": 435,
+          "w": 186,
+          "h": 181
+        },
+        {
+          "pixels": 5763,
+          "x": 348,
+          "y": 491,
+          "w": 56,
+          "h": 165
+        },
+        {
+          "pixels": 2542,
+          "x": 1092,
+          "y": 53,
+          "w": 188,
+          "h": 71
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-control-2/title.png",
+      "b": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-postcopy-1/title.png",
+      "same_arm": false,
+      "differing_pixels": 84271,
+      "differing_pct": 9.144,
+      "mean_max_channel_delta": 7.6297,
+      "pixels_over_threshold": 62129,
+      "pixels_over_threshold_pct": 6.7414,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 13563,
+          "x": 1106,
+          "y": 434,
+          "w": 174,
+          "h": 145
+        },
+        {
+          "pixels": 6968,
+          "x": 316,
+          "y": 491,
+          "w": 121,
+          "h": 165
+        },
+        {
+          "pixels": 5493,
+          "x": 566,
+          "y": 135,
+          "w": 368,
+          "h": 316
+        },
+        {
+          "pixels": 5371,
+          "x": 0,
+          "y": 538,
+          "w": 48,
+          "h": 178
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-control-2/title.png",
+      "b": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-postcopy-2/title.png",
+      "same_arm": false,
+      "differing_pixels": 75418,
+      "differing_pct": 8.183,
+      "mean_max_channel_delta": 6.7188,
+      "pixels_over_threshold": 55836,
+      "pixels_over_threshold_pct": 6.0586,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 17304,
+          "x": 622,
+          "y": 428,
+          "w": 364,
+          "h": 182
+        },
+        {
+          "pixels": 7292,
+          "x": 566,
+          "y": 134,
+          "w": 368,
+          "h": 309
+        },
+        {
+          "pixels": 4822,
+          "x": 970,
+          "y": 424,
+          "w": 87,
+          "h": 108
+        },
+        {
+          "pixels": 4355,
+          "x": 417,
+          "y": 445,
+          "w": 97,
+          "h": 87
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-control-2/title.png",
+      "b": "evidence/roadmap-v2-postcopy-group/v2-groupab-control-1/title.png",
+      "same_arm": true,
+      "differing_pixels": 83202,
+      "differing_pct": 9.028,
+      "mean_max_channel_delta": 9.21,
+      "pixels_over_threshold": 69635,
+      "pixels_over_threshold_pct": 7.5559,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 14978,
+          "x": 49,
+          "y": 396,
+          "w": 172,
+          "h": 178
+        },
+        {
+          "pixels": 13065,
+          "x": 566,
+          "y": 112,
+          "w": 408,
+          "h": 498
+        },
+        {
+          "pixels": 7762,
+          "x": 316,
+          "y": 520,
+          "w": 121,
+          "h": 136
+        },
+        {
+          "pixels": 6146,
+          "x": 0,
+          "y": 570,
+          "w": 84,
+          "h": 146
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-control-2/title.png",
+      "b": "evidence/roadmap-v2-postcopy-group/v2-groupab-postcopy-1/title.png",
+      "same_arm": false,
+      "differing_pixels": 91943,
+      "differing_pct": 9.976,
+      "mean_max_channel_delta": 10.2649,
+      "pixels_over_threshold": 72581,
+      "pixels_over_threshold_pct": 7.8755,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 23531,
+          "x": 566,
+          "y": 39,
+          "w": 505,
+          "h": 571
+        },
+        {
+          "pixels": 22430,
+          "x": 316,
+          "y": 435,
+          "w": 281,
+          "h": 221
+        },
+        {
+          "pixels": 4872,
+          "x": 970,
+          "y": 424,
+          "w": 87,
+          "h": 108
+        },
+        {
+          "pixels": 1297,
+          "x": 1092,
+          "y": 53,
+          "w": 188,
+          "h": 63
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-postcopy-1/title.png",
+      "b": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-postcopy-2/title.png",
+      "same_arm": true,
+      "differing_pixels": 83178,
+      "differing_pct": 9.025,
+      "mean_max_channel_delta": 8.0626,
+      "pixels_over_threshold": 66516,
+      "pixels_over_threshold_pct": 7.2174,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 14268,
+          "x": 623,
+          "y": 428,
+          "w": 363,
+          "h": 176
+        },
+        {
+          "pixels": 13562,
+          "x": 1106,
+          "y": 434,
+          "w": 174,
+          "h": 145
+        },
+        {
+          "pixels": 6968,
+          "x": 316,
+          "y": 491,
+          "w": 121,
+          "h": 165
+        },
+        {
+          "pixels": 5371,
+          "x": 0,
+          "y": 538,
+          "w": 48,
+          "h": 178
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-postcopy-1/title.png",
+      "b": "evidence/roadmap-v2-postcopy-group/v2-groupab-control-1/title.png",
+      "same_arm": false,
+      "differing_pixels": 93084,
+      "differing_pct": 10.1,
+      "mean_max_channel_delta": 8.0939,
+      "pixels_over_threshold": 68316,
+      "pixels_over_threshold_pct": 7.4128,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 14978,
+          "x": 49,
+          "y": 396,
+          "w": 172,
+          "h": 178
+        },
+        {
+          "pixels": 13563,
+          "x": 1106,
+          "y": 434,
+          "w": 174,
+          "h": 145
+        },
+        {
+          "pixels": 5763,
+          "x": 348,
+          "y": 491,
+          "w": 56,
+          "h": 165
+        },
+        {
+          "pixels": 5283,
+          "x": 0,
+          "y": 538,
+          "w": 84,
+          "h": 178
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-postcopy-1/title.png",
+      "b": "evidence/roadmap-v2-postcopy-group/v2-groupab-postcopy-1/title.png",
+      "same_arm": true,
+      "differing_pixels": 97872,
+      "differing_pct": 10.62,
+      "mean_max_channel_delta": 11.3644,
+      "pixels_over_threshold": 83807,
+      "pixels_over_threshold_pct": 9.0936,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 17064,
+          "x": 411,
+          "y": 435,
+          "w": 186,
+          "h": 181
+        },
+        {
+          "pixels": 13562,
+          "x": 1106,
+          "y": 434,
+          "w": 174,
+          "h": 145
+        },
+        {
+          "pixels": 8953,
+          "x": 566,
+          "y": 134,
+          "w": 368,
+          "h": 302
+        },
+        {
+          "pixels": 6962,
+          "x": 622,
+          "y": 435,
+          "w": 248,
+          "h": 174
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-postcopy-2/title.png",
+      "b": "evidence/roadmap-v2-postcopy-group/v2-groupab-control-1/title.png",
+      "same_arm": false,
+      "differing_pixels": 93132,
+      "differing_pct": 10.105,
+      "mean_max_channel_delta": 8.4732,
+      "pixels_over_threshold": 63323,
+      "pixels_over_threshold_pct": 6.871,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 14978,
+          "x": 49,
+          "y": 396,
+          "w": 172,
+          "h": 178
+        },
+        {
+          "pixels": 13363,
+          "x": 623,
+          "y": 428,
+          "w": 363,
+          "h": 176
+        },
+        {
+          "pixels": 7762,
+          "x": 316,
+          "y": 520,
+          "w": 121,
+          "h": 136
+        },
+        {
+          "pixels": 6146,
+          "x": 0,
+          "y": 570,
+          "w": 84,
+          "h": 146
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-postcopy-2/title.png",
+      "b": "evidence/roadmap-v2-postcopy-group/v2-groupab-postcopy-1/title.png",
+      "same_arm": true,
+      "differing_pixels": 90351,
+      "differing_pct": 9.804,
+      "mean_max_channel_delta": 10.0268,
+      "pixels_over_threshold": 76197,
+      "pixels_over_threshold_pct": 8.2679,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 24718,
+          "x": 316,
+          "y": 435,
+          "w": 281,
+          "h": 221
+        },
+        {
+          "pixels": 17636,
+          "x": 623,
+          "y": 428,
+          "w": 363,
+          "h": 179
+        },
+        {
+          "pixels": 8024,
+          "x": 566,
+          "y": 134,
+          "w": 368,
+          "h": 302
+        },
+        {
+          "pixels": 3853,
+          "x": 576,
+          "y": 39,
+          "w": 495,
+          "h": 126
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-group/v2-groupab-control-1/title.png",
+      "b": "evidence/roadmap-v2-postcopy-group/v2-groupab-postcopy-1/title.png",
+      "same_arm": false,
+      "differing_pixels": 103824,
+      "differing_pct": 11.266,
+      "mean_max_channel_delta": 10.7276,
+      "pixels_over_threshold": 81710,
+      "pixels_over_threshold_pct": 8.8661,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 17066,
+          "x": 411,
+          "y": 435,
+          "w": 186,
+          "h": 181
+        },
+        {
+          "pixels": 14978,
+          "x": 49,
+          "y": 396,
+          "w": 172,
+          "h": 178
+        },
+        {
+          "pixels": 10009,
+          "x": 566,
+          "y": 112,
+          "w": 408,
+          "h": 324
+        },
+        {
+          "pixels": 6146,
+          "x": 0,
+          "y": 570,
+          "w": 84,
+          "h": 146
+        }
+      ]
+    }
+  ],
+  "within_arm": {
+    "differing_pct": {
+      "n": 6,
+      "min": 5.822,
+      "max": 10.62,
+      "mean": 8.868
+    },
+    "mean_max_channel_delta": {
+      "n": 6,
+      "min": 4.3242,
+      "max": 11.3644,
+      "mean": 8.677
+    },
+    "pixels_over_threshold_pct": {
+      "n": 6,
+      "min": 4.1628,
+      "max": 9.0936,
+      "mean": 7.3
+    }
+  },
+  "between_arm": {
+    "differing_pct": {
+      "n": 9,
+      "min": 7.906,
+      "max": 11.266,
+      "mean": 9.425
+    },
+    "mean_max_channel_delta": {
+      "n": 9,
+      "min": 6.1998,
+      "max": 10.7276,
+      "mean": 8.343
+    },
+    "pixels_over_threshold_pct": {
+      "n": 9,
+      "min": 5.7292,
+      "max": 8.8661,
+      "mean": 7.06
+    }
+  },
+  "verdict": "no_parity_break_within_same_arm_noise",
+  "pairs_with_visible_delta": 15,
+  "max_pixels_over_threshold": 83807,
+  "stable_mask": {
+    "arm": "control",
+    "reference_frames": [
+      "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-control-1/title.png",
+      "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-control-2/title.png",
+      "evidence/roadmap-v2-postcopy-group/v2-groupab-control-1/title.png"
+    ],
+    "stable_pixels": 829212,
+    "stable_pct": 89.975,
+    "same_arm_repeat_baseline": {
+      "mean_over_frame": 7.5365,
+      "worst_share_over_threshold": 7.5559,
+      "worst_between_arm_share_over_threshold": 2.5398
+    },
+    "violations": [
+      {
+        "path": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-postcopy-1/title.png",
+        "arm": "postcopy",
+        "stable_pixels_violated": 25454,
+        "violated_pct_of_stable": 3.0697,
+        "mean_max_channel_delta_over_frame": 2.2485,
+        "stable_pixels_over_threshold": 16111,
+        "worst_max_channel_delta": 255,
+        "clusters": [
+          {
+            "pixels": 15735,
+            "x": 1105,
+            "y": 433,
+            "w": 175,
+            "h": 147
+          },
+          {
+            "pixels": 724,
+            "x": 7,
+            "y": 44,
+            "w": 145,
+            "h": 62
+          },
+          {
+            "pixels": 555,
+            "x": 5,
+            "y": 538,
+            "w": 36,
+            "h": 43
+          },
+          {
+            "pixels": 167,
+            "x": 920,
+            "y": 110,
+            "w": 32,
+            "h": 16
+          }
+        ]
+      },
+      {
+        "path": "evidence/roadmap-v2-postcopy-group/repeat/v2-grouprep-postcopy-2/title.png",
+        "arm": "postcopy",
+        "stable_pixels_violated": 25334,
+        "violated_pct_of_stable": 3.0552,
+        "mean_max_channel_delta_over_frame": 2.1313,
+        "stable_pixels_over_threshold": 14748,
+        "worst_max_channel_delta": 255,
+        "clusters": [
+          {
+            "pixels": 14587,
+            "x": 818,
+            "y": 428,
+            "w": 174,
+            "h": 176
+          },
+          {
+            "pixels": 938,
+            "x": 886,
+            "y": 94,
+            "w": 156,
+            "h": 41
+          },
+          {
+            "pixels": 198,
+            "x": 1193,
+            "y": 631,
+            "w": 35,
+            "h": 14
+          },
+          {
+            "pixels": 116,
+            "x": 1183,
+            "y": 592,
+            "w": 17,
+            "h": 14
+          }
+        ]
+      },
+      {
+        "path": "evidence/roadmap-v2-postcopy-group/v2-groupab-postcopy-1/title.png",
+        "arm": "postcopy",
+        "stable_pixels_violated": 35508,
+        "violated_pct_of_stable": 4.2821,
+        "mean_max_channel_delta_over_frame": 3.2492,
+        "stable_pixels_over_threshold": 23407,
+        "worst_max_channel_delta": 255,
+        "clusters": [
+          {
+            "pixels": 13058,
+            "x": 423,
+            "y": 425,
+            "w": 174,
+            "h": 191
+          },
+          {
+            "pixels": 1440,
+            "x": 886,
+            "y": 39,
+            "w": 185,
+            "h": 63
+          },
+          {
+            "pixels": 1206,
+            "x": 1092,
+            "y": 53,
+            "w": 188,
+            "h": 62
+          },
+          {
+            "pixels": 678,
+            "x": 626,
+            "y": 522,
+            "w": 240,
+            "h": 5
+          }
+        ]
+      }
+    ],
+    "verdict": "no_parity_break_within_same_arm_noise"
+  }
+}
