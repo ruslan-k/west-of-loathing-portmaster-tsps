@@ -1,0 +1,30 @@
+[
+ {
+  "label": "guide-open",
+  "buttons": "0x100",
+  "stick": 0,
+  "hold_ms": 180,
+  "wait_s": 12
+ },
+ {
+  "label": "select-a",
+  "buttons": "0x1",
+  "stick": 0,
+  "hold_ms": 150,
+  "wait_s": 10
+ },
+ {
+  "label": "select-a2",
+  "buttons": "0x1",
+  "stick": 0,
+  "hold_ms": 150,
+  "wait_s": 10
+ },
+ {
+  "label": "select-b",
+  "buttons": "0x2",
+  "stick": 0,
+  "hold_ms": 150,
+  "wait_s": 8
+ }
+]

@@ -72,6 +72,12 @@ if mode=='start':
     if os.environ.get('WOL_ASTC_POSTCOPY_ID'):env['WOL_ASTC_POSTCOPY_ID']=os.environ['WOL_ASTC_POSTCOPY_ID']
     # Screen-rect draw filter: prints every draw whose transformed bbox intersects the rect,
     # which is how a single UI region (e.g. the guide's location list) is inspected.
+    # Generic WOL_* passthrough (2026-10-16): A/B runs need the runtime's own gates
+    # (WOL_F191_UV, WOL_F191_REAL, WOL_TOP_DRAFT, WOL_PAIR2_DRAFT, ...) without editing
+    # this harness for every switch. Anything already set above wins.
+    for _k,_v in os.environ.items():
+        if _k.startswith('WOL_') and _k not in env:
+            env[_k]=_v
     if os.environ.get('WOL_RECT_TRACE') and os.environ['WOL_RECT_TRACE']!='off':
         env['WOL_RECT_TRACE']=os.environ['WOL_RECT_TRACE']
         if os.environ.get('WOL_RECT_TRACE_LIMIT'):env['WOL_RECT_TRACE_LIMIT']=os.environ['WOL_RECT_TRACE_LIMIT']
