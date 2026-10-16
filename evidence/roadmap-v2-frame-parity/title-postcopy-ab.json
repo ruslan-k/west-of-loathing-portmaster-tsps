@@ -1,0 +1,825 @@
+{
+  "scene": "v2-sandab",
+  "visible_threshold": 8,
+  "frames": [
+    {
+      "path": "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-1/title.png",
+      "arm": "control"
+    },
+    {
+      "path": "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-2/title.png",
+      "arm": "control"
+    },
+    {
+      "path": "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-3/title.png",
+      "arm": "control"
+    },
+    {
+      "path": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-1/title.png",
+      "arm": "postcopy"
+    },
+    {
+      "path": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-2/title.png",
+      "arm": "postcopy"
+    },
+    {
+      "path": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-3/title.png",
+      "arm": "postcopy"
+    }
+  ],
+  "pairs": [
+    {
+      "a": "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-1/title.png",
+      "b": "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-2/title.png",
+      "same_arm": true,
+      "differing_pixels": 78563,
+      "differing_pct": 8.525,
+      "mean_max_channel_delta": 7.3897,
+      "pixels_over_threshold": 63051,
+      "pixels_over_threshold_pct": 6.8415,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 15237,
+          "x": 240,
+          "y": 454,
+          "w": 197,
+          "h": 202
+        },
+        {
+          "pixels": 12410,
+          "x": 0,
+          "y": 432,
+          "w": 92,
+          "h": 284
+        },
+        {
+          "pixels": 6356,
+          "x": 566,
+          "y": 125,
+          "w": 367,
+          "h": 311
+        },
+        {
+          "pixels": 4872,
+          "x": 970,
+          "y": 424,
+          "w": 87,
+          "h": 108
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-1/title.png",
+      "b": "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-3/title.png",
+      "same_arm": true,
+      "differing_pixels": 95765,
+      "differing_pct": 10.391,
+      "mean_max_channel_delta": 12.4832,
+      "pixels_over_threshold": 83941,
+      "pixels_over_threshold_pct": 9.1082,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 28751,
+          "x": 566,
+          "y": 92,
+          "w": 544,
+          "h": 522
+        },
+        {
+          "pixels": 13496,
+          "x": 0,
+          "y": 432,
+          "w": 92,
+          "h": 284
+        },
+        {
+          "pixels": 6968,
+          "x": 316,
+          "y": 491,
+          "w": 121,
+          "h": 165
+        },
+        {
+          "pixels": 5407,
+          "x": 417,
+          "y": 445,
+          "w": 97,
+          "h": 87
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-1/title.png",
+      "b": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-1/title.png",
+      "same_arm": false,
+      "differing_pixels": 100595,
+      "differing_pct": 10.915,
+      "mean_max_channel_delta": 11.1205,
+      "pixels_over_threshold": 81230,
+      "pixels_over_threshold_pct": 8.814,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 22783,
+          "x": 566,
+          "y": 57,
+          "w": 368,
+          "h": 554
+        },
+        {
+          "pixels": 14032,
+          "x": 1067,
+          "y": 439,
+          "w": 192,
+          "h": 180
+        },
+        {
+          "pixels": 7627,
+          "x": 0,
+          "y": 432,
+          "w": 92,
+          "h": 165
+        },
+        {
+          "pixels": 6968,
+          "x": 316,
+          "y": 491,
+          "w": 121,
+          "h": 165
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-1/title.png",
+      "b": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-2/title.png",
+      "same_arm": false,
+      "differing_pixels": 86471,
+      "differing_pct": 9.383,
+      "mean_max_channel_delta": 9.0091,
+      "pixels_over_threshold": 66921,
+      "pixels_over_threshold_pct": 7.2614,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 13496,
+          "x": 0,
+          "y": 432,
+          "w": 92,
+          "h": 284
+        },
+        {
+          "pixels": 7763,
+          "x": 316,
+          "y": 520,
+          "w": 121,
+          "h": 136
+        },
+        {
+          "pixels": 7668,
+          "x": 566,
+          "y": 107,
+          "w": 368,
+          "h": 329
+        },
+        {
+          "pixels": 5595,
+          "x": 1196,
+          "y": 449,
+          "w": 84,
+          "h": 153
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-1/title.png",
+      "b": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-3/title.png",
+      "same_arm": false,
+      "differing_pixels": 97517,
+      "differing_pct": 10.581,
+      "mean_max_channel_delta": 10.9497,
+      "pixels_over_threshold": 79126,
+      "pixels_over_threshold_pct": 8.5857,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 27538,
+          "x": 566,
+          "y": 92,
+          "w": 369,
+          "h": 522
+        },
+        {
+          "pixels": 23182,
+          "x": 0,
+          "y": 419,
+          "w": 265,
+          "h": 188
+        },
+        {
+          "pixels": 4355,
+          "x": 417,
+          "y": 445,
+          "w": 97,
+          "h": 87
+        },
+        {
+          "pixels": 3220,
+          "x": 0,
+          "y": 50,
+          "w": 195,
+          "h": 81
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-2/title.png",
+      "b": "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-3/title.png",
+      "same_arm": true,
+      "differing_pixels": 83889,
+      "differing_pct": 9.103,
+      "mean_max_channel_delta": 10.8599,
+      "pixels_over_threshold": 73933,
+      "pixels_over_threshold_pct": 8.0222,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 31117,
+          "x": 566,
+          "y": 57,
+          "w": 430,
+          "h": 557
+        },
+        {
+          "pixels": 7650,
+          "x": 368,
+          "y": 445,
+          "w": 146,
+          "h": 102
+        },
+        {
+          "pixels": 6026,
+          "x": 240,
+          "y": 454,
+          "w": 96,
+          "h": 118
+        },
+        {
+          "pixels": 5371,
+          "x": 0,
+          "y": 538,
+          "w": 48,
+          "h": 178
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-2/title.png",
+      "b": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-1/title.png",
+      "same_arm": false,
+      "differing_pixels": 95976,
+      "differing_pct": 10.414,
+      "mean_max_channel_delta": 10.6364,
+      "pixels_over_threshold": 77825,
+      "pixels_over_threshold_pct": 8.4446,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 23562,
+          "x": 566,
+          "y": 119,
+          "w": 368,
+          "h": 492
+        },
+        {
+          "pixels": 14032,
+          "x": 1067,
+          "y": 439,
+          "w": 192,
+          "h": 180
+        },
+        {
+          "pixels": 6027,
+          "x": 240,
+          "y": 454,
+          "w": 96,
+          "h": 118
+        },
+        {
+          "pixels": 5278,
+          "x": 0,
+          "y": 538,
+          "w": 84,
+          "h": 178
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-2/title.png",
+      "b": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-2/title.png",
+      "same_arm": false,
+      "differing_pixels": 91958,
+      "differing_pct": 9.978,
+      "mean_max_channel_delta": 10.1995,
+      "pixels_over_threshold": 73629,
+      "pixels_over_threshold_pct": 7.9893,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 13323,
+          "x": 348,
+          "y": 445,
+          "w": 166,
+          "h": 211
+        },
+        {
+          "pixels": 9612,
+          "x": 566,
+          "y": 91,
+          "w": 368,
+          "h": 345
+        },
+        {
+          "pixels": 6569,
+          "x": 622,
+          "y": 435,
+          "w": 247,
+          "h": 171
+        },
+        {
+          "pixels": 6027,
+          "x": 240,
+          "y": 454,
+          "w": 96,
+          "h": 118
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-2/title.png",
+      "b": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-3/title.png",
+      "same_arm": false,
+      "differing_pixels": 117307,
+      "differing_pct": 12.729,
+      "mean_max_channel_delta": 14.2698,
+      "pixels_over_threshold": 98137,
+      "pixels_over_threshold_pct": 10.6485,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 34653,
+          "x": 84,
+          "y": 419,
+          "w": 430,
+          "h": 237
+        },
+        {
+          "pixels": 30657,
+          "x": 566,
+          "y": 92,
+          "w": 369,
+          "h": 522
+        },
+        {
+          "pixels": 5278,
+          "x": 0,
+          "y": 538,
+          "w": 84,
+          "h": 178
+        },
+        {
+          "pixels": 4872,
+          "x": 970,
+          "y": 424,
+          "w": 87,
+          "h": 108
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-3/title.png",
+      "b": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-1/title.png",
+      "same_arm": false,
+      "differing_pixels": 81182,
+      "differing_pct": 8.809,
+      "mean_max_channel_delta": 7.7219,
+      "pixels_over_threshold": 61800,
+      "pixels_over_threshold_pct": 6.7057,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 16289,
+          "x": 1067,
+          "y": 439,
+          "w": 213,
+          "h": 180
+        },
+        {
+          "pixels": 8378,
+          "x": 566,
+          "y": 104,
+          "w": 430,
+          "h": 360
+        },
+        {
+          "pixels": 6146,
+          "x": 0,
+          "y": 570,
+          "w": 84,
+          "h": 146
+        },
+        {
+          "pixels": 5407,
+          "x": 417,
+          "y": 445,
+          "w": 97,
+          "h": 87
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-3/title.png",
+      "b": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-2/title.png",
+      "same_arm": false,
+      "differing_pixels": 76407,
+      "differing_pct": 8.291,
+      "mean_max_channel_delta": 8.4749,
+      "pixels_over_threshold": 60574,
+      "pixels_over_threshold_pct": 6.5727,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 23198,
+          "x": 566,
+          "y": 104,
+          "w": 430,
+          "h": 510
+        },
+        {
+          "pixels": 6385,
+          "x": 1196,
+          "y": 443,
+          "w": 84,
+          "h": 160
+        },
+        {
+          "pixels": 5763,
+          "x": 348,
+          "y": 491,
+          "w": 56,
+          "h": 165
+        },
+        {
+          "pixels": 4872,
+          "x": 970,
+          "y": 424,
+          "w": 87,
+          "h": 108
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-3/title.png",
+      "b": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-3/title.png",
+      "same_arm": false,
+      "differing_pixels": 82984,
+      "differing_pct": 9.004,
+      "mean_max_channel_delta": 7.4681,
+      "pixels_over_threshold": 55592,
+      "pixels_over_threshold_pct": 6.0321,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 15561,
+          "x": 84,
+          "y": 419,
+          "w": 181,
+          "h": 188
+        },
+        {
+          "pixels": 6968,
+          "x": 316,
+          "y": 491,
+          "w": 121,
+          "h": 165
+        },
+        {
+          "pixels": 6146,
+          "x": 0,
+          "y": 570,
+          "w": 84,
+          "h": 146
+        },
+        {
+          "pixels": 4872,
+          "x": 970,
+          "y": 424,
+          "w": 87,
+          "h": 108
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-1/title.png",
+      "b": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-2/title.png",
+      "same_arm": true,
+      "differing_pixels": 92169,
+      "differing_pct": 10.001,
+      "mean_max_channel_delta": 11.1507,
+      "pixels_over_threshold": 79905,
+      "pixels_over_threshold_pct": 8.6702,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 17609,
+          "x": 1067,
+          "y": 439,
+          "w": 213,
+          "h": 180
+        },
+        {
+          "pixels": 16632,
+          "x": 566,
+          "y": 125,
+          "w": 368,
+          "h": 486
+        },
+        {
+          "pixels": 6146,
+          "x": 0,
+          "y": 570,
+          "w": 84,
+          "h": 146
+        },
+        {
+          "pixels": 5763,
+          "x": 348,
+          "y": 491,
+          "w": 56,
+          "h": 165
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-1/title.png",
+      "b": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-3/title.png",
+      "same_arm": true,
+      "differing_pixels": 96413,
+      "differing_pct": 10.461,
+      "mean_max_channel_delta": 10.2079,
+      "pixels_over_threshold": 81399,
+      "pixels_over_threshold_pct": 8.8324,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 15558,
+          "x": 84,
+          "y": 419,
+          "w": 181,
+          "h": 188
+        },
+        {
+          "pixels": 14029,
+          "x": 1067,
+          "y": 439,
+          "w": 192,
+          "h": 180
+        },
+        {
+          "pixels": 7844,
+          "x": 566,
+          "y": 134,
+          "w": 369,
+          "h": 330
+        },
+        {
+          "pixels": 6968,
+          "x": 316,
+          "y": 491,
+          "w": 121,
+          "h": 165
+        }
+      ]
+    },
+    {
+      "a": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-2/title.png",
+      "b": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-3/title.png",
+      "same_arm": true,
+      "differing_pixels": 95372,
+      "differing_pct": 10.349,
+      "mean_max_channel_delta": 12.3308,
+      "pixels_over_threshold": 83616,
+      "pixels_over_threshold_pct": 9.0729,
+      "worst_max_channel_delta": 255,
+      "hot_clusters": [
+        {
+          "pixels": 22799,
+          "x": 566,
+          "y": 125,
+          "w": 369,
+          "h": 489
+        },
+        {
+          "pixels": 15558,
+          "x": 84,
+          "y": 419,
+          "w": 181,
+          "h": 188
+        },
+        {
+          "pixels": 7763,
+          "x": 316,
+          "y": 520,
+          "w": 121,
+          "h": 136
+        },
+        {
+          "pixels": 6146,
+          "x": 0,
+          "y": 570,
+          "w": 84,
+          "h": 146
+        }
+      ]
+    }
+  ],
+  "within_arm": {
+    "differing_pct": {
+      "n": 6,
+      "min": 8.525,
+      "max": 10.461,
+      "mean": 9.805
+    },
+    "mean_max_channel_delta": {
+      "n": 6,
+      "min": 7.3897,
+      "max": 12.4832,
+      "mean": 10.737
+    },
+    "pixels_over_threshold_pct": {
+      "n": 6,
+      "min": 6.8415,
+      "max": 9.1082,
+      "mean": 8.425
+    }
+  },
+  "between_arm": {
+    "differing_pct": {
+      "n": 9,
+      "min": 8.291,
+      "max": 12.729,
+      "mean": 10.012
+    },
+    "mean_max_channel_delta": {
+      "n": 9,
+      "min": 7.4681,
+      "max": 14.2698,
+      "mean": 9.983
+    },
+    "pixels_over_threshold_pct": {
+      "n": 9,
+      "min": 6.0321,
+      "max": 10.6485,
+      "mean": 7.895
+    }
+  },
+  "verdict": "review: at least one between-arm difference exceeds the same-arm repeat spread",
+  "pairs_with_visible_delta": 15,
+  "max_pixels_over_threshold": 98137,
+  "stable_mask": {
+    "arm": "control",
+    "reference_frames": [
+      "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-1/title.png",
+      "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-2/title.png",
+      "evidence/roadmap-v2-postcopy-ab/v2-sandab-control-3/title.png"
+    ],
+    "stable_pixels": 808835,
+    "stable_pct": 87.764,
+    "same_arm_repeat_baseline": {
+      "mean_over_frame": 10.2443,
+      "worst_share_over_threshold": 9.1082,
+      "worst_between_arm_share_over_threshold": 1.9778
+    },
+    "violations": [
+      {
+        "path": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-1/title.png",
+        "arm": "postcopy",
+        "stable_pixels_violated": 26986,
+        "violated_pct_of_stable": 3.3364,
+        "mean_max_channel_delta_over_frame": 2.5169,
+        "stable_pixels_over_threshold": 18227,
+        "worst_max_channel_delta": 255,
+        "clusters": [
+          {
+            "pixels": 15666,
+            "x": 1067,
+            "y": 438,
+            "w": 179,
+            "h": 182
+          },
+          {
+            "pixels": 1663,
+            "x": 45,
+            "y": 60,
+            "w": 229,
+            "h": 89
+          },
+          {
+            "pixels": 332,
+            "x": 151,
+            "y": 90,
+            "w": 67,
+            "h": 21
+          },
+          {
+            "pixels": 324,
+            "x": 686,
+            "y": 606,
+            "w": 119,
+            "h": 4
+          }
+        ]
+      },
+      {
+        "path": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-2/title.png",
+        "arm": "postcopy",
+        "stable_pixels_violated": 15839,
+        "violated_pct_of_stable": 1.9582,
+        "mean_max_channel_delta_over_frame": 1.5139,
+        "stable_pixels_over_threshold": 8582,
+        "worst_max_channel_delta": 255,
+        "clusters": [
+          {
+            "pixels": 3571,
+            "x": 1196,
+            "y": 448,
+            "w": 84,
+            "h": 131
+          },
+          {
+            "pixels": 736,
+            "x": 354,
+            "y": 536,
+            "w": 46,
+            "h": 59
+          },
+          {
+            "pixels": 618,
+            "x": 353,
+            "y": 576,
+            "w": 30,
+            "h": 56
+          },
+          {
+            "pixels": 490,
+            "x": 354,
+            "y": 636,
+            "w": 42,
+            "h": 14
+          }
+        ]
+      },
+      {
+        "path": "evidence/roadmap-v2-postcopy-ab/v2-sandab-postcopy-3/title.png",
+        "arm": "postcopy",
+        "stable_pixels_violated": 26745,
+        "violated_pct_of_stable": 3.3066,
+        "mean_max_channel_delta_over_frame": 2.495,
+        "stable_pixels_over_threshold": 17851,
+        "worst_max_channel_delta": 255,
+        "clusters": [
+          {
+            "pixels": 17437,
+            "x": 84,
+            "y": 419,
+            "w": 174,
+            "h": 189
+          },
+          {
+            "pixels": 733,
+            "x": 20,
+            "y": 110,
+            "w": 158,
+            "h": 21
+          },
+          {
+            "pixels": 613,
+            "x": 102,
+            "y": 64,
+            "w": 93,
+            "h": 39
+          },
+          {
+            "pixels": 145,
+            "x": 1214,
+            "y": 74,
+            "w": 33,
+            "h": 23
+          }
+        ]
+      }
+    ],
+    "verdict": "no_parity_break_within_same_arm_noise"
+  }
+}
