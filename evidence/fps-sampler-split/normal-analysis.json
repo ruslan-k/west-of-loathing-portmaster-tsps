@@ -1,0 +1,149 @@
+{
+ "build": "414efb1fcb13eb8e9abbfea16695675f8884e077e1601aa4155a1791e4d234b8",
+ "host_base": "0x5572540000",
+ "menu": {
+  "replay_phases_ms_per_frame": {
+   "decode": 0.906,
+   "other": 3.468,
+   "setup": 0.0,
+   "vertex": 0.0,
+   "drawcall": 3.291,
+   "copy": 0.0,
+   "drawfirst": 5.684,
+   "draw-cpu": 8.63
+  },
+  "replay_phases_windows": 28,
+  "replay_top_ops_ms_per_frame": {
+   "nvnCommandBufferDrawElementsBaseVertex": 9.919,
+   "nvnCommandBufferDownsample": 2.722,
+   "nvnCommandBufferCopyTextureToTexture": 1.22,
+   "nvnCommandBufferCopyBufferToTexture": 0.548,
+   "nvnCommandBufferBindProgram": 0.162,
+   "nvnCommandBufferSetRenderTargets": 0.155,
+   "nvnCommandBufferUpdateUniformBuffer": 0.124,
+   "nvnCommandBufferBindUniformBuffers": 0.077,
+   "nvnCommandBufferClearColor": 0.058,
+   "nvnCommandBufferClearDepthStencil": 0.046,
+   "nvnCommandBufferBindTexture": 0.028,
+   "nvnCommandBufferSetScissor": 0.011,
+   "nvnCommandBufferCopyBufferToBuffer": 0.008
+  },
+  "record": {
+   "ms_per_frame": 1.97,
+   "records_per_frame": 655.0,
+   "bridge_calls_per_frame": 974.3
+  },
+  "draw_setup": {
+   "draws": 0.0,
+   "resolve_ms": 0.0,
+   "prestate_ms": 0.0,
+   "state_ms": 0.0,
+   "uniforms_ms": 0.0
+  },
+  "nvn_profile_ms": {
+   "elapsed": 37.916,
+   "replay": 28.345,
+   "present": 1.951,
+   "readback": 0.163
+  },
+  "nvn_profile_windows": 28,
+  "nvn_detail_ms": {
+   "counter": 0.0,
+   "finish": 14.494,
+   "receipt": 0.0,
+   "swap": 1.409
+  },
+  "elided_vs_real_wait_last": "5041/1681",
+  "replay_cpu_ms": 13.625,
+  "slow_frames": {
+   "n": 231,
+   "period_med": 42.0,
+   "replay_med": 29.4,
+   "finish_med": 14.2
+  },
+  "pointer_profile_last": {
+   "calls_per_60f": 247272,
+   "hint_hits": 182250,
+   "fallbacks": 65022,
+   "estimated_wait_ms_per_frame": 0.605
+  },
+  "aw_profile": {
+   "windows": 0,
+   "samples": 0
+  },
+  "aw_top": [],
+  "aw_top_resolved": []
+ },
+ "game": {
+  "replay_phases_ms_per_frame": {
+   "decode": 0.688,
+   "other": 4.825,
+   "setup": 0.0,
+   "vertex": 0.0,
+   "drawcall": 1.749,
+   "copy": 0.0,
+   "drawfirst": 7.777,
+   "draw-cpu": 9.163
+  },
+  "replay_phases_windows": 22,
+  "replay_top_ops_ms_per_frame": {
+   "nvnCommandBufferDrawElementsBaseVertex": 12.347,
+   "nvnCommandBufferDownsample": 1.933,
+   "nvnCommandBufferCopyTextureToTexture": 1.471,
+   "nvnCommandBufferCopyBufferToTexture": 1.155,
+   "nvnCommandBufferSetRenderTargets": 0.471,
+   "nvnCommandBufferBindProgram": 0.134,
+   "nvnCommandBufferBindUniformBuffers": 0.097,
+   "nvnCommandBufferUpdateUniformBuffer": 0.096,
+   "nvnCommandBufferClearColor": 0.057,
+   "nvnCommandBufferClearDepthStencil": 0.054,
+   "nvnCommandBufferSetScissor": 0.024,
+   "nvnCommandBufferBindTexture": 0.021
+  },
+  "record": {
+   "ms_per_frame": 1.378,
+   "records_per_frame": 515.0,
+   "bridge_calls_per_frame": 717.1
+  },
+  "draw_setup": {
+   "draws": 0.0,
+   "resolve_ms": 0.0,
+   "prestate_ms": 0.0,
+   "state_ms": 0.0,
+   "uniforms_ms": 0.0
+  },
+  "nvn_profile_ms": {
+   "elapsed": 33.998,
+   "replay": 28.09,
+   "present": 1.89,
+   "readback": 0.081
+  },
+  "nvn_profile_windows": 22,
+  "nvn_detail_ms": {
+   "counter": 0.0,
+   "finish": 12.628,
+   "receipt": 0.0,
+   "swap": 1.349
+  },
+  "elided_vs_real_wait_last": "9001/3001",
+  "replay_cpu_ms": 15.018,
+  "slow_frames": {
+   "n": 308,
+   "period_med": 42.9,
+   "replay_med": 33.5,
+   "finish_med": 20.9
+  },
+  "pointer_profile_last": {
+   "calls_per_60f": 186964,
+   "hint_hits": 137762,
+   "fallbacks": 49202,
+   "estimated_wait_ms_per_frame": 0.418
+  },
+  "aw_profile": {
+   "windows": 0,
+   "samples": 0
+  },
+  "aw_top": [],
+  "aw_top_resolved": []
+ }
+}
