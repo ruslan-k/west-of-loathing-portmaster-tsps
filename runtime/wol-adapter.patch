@@ -2142,7 +2142,7 @@
      if(nvn_draw_diagnostic_active()) {
          GLint previous;GLuint fb;glGetIntegerv(GL_FRAMEBUFFER_BINDING,&previous);glGenFramebuffers(1,&fb);
          glBindFramebuffer(GL_FRAMEBUFFER,fb);glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,texture_name,0);
-@@ -507,8 +860,1296 @@
+@@ -507,8 +860,1305 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -3023,9 +3023,18 @@
 +                    if(!rt_conf){rt_conf=1;const char *o=getenv("WOL_RECT_TRACE");
 +                        if(o&&sscanf(o,"%f,%f,%f,%f",&rt[0],&rt[1],&rt[2],&rt[3])==4){rt_conf=2;
 +                            const char *s=getenv("WOL_RECT_TRACE_LIMIT");if(s)rt_lim=(unsigned)atoi(s);}}
-+                    if(rt_conf==2&&avail>=32*4&&count<=96&&rt_hits<rt_lim) {
++                    /* 2026-10-16 (guide-screen investigation): the old count<=96 cap hid exactly the
++                     * draws in question - a multi-quad text label or a single large mesh is issued
++                     * with hundreds of vertices, so the panel looked empty in the trace while the
++                     * screen showed content. The cap is now 4096 vertices (the bbox still samples the
++                     * first 256 of them), and the trace only ever runs when WOL_RECT_TRACE is set, so
++                     * normal play is unaffected. Reversible: raise/lower with WOL_RECT_MAXVTX. */
++                    static unsigned rt_maxvtx;
++                    if(!rt_maxvtx){const char *mv=getenv("WOL_RECT_MAXVTX");rt_maxvtx=mv?(unsigned)atoi(mv):4096u;
++                        if(!rt_maxvtx)rt_maxvtx=4096u;}
++                    if(rt_conf==2&&avail>=32*4&&count<=rt_maxvtx&&rt_hits<rt_lim) {
 +                        float x0=1e9f,y0=1e9f,x1=-1e9f,y1=-1e9f;int any=0;
-+                        for(unsigned k=0;k<vertex_count&&k<96;k++) {
++                        for(unsigned k=0;k<vertex_count&&k<256;k++) {
 +                            const float *v=(const float *)(base+(size_t)k*stride);
 +                            float p0=v[0],p1=v[1],p2=v[2],p3=1.0f;
 +                            float q0=words[0]*p0+words[4]*p1+words[8]*p2+words[12]*p3;
@@ -3439,7 +3448,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +2345,7 @@
+@@ -704,6 +2354,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -3447,7 +3456,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1340,7 +2982,7 @@
+@@ -1340,7 +2991,7 @@
              if(cadence_stencil && mfc_stencil_preserve_geometry(primitive,indices,count,maximum)) {
                  nvn_mfc_require(nvn_render.depth,MFC_STENCIL,0);
                  nvn_render_color_mask(0);nvn_render_depth_mask(GL_FALSE);
@@ -3456,7 +3465,7 @@
                  nvn_render_color_mask(effective_color_mask);
                  nvn_render_depth_mask((nvn_render.depth_state[0]>>1)&1);
                  uint64_t preserved=++megaman_frame_cadence.stencil_preserved_draws;
-@@ -1411,7 +3053,7 @@
+@@ -1411,7 +3062,7 @@
          uint64_t aw_probe_t0=0;if(tpf && nvn_replay.last_frame+1==tpf){glFinish();aw_probe_t0=nvn_nanoseconds();}
          if(p->aw_noise_location>=0){glActiveTexture(GL_TEXTURE0+7);glBindTexture(GL_TEXTURE_2D,aw_noise.tex);GLint unit=7;nvn_uniform_send(p->aw_noise_location,NVN_UNIFORM_INT,&unit);glActiveTexture(GL_TEXTURE0);}
  #endif
@@ -3465,7 +3474,7 @@
          zero_depth_draw_end(&depth_draw);nvn_draw_finish_profile();
  #ifdef ANIMAL_WELL_SHADERS
          nvn_render.target->aw_draws_since_clear++;
-@@ -1535,6 +3177,433 @@
+@@ -1535,6 +3186,433 @@
          begin=end+1;
      }
  }
@@ -3899,7 +3908,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +3631,16 @@
+@@ -1562,7 +3640,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -3917,7 +3926,7 @@
      case NI_nvnCommandBufferSetLineWidth:case NI_nvnCommandBufferSetPointSize: {
          float size;memcpy(&size,r->vectors,4);
          if(!isfinite(size) || size<=0)stop("ZERO_RASTER_SIZE_INVALID",nvn_caller,r->op,24);
-@@ -1682,9 +3760,10 @@
+@@ -1682,9 +3769,10 @@
              nvn_render.framebuffer=nvn_framebuffer_bind(nvn_render.target,d);nvn_render.pass_skipped=0;
              zero_udd_restore(d);
              nvn_low_target(nvn_render.target,d);d->composition_target_seen=1;
@@ -3929,7 +3938,7 @@
          nvn_cpu_image_require_target(t);nvn_cpu_image_require_target(d);
          nvn_rt_storage_target(t,d);
          nvn_mfc_target(t);nvn_mfc_target(d);
-@@ -1697,6 +3776,7 @@
+@@ -1697,6 +3785,7 @@
              if(nvn_low_color(t)<0&&!t->host_scaled)d->composition_other_target=1;}
          nvn_packaged_require_writable(t,"NVN_LC2_PACKAGED_RENDER_TARGET_REQUIRED");
          if(!t->name||(d&&(!d->depth_buffer||d->b.width!=t->b.width||d->b.height!=t->b.height)))stop("NVN_FRAMEBUFFER_ATTACHMENTS",nvn_caller,targets[0],24);
