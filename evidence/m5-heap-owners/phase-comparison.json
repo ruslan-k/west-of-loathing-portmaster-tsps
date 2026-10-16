@@ -1,0 +1,314 @@
+{
+ "run-a": {
+  "phases": [
+   {
+    "phase": "startup",
+    "samples": 59,
+    "rss_kib": 711460,
+    "swap_kib": 413644,
+    "rss_anon": 475532,
+    "rss_file": 235628,
+    "pss": 486062,
+    "pss_anon": 477716,
+    "pss_file": 8170,
+    "mem_avail_kib": 50724,
+    "swap_cached": 58336,
+    "summary": {
+     "seconds": 64.823985670002,
+     "samples": 59,
+     "mean_status_RSS_KiB": 681011.7966101695,
+     "mean_status_swap_KiB": 268559.9322033898,
+     "peak_status_VmHWM_KiB": 771360,
+     "sampled_peak_PSS_plus_SwapPSS_KiB": 899201,
+     "end_PSS_plus_SwapPSS_KiB": 899142,
+     "min_MemAvailable_KiB": 33056,
+     "min_CmaFree_KiB": 12,
+     "cpu_percent": 89.1953794608418,
+     "major_faults_per_s": 188.47961713119426,
+     "system_swapin_KiB_per_s": 3480.686935058571,
+     "system_swapout_KiB_per_s": 9965.138572140191
+    }
+   },
+   {
+    "phase": "menu",
+    "samples": 16,
+    "rss_kib": 698624,
+    "swap_kib": 426916,
+    "rss_anon": 462668,
+    "rss_file": 235656,
+    "pss": 472977,
+    "pss_anon": 464756,
+    "pss_file": 8045,
+    "mem_avail_kib": 60648,
+    "swap_cached": 59040,
+    "summary": {
+     "seconds": 30.052529264998157,
+     "samples": 16,
+     "mean_status_RSS_KiB": 706150,
+     "mean_status_swap_KiB": 426226,
+     "peak_status_VmHWM_KiB": 771360,
+     "sampled_peak_PSS_plus_SwapPSS_KiB": 899478,
+     "end_PSS_plus_SwapPSS_KiB": 899365,
+     "min_MemAvailable_KiB": 59408,
+     "min_CmaFree_KiB": 17012,
+     "cpu_percent": 112.66938533335482,
+     "major_faults_per_s": 3.394057089191433,
+     "system_swapin_KiB_per_s": 36.469476174056965,
+     "system_swapout_KiB_per_s": 48.04920036071009,
+     "presents_per_s": 25.524872497268476
+    }
+   },
+   {
+    "phase": "game",
+    "samples": 16,
+    "rss_kib": 692964,
+    "swap_kib": 484640,
+    "rss_anon": 415812,
+    "rss_file": 276852,
+    "pss": 448073,
+    "pss_anon": 417504,
+    "pss_file": 30393,
+    "mem_avail_kib": 90216,
+    "swap_cached": 102828,
+    "summary": {
+     "seconds": 30.0346997930028,
+     "samples": 16,
+     "mean_status_RSS_KiB": 695356.75,
+     "mean_status_swap_KiB": 485453.75,
+     "peak_status_VmHWM_KiB": 771360,
+     "sampled_peak_PSS_plus_SwapPSS_KiB": 932353,
+     "end_PSS_plus_SwapPSS_KiB": 932353,
+     "min_MemAvailable_KiB": 67732,
+     "min_CmaFree_KiB": 7704,
+     "cpu_percent": 137.40773267064483,
+     "major_faults_per_s": 4.727864802333793,
+     "system_swapin_KiB_per_s": 83.37023566932265,
+     "system_swapout_KiB_per_s": 0.0,
+     "presents_per_s": 24.858132223068974
+    }
+   },
+   {
+    "phase": "sheriff",
+    "samples": 11,
+    "rss_kib": 683896,
+    "swap_kib": 485280,
+    "rss_anon": 417008,
+    "rss_file": 266588,
+    "pss": 437654,
+    "pss_anon": 419068,
+    "pss_file": 18410,
+    "mem_avail_kib": 80288,
+    "swap_cached": 111244,
+    "summary": {
+     "seconds": 20.037808531000337,
+     "samples": 11,
+     "mean_status_RSS_KiB": 691201.0909090909,
+     "mean_status_swap_KiB": 482157.45454545453,
+     "peak_status_VmHWM_KiB": 771360,
+     "sampled_peak_PSS_plus_SwapPSS_KiB": 925340,
+     "end_PSS_plus_SwapPSS_KiB": 922338,
+     "min_MemAvailable_KiB": 63988,
+     "min_CmaFree_KiB": 12872,
+     "cpu_percent": 123.5664067839255,
+     "major_faults_per_s": 1.3973583965872025,
+     "system_swapin_KiB_per_s": 29.54414895641514,
+     "system_swapout_KiB_per_s": 274.48111361534336,
+     "presents_per_s": 27.4097573224963
+    }
+   },
+   {
+    "phase": "returned",
+    "samples": 11,
+    "rss_kib": 686408,
+    "swap_kib": 481648,
+    "rss_anon": 421116,
+    "rss_file": 264992,
+    "pss": 437191,
+    "pss_anon": 423100,
+    "pss_file": 13915,
+    "mem_avail_kib": 57640,
+    "swap_cached": 110292,
+    "summary": {
+     "seconds": 20.03942570900108,
+     "samples": 11,
+     "mean_status_RSS_KiB": 688168.3636363636,
+     "mean_status_swap_KiB": 481648.7272727273,
+     "peak_status_VmHWM_KiB": 771360,
+     "sampled_peak_PSS_plus_SwapPSS_KiB": 918403,
+     "end_PSS_plus_SwapPSS_KiB": 918259,
+     "min_MemAvailable_KiB": 57104,
+     "min_CmaFree_KiB": 104,
+     "cpu_percent": 137.82830107548426,
+     "major_faults_per_s": 0.19960651857419875,
+     "system_swapin_KiB_per_s": 1.9960651857419875,
+     "system_swapout_KiB_per_s": 0.0,
+     "presents_per_s": 25.25116875212394
+    }
+   }
+  ],
+  "excerpt": {
+   "read_count": 31,
+   "largest_read_bytes": 143554106,
+   "largest_read_mib": 136.9,
+   "top_reads": [
+    [
+     "0x88e763a",
+     "0x4630d0"
+    ],
+    [
+     "0xb18447",
+     "0xc3c4910"
+    ],
+    [
+     "0x319204",
+     "0x200"
+    ],
+    [
+     "0x5269b",
+     "0x319d30"
+    ],
+    [
+     "0x2aac8",
+     "0xcf00c30"
+    ]
+   ],
+   "pool_bounds": [
+    "NVN_MEMORY_POOL_BOUND address=0x107595c000 size=0x1000000 flags=0x12 storage=borrowed-guest lazy-gpu-upload",
+    "NVN_MEMORY_POOL_BOUND address=0x1000a80000 size=0x54000 flags=0x22 storage=borrowed-guest lazy-gpu-upload",
+    "NVN_MEMORY_POOL_BOUND address=0x106f85b000 size=0x6000000 flags=0x62 storage=borrowed-guest lazy-gpu-upload",
+    "NVN_MEMORY_POOL_BOUND address=0x106d8b4000 size=0x1fa5000 flags=0xa2 storage=borrowed-guest lazy-gpu-upload",
+    "NVN_MEMORY_POOL_BOUND address=0x106058c000 size=0xc000000 flags=0x22 storage=borrowed-guest lazy-gpu-upload",
+    "NVN_MEMORY_POOL_BOUND address=0x105c189000 size=0x4000000 flags=0xa2 storage=borrowed-guest lazy-gpu-upload",
+    "NVN_MEMORY_POOL_BOUND address=0x1050187000 size=0xc000000 flags=0x22 storage=borrowed-guest lazy-gpu-upload",
+    "NVN_MEMORY_POOL_BOUND address=0x10411e2000 size=0x4000000 flags=0xa2 storage=borrowed-guest lazy-gpu-upload"
+   ]
+  }
+ },
+ "run-b": {
+  "phases": [
+   {
+    "phase": "startup",
+    "samples": 59,
+    "rss_kib": 700176,
+    "swap_kib": 437044,
+    "rss_anon": 451960,
+    "rss_file": 247912,
+    "pss": 466227,
+    "pss_anon": 454128,
+    "pss_file": 11923,
+    "mem_avail_kib": 76084,
+    "swap_cached": 79180,
+    "summary": {
+     "seconds": 65.34906231100467,
+     "samples": 59,
+     "mean_status_RSS_KiB": 678744.7457627119,
+     "mean_status_swap_KiB": 271836.406779661,
+     "peak_status_VmHWM_KiB": 778704,
+     "sampled_peak_PSS_plus_SwapPSS_KiB": 907943,
+     "end_PSS_plus_SwapPSS_KiB": 902607,
+     "min_MemAvailable_KiB": 30408,
+     "min_CmaFree_KiB": 0,
+     "cpu_percent": 91.53918646194012,
+     "major_faults_per_s": 195.10608950012312,
+     "system_swapin_KiB_per_s": 3582.9129251418685,
+     "system_swapout_KiB_per_s": 10365.626927839325
+    }
+   },
+   {
+    "phase": "menu",
+    "samples": 16,
+    "rss_kib": 706064,
+    "swap_kib": 436088,
+    "rss_anon": 453512,
+    "rss_file": 252248,
+    "pss": 467623,
+    "pss_anon": 455484,
+    "pss_file": 11963,
+    "mem_avail_kib": 72168,
+    "swap_cached": 80028,
+    "summary": {
+     "seconds": 30.036409970998648,
+     "samples": 16,
+     "mean_status_RSS_KiB": 699479,
+     "mean_status_swap_KiB": 436469.25,
+     "peak_status_VmHWM_KiB": 778704,
+     "sampled_peak_PSS_plus_SwapPSS_KiB": 903304,
+     "end_PSS_plus_SwapPSS_KiB": 903127,
+     "min_MemAvailable_KiB": 72168,
+     "min_CmaFree_KiB": 1220,
+     "cpu_percent": 115.32669860827676,
+     "major_faults_per_s": 1.165252439748755,
+     "system_swapin_KiB_per_s": 29.564119042768407,
+     "system_swapout_KiB_per_s": 0.0,
+     "presents_per_s": 26.425797829899402
+    }
+   },
+   {
+    "phase": "game",
+    "samples": 16,
+    "rss_kib": 721976,
+    "swap_kib": 457220,
+    "rss_anon": 443548,
+    "rss_file": 278124,
+    "pss": 475573,
+    "pss_anon": 445624,
+    "pss_file": 29773,
+    "mem_avail_kib": 74972,
+    "swap_cached": 101232,
+    "summary": {
+     "seconds": 30.0392289779993,
+     "samples": 16,
+     "mean_status_RSS_KiB": 716051,
+     "mean_status_swap_KiB": 457342.75,
+     "peak_status_VmHWM_KiB": 778704,
+     "sampled_peak_PSS_plus_SwapPSS_KiB": 932355,
+     "end_PSS_plus_SwapPSS_KiB": 932085,
+     "min_MemAvailable_KiB": 65956,
+     "min_CmaFree_KiB": 232,
+     "cpu_percent": 137.35372512463212,
+     "major_faults_per_s": 2.0639677551447386,
+     "system_swapin_KiB_per_s": 45.007812983156235,
+     "system_swapout_KiB_per_s": 34.62139460242788,
+     "presents_per_s": 26.168906922706864
+    }
+   }
+  ],
+  "excerpt": {
+   "read_count": 29,
+   "largest_read_bytes": 143554106,
+   "largest_read_mib": 136.9,
+   "top_reads": [
+    [
+     "0x88e763a",
+     "0x4630d0"
+    ],
+    [
+     "0xb18447",
+     "0xc3c4910"
+    ],
+    [
+     "0x319204",
+     "0x200"
+    ],
+    [
+     "0x5269b",
+     "0x319d30"
+    ],
+    [
+     "0x2aac8",
+     "0xcf00c30"
+    ]
+   ],
+   "pool_bounds": [
+    "NVN_MEMORY_POOL_BOUND address=0x107595c000 size=0x1000000 flags=0x12 storage=borrowed-guest lazy-gpu-upload",
+    "NVN_MEMORY_POOL_BOUND address=0x1000a80000 size=0x54000 flags=0x22 storage=borrowed-guest lazy-gpu-upload",
+    "NVN_MEMORY_POOL_BOUND address=0x106f85b000 size=0x6000000 flags=0x62 storage=borrowed-guest lazy-gpu-upload",
+    "NVN_MEMORY_POOL_BOUND address=0x106d8b4000 size=0x1fa5000 flags=0xa2 storage=borrowed-guest lazy-gpu-upload",
+    "NVN_MEMORY_POOL_BOUND address=0x106058c000 size=0xc000000 flags=0x22 storage=borrowed-guest lazy-gpu-upload",
+    "NVN_MEMORY_POOL_BOUND address=0x105c189000 size=0x4000000 flags=0xa2 storage=borrowed-guest lazy-gpu-upload",
+    "NVN_MEMORY_POOL_BOUND address=0x1050187000 size=0xc000000 flags=0x22 storage=borrowed-guest lazy-gpu-upload",
+    "NVN_MEMORY_POOL_BOUND address=0x10411e2000 size=0x4000000 flags=0xa2 storage=borrowed-guest lazy-gpu-upload"
+   ]
+  }
+ }
+}
