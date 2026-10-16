@@ -1,0 +1,20 @@
+{
+ "events": 1024,
+ "intervals": 256,
+ "stats": {
+  "intervals": 256,
+  "dst_sampled": 256,
+  "src_redrawn": 256
+ },
+ "summary_last": {
+  "frame": 2880,
+  "copies": 2880,
+  "src_id": 32,
+  "dst_id": 460,
+  "draws_src": 1,
+  "samples_dst": 2,
+  "samples_src": 0
+ },
+ "summary_n": 48,
+ "hazard_examples": []
+}

@@ -1744,7 +1744,66 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -507,8 +763,1296 @@
+@@ -345,8 +601,58 @@
+ static struct nvn_sampler_binding nvn_render_sampler_prepare(uint64_t handle,unsigned cpu_view) {
+     return nvn_render_sampler_prepare_mode(handle,cpu_view,!nvn_mfc_omitting_draw());
+ }
++static struct nvn_texture *nvn_render_sampler(uint64_t handle,unsigned unit,unsigned cpu_view,unsigned real_sample,GLint *min_filter,GLenum wrap[2]);
++/* WOL_COPYTRACE=1 (roadmap section 4, texture-copy model - the dependency trace required before
++ * any lazy-alias attempt): bounded, read-only ordered event log + counters for the per-frame
++ * colour copy pair, tracked by OBJECT identity (ids are per-session; the object is the identity).
++ * Events: 1=copy (dst<-src), 2=draw into the source, 3=GPU sample of the destination,
++ * 4=GPU sample of the source. The log is bounded to 512 events; a summary prints once per
++ * 60 frames. No behaviour change; default off. */
++struct nvn_copy_trace_event {uint64_t object,dst_object;uint32_t frame;uint8_t kind;};
++static struct {
++    int configured,on;unsigned logged;
++    uint64_t src_object,dst_object,src_id,dst_id;
++    unsigned valid;
++    uint64_t copies,draws_src_after,samples_src_after,samples_dst_after;
++} nvn_copy_trace;
++static unsigned nvn_copy_trace_on(void) {
++    if(!nvn_copy_trace.configured){const char *o=getenv("WOL_COPYTRACE");nvn_copy_trace.on=o&&!strcmp(o,"1");nvn_copy_trace.configured=1;
++        if(nvn_copy_trace.on)printf("WOL_COPYTRACE enabled=1 scope=colour-copy-pair events-bounded=1024 identity=object\n");}
++    return nvn_copy_trace.on;
++}
++static void nvn_copy_trace_log(unsigned kind,uint64_t object,uint64_t dst_object) {
++    if(nvn_copy_trace.logged>=1024)return;
++    if(nvn_copy_trace.logged==1024)return;
++    printf("WOL_COPYTRACE_EVENT seq=%u frame=%u kind=%u object=0x%016"PRIx64" dst=0x%016"PRIx64"\n",
++        nvn_copy_trace.logged++,(unsigned)(nvn_replay.last_frame+1),kind,object,dst_object);
++}
++static void nvn_copy_trace_copy(const struct nvn_texture *src,const struct nvn_texture *dst) {
++    if(!nvn_copy_trace_on()||!src||!dst)return;
++    nvn_copy_trace.src_object=src->object;nvn_copy_trace.dst_object=dst->object;
++    nvn_copy_trace.src_id=src->id;nvn_copy_trace.dst_id=dst->id;
++    nvn_copy_trace.valid=1;nvn_copy_trace.copies++;
++    nvn_copy_trace.draws_src_after=0;nvn_copy_trace.samples_src_after=0;nvn_copy_trace.samples_dst_after=0;
++    nvn_copy_trace_log(1,src->object,dst->object);
++}
++static void nvn_copy_trace_draw(const struct nvn_texture *target) {
++    if(!nvn_copy_trace_on()||!nvn_copy_trace.valid||!target)return;
++    if(target->object==nvn_copy_trace.src_object){nvn_copy_trace.draws_src_after++;nvn_copy_trace_log(2,target->object,0);}
++    else if(target->object==nvn_copy_trace.dst_object){nvn_copy_trace.draws_src_after++;nvn_copy_trace_log(5,target->object,0);}
++}
++static void nvn_copy_trace_sample(const struct nvn_texture *t,unsigned real_sample) {
++    if(!nvn_copy_trace_on()||!nvn_copy_trace.valid||!t)return;
++    if(t->object==nvn_copy_trace.dst_object){nvn_copy_trace.samples_dst_after++;nvn_copy_trace_log(3,t->object,real_sample);}
++    else if(t->object==nvn_copy_trace.src_object){nvn_copy_trace.samples_src_after++;nvn_copy_trace_log(4,t->object,real_sample);}
++}
++static void nvn_copy_trace_dump(unsigned frame) {
++    if(!nvn_copy_trace_on())return;
++    static unsigned last;if(frame==last)return;last=frame;
++    printf("WOL_COPYTRACE_SUMMARY frame=%u copies=%"PRIu64" src-id=%"PRIu64" dst-id=%"PRIu64" draws-src-since-copy=%"PRIu64" samples-dst=%"PRIu64" samples-src=%"PRIu64"\n",
++        frame,nvn_copy_trace.copies,nvn_copy_trace.src_id,nvn_copy_trace.dst_id,nvn_copy_trace.draws_src_after,nvn_copy_trace.samples_dst_after,nvn_copy_trace.samples_src_after);
++}
+ static struct nvn_texture *nvn_render_sampler(uint64_t handle,unsigned unit,unsigned cpu_view,unsigned real_sample,GLint *min_filter,GLenum wrap[2]) {
+     struct nvn_sampler_binding binding=nvn_render_sampler_prepare_mode(handle,cpu_view,real_sample);struct nvn_texture *t=binding.texture;
++    nvn_copy_trace_sample(t,real_sample);
+     if(t2_pass_probe_active())printf("T2_PASS_SAMPLER draw=%u id=%"PRIu64" min=%x mag=%x wrap=%x/%x\n",nvn_replay.draws,t->id,(unsigned)binding.min,(unsigned)binding.mag,(unsigned)binding.wrap[0],(unsigned)binding.wrap[1]);
+     t2_page_sampler_filter(t,&binding.min,&binding.mag);   /* Frente F: an index plane is NEAREST whatever the sampler says */
+     zero_texture_storage_sampler_require(t,unit,binding.min,binding.mag,binding.wrap[0],binding.wrap[1]);
+@@ -507,8 +813,1296 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -3041,7 +3100,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +2248,7 @@
+@@ -704,6 +2298,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -3049,7 +3108,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1340,7 +2885,7 @@
+@@ -1340,7 +2935,7 @@
              if(cadence_stencil && mfc_stencil_preserve_geometry(primitive,indices,count,maximum)) {
                  nvn_mfc_require(nvn_render.depth,MFC_STENCIL,0);
                  nvn_render_color_mask(0);nvn_render_depth_mask(GL_FALSE);
@@ -3058,7 +3117,7 @@
                  nvn_render_color_mask(effective_color_mask);
                  nvn_render_depth_mask((nvn_render.depth_state[0]>>1)&1);
                  uint64_t preserved=++megaman_frame_cadence.stencil_preserved_draws;
-@@ -1411,7 +2956,7 @@
+@@ -1411,7 +3006,7 @@
          uint64_t aw_probe_t0=0;if(tpf && nvn_replay.last_frame+1==tpf){glFinish();aw_probe_t0=nvn_nanoseconds();}
          if(p->aw_noise_location>=0){glActiveTexture(GL_TEXTURE0+7);glBindTexture(GL_TEXTURE_2D,aw_noise.tex);GLint unit=7;nvn_uniform_send(p->aw_noise_location,NVN_UNIFORM_INT,&unit);glActiveTexture(GL_TEXTURE0);}
  #endif
@@ -3067,7 +3126,7 @@
          zero_depth_draw_end(&depth_draw);nvn_draw_finish_profile();
  #ifdef ANIMAL_WELL_SHADERS
          nvn_render.target->aw_draws_since_clear++;
-@@ -1535,6 +3080,388 @@
+@@ -1535,6 +3130,389 @@
          begin=end+1;
      }
  }
@@ -3172,6 +3231,7 @@
 +            if(!(cc[k].calls&255))printf("WOL_COLOR_COPY_STATS dst=%"PRIu64" calls=%"PRIu64" bytes=%"PRIu64" mode=%s\n",
 +                cc[k].id,cc[k].calls,cc[k].bytes,(fw==tw&&fh==th)?"copy-1:1":"box-average");}
 +    }
++    nvn_copy_trace_copy(src,dst);
 +    return 1;
 +}
 +#endif
@@ -3456,7 +3516,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +3489,16 @@
+@@ -1562,7 +3540,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -3474,7 +3534,7 @@
      case NI_nvnCommandBufferSetLineWidth:case NI_nvnCommandBufferSetPointSize: {
          float size;memcpy(&size,r->vectors,4);
          if(!isfinite(size) || size<=0)stop("ZERO_RASTER_SIZE_INVALID",nvn_caller,r->op,24);
-@@ -1682,7 +3618,7 @@
+@@ -1682,7 +3669,7 @@
              nvn_render.framebuffer=nvn_framebuffer_bind(nvn_render.target,d);nvn_render.pass_skipped=0;
              zero_udd_restore(d);
              nvn_low_target(nvn_render.target,d);d->composition_target_seen=1;
@@ -3483,7 +3543,7 @@
          }
          struct nvn_texture *t=nvn_texture_find(targets[0]);
          nvn_cpu_image_require_target(t);nvn_cpu_image_require_target(d);
-@@ -1697,6 +3633,7 @@
+@@ -1697,6 +3684,7 @@
              if(nvn_low_color(t)<0&&!t->host_scaled)d->composition_other_target=1;}
          nvn_packaged_require_writable(t,"NVN_LC2_PACKAGED_RENDER_TARGET_REQUIRED");
          if(!t->name||(d&&(!d->depth_buffer||d->b.width!=t->b.width||d->b.height!=t->b.height)))stop("NVN_FRAMEBUFFER_ATTACHMENTS",nvn_caller,targets[0],24);
@@ -3553,6 +3613,14 @@
          if(!bpp || nvn_texture_format_depth(t->b.format))stop("NVN_COPY_TEXTURE_FORMAT_REQUIRED",nvn_caller,t->b.format,20);
          uint64_t row=(uint64_t)box[3]*bpp,stride=nvn_replay.row_stride?nvn_replay.row_stride:row;
          if(stride<row || stride>64U*1024U*1024U)stop("NVN_COPY_ROW_STRIDE",nvn_caller,stride,24);
+@@ -327,6 +365,7 @@
+                     if(is_draw){k=nvn_phase.target_changed?NPH_DRAWFIRST:NPH_DRAWCALL;nvn_phase.target_changed=0;uint64_t c=0;if(nvn_cpu_nanoseconds(&c)&&c>=draw_cpu0)nvn_phase.draw_cpu_ns+=c-draw_cpu0;}
+                     if(r.op==NI_nvnCommandBufferSetRenderTargets)nvn_phase.target_changed=1;
+                     uint64_t before=nvn_phase.mark;nvn_phase_end(k);if(r.op<NI_COUNT){nvn_phase.op_ns[r.op]+=nvn_phase.mark-before;nvn_phase.op_calls[r.op]++;}}
++                if(is_draw){nvn_copy_trace_draw(nvn_render.target);if(!(nvn_replay.last_frame%60))nvn_copy_trace_dump(nvn_replay.last_frame);}
+ #ifdef ANIMAL_WELL_SHADERS
+                 if(!batch_errors||nvn_draw_diagnostic_active()){GLenum e=glGetError();if(e){printf("AW_GL_ERROR op=%s error=0x%x a0=0x%"PRIx64" a1=0x%"PRIx64" a2=0x%"PRIx64" a3=0x%"PRIx64" draws=%u frame=%u\n",nvn_functions[r.op].name,e,r.args[0],r.args[1],r.args[2],r.args[3],nvn_replay.draws,nvn_replay.last_frame);
+                     if(nvn_render.program)printf("AW_GL_ERROR_PROGRAM pair=%u/%u target=%"PRIu64"\n",nvn_render.program->sources[0],nvn_render.program->sources[1],nvn_render.target?nvn_render.target->id:0);
 --- a/native/nvn_samplers.h
 +++ b/native/nvn_samplers.h
 @@ -9,6 +9,20 @@
