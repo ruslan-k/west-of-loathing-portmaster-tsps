@@ -1155,7 +1155,7 @@
      uint64_t started=nvn_nanoseconds();
      char json[640];const char *run=getenv("COTM_RUN_ID");
      int size=snprintf(json,sizeof(json),"{\"port\":\"legacy_runtime-switch-study\",\"run\":\"%s\",\"generation_pid\":%ld,\"frame\":%u,\"status\":\"%s\",\"nonblack_pixels\":%u,\"maximum_rgb\":%u,\"game_draws\":%u,\"black_streak\":%u,\"sampled_pixels\":%u,\"full_readback\":%s,\"sample_y\":%u,\"sample_rows\":%u,\"boundary\":\"%s\"}\n",
-@@ -145,7 +146,80 @@
+@@ -145,7 +146,81 @@
      if(nvn_present.image_scale<0 || nvn_present.image_offset<0)stop("NVN_PRESENT_IMAGE_SCALE",nvn_caller,nvn_present.program,21);
      glDisable(GL_DEPTH_TEST);glDisable(GL_STENCIL_TEST);glDisable(GL_BLEND);glDisable(GL_CULL_FACE);glDisable(GL_SCISSOR_TEST);
  }
@@ -1233,10 +1233,11 @@
 +}
  static unsigned nvn_present_dispatch(unsigned id,struct nvn_frame *f,uint64_t *result) {
 +    wol_host_sample(); /* every present; the sampler gates itself to one print per ~30 s */
++    wol_residency.frame=nvn_present.frames;
      if(id!=NI_nvnQueuePresentTexture)return 0;
      unsigned timing=nvn_frame_timing_enabled(),timing_sampled=0,timing_capture=0,cadence_pixel_proof=0;
      uint64_t timing_readback_ns=0,timing_dump_ns=0;
-@@ -165,6 +239,7 @@
+@@ -165,6 +240,7 @@
          if(np){nvn_present.frames++;nvn_replay.last_frame=nvn_present.frames;nvn_window.acquired[index]=0;return 1;}
      }
  #endif
@@ -1244,7 +1245,7 @@
      if(nvn_skip.active) {
          /* Skipped frame: no GL, no swap; keep ownership, counters and the
           * per-60-logic-frame profile line consumed by the automation. */
-@@ -172,6 +247,7 @@
+@@ -172,6 +248,7 @@
          uint64_t now=nvn_nanoseconds();nvn_profile.present_ns+=now-started;nvn_profile.frames++;
          if(nvn_profile.start && nvn_profile.frames>=60) {
              double ms=1e-6/nvn_profile.frames;
@@ -1252,7 +1253,7 @@
              printf("NVN_PROFILE frame=%u count=%u elapsed-ms=%.3f replay-ms=%.3f present-ms=%.3f readback-ms=%.3f replay-cpu-ms=%.3f scope=wall-time-per-frame frameskip=%u rendered=%"PRIu64" skipped=%"PRIu64"\n",nvn_present.frames,nvn_profile.frames,
                  (now-nvn_profile.start)*ms,nvn_profile.replay_ns*ms,nvn_profile.present_ns*ms,nvn_profile.readback_ns*ms,nvn_profile.replay_cpu_ns*ms,nvn_skip.every,nvn_skip.rendered,nvn_skip.skipped);
              nvn_phase_report(nvn_present.frames,nvn_profile.frames);
-@@ -186,7 +262,12 @@
+@@ -186,7 +263,12 @@
      if(!nvn_async_frame_enabled())nvn_async_present_wait_locked(q,single);
      if(!single)nvn_egl_present_reader_wait();
      if(single) {
@@ -1266,7 +1267,7 @@
          /* This is a logical context use even though its physical binding is
           * retained. Do not reuse a completion proof from before the quad. */
          if(!++nvn_gl_completion.use_serial)stop("NVN_GL_SERIAL_WRAP",nvn_caller,0,24);
-@@ -199,10 +280,16 @@
+@@ -199,10 +281,16 @@
      }
      nvn_present_setup();
      momo_stencil_selftest();
@@ -1284,10 +1285,12 @@
  #ifdef ANIMAL_WELL_SHADERS
      if(aw_fbcopy_enabled()){aw_fbcopy_open(width,height);glBindFramebuffer(GL_FRAMEBUFFER,aw_fbcopy.fbo);}
      else glBindFramebuffer(GL_FRAMEBUFFER,0);
-@@ -225,11 +312,46 @@
+@@ -224,12 +312,47 @@
+         glClearColor(previous_clear[0],previous_clear[1],previous_clear[2],previous_clear[3]);
      }
      glViewport(rect->x,(int)height-rect->y-rect->h,rect->w,rect->h);
-     glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,t->name);
+-    glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,t->name);
++    glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,t->name);wol_res_mark_sample(t);
 +    /* WOL_PRESENT_TEST=1 (review 2026-10-13 P0 route test): write a known magenta marker directly
 +     * into the presenting texture. If it shows in the on-screen image or in the present readback,
 +     * the render-target -> window texture -> present chain is proven end to end. TEST-ONLY. */
@@ -1331,7 +1334,7 @@
      glDrawArrays(GL_TRIANGLE_STRIP,0,4);nvn_present.frames++;
      if(t2_video_needs_readback()) {
          GLint viewport[4];EGLint measured_w=0,measured_h=0;
-@@ -270,6 +392,14 @@
+@@ -270,6 +393,14 @@
      cadence_pixel_proof=proof;
      const char *status=proof?"PIXELS":nonblack?"INCONCLUSIVE":"BLACK-SAMPLE";
      printf("NVN_PRESENT_PIXELS frame=%u nonblack=%u max=%u white=%u texture-draws=%u status=%s\n",nvn_present.frames,nonblack,maximum,readback.measure.white,t->draws,status);
@@ -1346,7 +1349,7 @@
      /* Native54 frame381 proves a black atlas background, RGB0 glyph vertices
       * and a transparent final overlay in the color layer; the normal target
       * still renders. Twelve samples were insufficient to observe this native
-@@ -279,6 +409,32 @@
+@@ -279,6 +410,32 @@
       * wall-clock/memory limits remain. This is not a release acceptance policy. */
      static unsigned black_limit;if(!black_limit){const char *o=getenv("COTM_BLACK_LIMIT");black_limit=o?(unsigned)strtoul(o,NULL,10):120;if(black_limit<120)black_limit=120;}
      nvn_present_receipt(nvn_present.black_streak>=black_limit?"BLACK":status,nonblack,maximum,t->draws);
@@ -1379,7 +1382,7 @@
      if(nvn_present.black_streak>=black_limit){free(pixels);stop("NVN_PRESENT_BLACK",nvn_caller,nvn_present.frames,22);}
      if(capture_requested&&!proof)printf("NVN_CAPTURE_ON_DEMAND_NO_CAPTURE pid=%ld run=%s frame=%u status=%s\n",
          (long)getpid(),getenv("COTM_RUN_ID"),nvn_present.frames,status);
-@@ -342,6 +498,7 @@
+@@ -342,6 +499,7 @@
      if(!nvn_present_from_job)nvn_window.acquired[index]=0;
      uint64_t now=nvn_nanoseconds();nvn_profile.present_ns+=now-started;nvn_profile.frames++;
      if(nvn_profile.start && nvn_profile.frames>=60) {
@@ -1387,9 +1390,44 @@
          nvn_single_report(nvn_present.frames);
          nvn_gpu_frame_gate_report(nvn_present.frames,nvn_profile.frames);
          double ms=1e-6/nvn_profile.frames;
+@@ -355,6 +513,8 @@
+         printf("NVN_PRESENT_READER_PROFILE frame=%u waits=%"PRIu64" wait-ms=%.3f scope=cumulative-context-handoff\n",
+             nvn_present.frames,nvn_egl_fences.reader_waits,nvn_egl_fences.reader_wait_ns*1e-6);
+         nvn_phase_report(nvn_present.frames,nvn_profile.frames);
++        wol_gpu_residency_report(nvn_present.frames);
++        wol_vtx_census_report(nvn_present.frames);
+         zero_gpu_cost_report(nvn_present.frames);
+         printf("NVN_PROFILE_REPLAY_CPU frame=%u cpu-ms=%.3f cpu-samples=%u submits=%u scope=thread-cpu-per-frame includes-counters=1\n",
+             nvn_present.frames,nvn_profile.replay_cpu_samples==nvn_profile.replay_submits?nvn_profile.replay_cpu_ns*ms:-1.0,
 --- a/native/nvn_queue.h
 +++ b/native/nvn_queue.h
-@@ -57,7 +57,11 @@
+@@ -12,6 +12,14 @@
+ static inline uint64_t nvn_phase_now(void){struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
+ static inline void nvn_phase_begin(void){if(nvn_phase.enabled)nvn_phase.mark=nvn_phase_now();}
+ static inline void nvn_phase_end(unsigned k){if(nvn_phase.enabled){uint64_t n=nvn_phase_now();nvn_phase.ns[k]+=n-nvn_phase.mark;nvn_phase.calls[k]++;nvn_phase.mark=n;}}
++/* Draw-path sub-spans (2026-10-16, roadmap section 3 attribution): independent of the mark
++ * chain above, so NPH_DRAWCALL/NPH_DRAWFIRST keep their full-interval semantics. Spans measure
++ * where inside one draw record the wall time goes: index preparation (the per-draw element
++ * buffer query/upload) and the GL draw submission itself. */
++enum {NPS_A1,NPS_A2A,NPS_A2B,NPS_A2C1,NPS_A2C2,NPS_A2C3,NPS_A2C4,NPS_A3,NPS_MID,NPS_INDEX,NPS_SUBMIT,NPS_COUNT};
++static uint64_t nvn_sub_ns[NPS_COUNT],nvn_sub_calls[NPS_COUNT];
++static inline void nvn_sub_begin(uint64_t *t0){if(nvn_phase.enabled)*t0=nvn_phase_now();}
++static inline void nvn_sub_end(unsigned k,uint64_t t0){if(nvn_phase.enabled){nvn_sub_ns[k]+=nvn_phase_now()-t0;nvn_sub_calls[k]++;}}
+ static void nvn_phase_report(unsigned frame,unsigned frames) {
+     if(!nvn_phase_enabled()||!frames)return;
+     double f=1e-6/frames;
+@@ -21,6 +29,10 @@
+     printf("NVN_RECORD_PROFILE frame=%u record-ms-per-frame=%.3f records-per-frame=%.1f bridge-calls-per-frame=%.1f scope=guest-thread-recording\n",
+         frame,nvn_record_profile.ns*f,(double)nvn_record_profile.calls/frames,(double)(nvn_bridge_calls-nvn_bridge_calls_mark)/frames);
+     nvn_record_profile.ns=nvn_record_profile.calls=0;nvn_bridge_calls_mark=nvn_bridge_calls;
++    printf("NVN_DRAW_SPLIT frame=%u a1-ms=%.3f a2a-ms=%.3f a2b-ms=%.3f a2c1-ms=%.3f a2c2-ms=%.3f a2c3-ms=%.3f a2c4-ms=%.3f a3-ms=%.3f mid-ms=%.3f index-ms=%.3f submit-ms=%.3f calls=%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIu64" scope=wall-per-frame sub-spans-inside-draw\n",
++        frame,nvn_sub_ns[NPS_A1]*f,nvn_sub_ns[NPS_A2A]*f,nvn_sub_ns[NPS_A2B]*f,nvn_sub_ns[NPS_A2C1]*f,nvn_sub_ns[NPS_A2C2]*f,nvn_sub_ns[NPS_A2C3]*f,nvn_sub_ns[NPS_A2C4]*f,nvn_sub_ns[NPS_A3]*f,nvn_sub_ns[NPS_MID]*f,nvn_sub_ns[NPS_INDEX]*f,nvn_sub_ns[NPS_SUBMIT]*f,
++        nvn_sub_calls[NPS_A1]/frames,nvn_sub_calls[NPS_A2A]/frames,nvn_sub_calls[NPS_A2B]/frames,nvn_sub_calls[NPS_A2C1]/frames,nvn_sub_calls[NPS_A2C2]/frames,nvn_sub_calls[NPS_A2C3]/frames,nvn_sub_calls[NPS_A2C4]/frames,nvn_sub_calls[NPS_A3]/frames,nvn_sub_calls[NPS_MID]/frames,nvn_sub_calls[NPS_INDEX]/frames,nvn_sub_calls[NPS_SUBMIT]/frames);
++    memset(nvn_sub_ns,0,sizeof(nvn_sub_ns));memset(nvn_sub_calls,0,sizeof(nvn_sub_calls));
+     printf("AW_DRAW_SETUP frame=%u draws=%"PRIu64" resolve-ms=%.3f prestate-ms=%.3f state-ms=%.3f uniforms-ms=%.3f scope=per-frame\n",frame,aw_setup_ns.n/frames,aw_setup_ns.resolve*f,aw_setup_ns.prestate*f,aw_setup_ns.state*f,aw_setup_ns.uniforms*f);memset(&aw_setup_ns,0,sizeof(aw_setup_ns));
+     for(unsigned rank=0;rank<10;rank++) {
+         unsigned best=0;for(unsigned i=1;i<NI_COUNT;i++)if(nvn_phase.op_ns[i]>nvn_phase.op_ns[best])best=i;
+@@ -57,7 +69,11 @@
  static void nvn_async_queue_complete(struct nvn_queue *q,unsigned finish);
  static uint64_t nvn_queue_layout(uint64_t address,struct nvn_queue_builder *b) {
      /* SDK 6.5 SetDevice +0x4018e0 / SetQueueMemory +0x401960. */
@@ -1402,7 +1440,7 @@
      if(!nvn_device.live || b->device!=nvn_device.address)stop("NVN_QUEUE_DEVICE",nvn_caller,b->device,24);
      /* NVN QueueFlags: 1 disables fragment interlock; 2 disables ZCull.
       * Neither optional Tegra path is enabled by this GLES2 backend. Ordinary
-@@ -103,6 +107,22 @@
+@@ -103,6 +119,22 @@
      nvn_single_transfer_acquire_locked();
      nvn_single_require_owner();
      if(!nvn_single_enabled())nvn_egl_present_reader_wait();
@@ -1706,7 +1744,7 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -507,8 +763,1228 @@
+@@ -507,8 +763,1296 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -1785,6 +1823,60 @@
 +/* Skinned meshes split position/normal/tangent (stream 0, stride 40) from
 + * UVs (stream 1, stride 24). Attribute offsets are relative to THEIR stream,
 + * never implicitly to stream 0. Keep the single-stream VBO path unchanged. */
++/* WOL_VTX_CENSUS=1 (read-only, off by default; ScarletNX-style change tracking,
++ * see the 2026-10-16 review): how many guest vertex-stream bytes actually change
++ * between frames. Sampled FNV-1a (head 64B + tail 64B + every 16th byte of the
++ * middle, <=384 probes) keyed by guest address, bounded to 4096 address slots.
++ * No GL calls, no caching, no behaviour change. */
++#define WOL_VTX_CENSUS_SLOTS 4096U
++static struct {
++    unsigned configured,enabled;
++    uint64_t addr[WOL_VTX_CENSUS_SLOTS],hash[WOL_VTX_CENSUS_SLOTS];
++    uint32_t size[WOL_VTX_CENSUS_SLOTS],frame[WOL_VTX_CENSUS_SLOTS];
++    uint64_t calls,bytes,same_bytes,diff_bytes,same_frame_reuse,overflow;
++} wol_vtx_census;
++static unsigned wol_vtx_census_enabled(void) {
++    if(!wol_vtx_census.configured){const char *o=getenv("WOL_VTX_CENSUS");wol_vtx_census.enabled=o&&!strcmp(o,"1");wol_vtx_census.configured=1;
++        if(wol_vtx_census.enabled)printf("WOL_VTX_CENSUS enabled=1 scope=guest-vertex-streams probes=head64+tail64+stride16<=384\n");}
++    return wol_vtx_census.enabled;
++}
++static uint64_t wol_vtx_hash(const uint8_t *d,uint64_t n) {
++    uint64_t h=1469598103934665603ull;
++    uint64_t head=n<64?n:64;for(uint64_t i=0;i<head;i++){h^=d[i];h*=1099511628211ull;}
++    if(n>64){for(uint64_t i=n-64;i<n;i++){h^=d[i];h*=1099511628211ull;}}
++    if(n>128){uint64_t stop=n-64,probes=0;for(uint64_t i=64;i+64<=stop&&probes<256;i+=16,probes++){h^=d[i];h*=1099511628211ull;}}
++    return h;
++}
++static void wol_vtx_census_record(uint64_t address,uint64_t bytes,const uint8_t *data) {
++    if(!wol_vtx_census_enabled()||!bytes||!data||bytes>0x7fffffffu)return;
++    uint64_t h=wol_vtx_hash(data,bytes);
++    unsigned slot=(unsigned)((address>>4)&(WOL_VTX_CENSUS_SLOTS-1));
++    for(unsigned k=0;k<8;k++,slot=(slot+1)&(WOL_VTX_CENSUS_SLOTS-1)) {
++        if(wol_vtx_census.size[slot]&&wol_vtx_census.addr[slot]==address) {
++            if(wol_vtx_census.frame[slot]==wol_residency.frame){wol_vtx_census.same_frame_reuse++;return;}
++            if(wol_vtx_census.size[slot]==(uint32_t)bytes) {
++                wol_vtx_census.calls++;wol_vtx_census.bytes+=bytes;
++                if(wol_vtx_census.hash[slot]==h)wol_vtx_census.same_bytes+=bytes;else wol_vtx_census.diff_bytes+=bytes;
++            } else wol_vtx_census.overflow++;
++            wol_vtx_census.hash[slot]=h;wol_vtx_census.size[slot]=(uint32_t)bytes;wol_vtx_census.frame[slot]=wol_residency.frame;
++            return;
++        }
++        if(!wol_vtx_census.size[slot]) {
++            wol_vtx_census.addr[slot]=address;wol_vtx_census.hash[slot]=h;wol_vtx_census.size[slot]=(uint32_t)bytes;
++            wol_vtx_census.frame[slot]=wol_residency.frame;wol_vtx_census.calls++;wol_vtx_census.bytes+=bytes;
++            return;
++        }
++    }
++    wol_vtx_census.overflow++;
++}
++static void wol_vtx_census_report(unsigned frame) {
++    if(!wol_vtx_census_enabled())return;
++    double pct=wol_vtx_census.bytes?100.0*(double)wol_vtx_census.same_bytes/(double)wol_vtx_census.bytes:-1.0;
++    printf("WOL_VTX_CENSUS frame=%u calls=%"PRIu64" bytes=%"PRIu64" same-bytes=%"PRIu64" diff-bytes=%"PRIu64" same-pct=%.1f same-frame-reuse=%"PRIu64" slot-overflow=%"PRIu64" scope=guest-vertex-streams\n",
++        frame,wol_vtx_census.calls,wol_vtx_census.bytes,wol_vtx_census.same_bytes,wol_vtx_census.diff_bytes,pct,
++        wol_vtx_census.same_frame_reuse,wol_vtx_census.overflow);
++    wol_vtx_census.calls=wol_vtx_census.bytes=wol_vtx_census.same_bytes=wol_vtx_census.diff_bytes=wol_vtx_census.same_frame_reuse=wol_vtx_census.overflow=0;
++}
 +static unsigned wol_pair_bind_attribute(unsigned index,uint32_t a,uint64_t first,
 +        uint64_t vertex_count,GLuint stream_vbo[32],unsigned slot,int direct) {
 +    if(!(a&64))return 0;
@@ -1801,6 +1893,7 @@
 +    uint64_t bytes=vertex_count*stride;
 +    const uint8_t *data=NULL;
 +    if(direct||!stream_vbo[stream])data=nvn_gpu_pointer(start,bytes,PROT_READ);
++    if(data)wol_vtx_census_record(start,bytes,data);
 +    if(direct) {
 +        glBindBuffer(GL_ARRAY_BUFFER,0);
 +        glEnableVertexAttribArray(index);
@@ -1828,6 +1921,7 @@
 +#endif
  static void nvn_render_draw_inner(struct nvn_record *r) {
      uint64_t aw_t0=aw_setup_now();
++    uint64_t nvn_sub_tt=0;nvn_sub_begin(&nvn_sub_tt);
 +#if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
 +    {   /* WoL bring-up: the title declares its vertex interface through the attribute state object. In
 +         * placeholder mode the attribute loop below never runs (a placeholder program uses no
@@ -1952,6 +2046,7 @@
 +            }
 +        }
 +        struct wol_cat_linked *wol_cat_cur=wol_cat_link(wol_active_cat[0],wol_f_sel);
++        nvn_sub_end(NPS_A1,nvn_sub_tt);nvn_sub_begin(&nvn_sub_tt);
 +        if(wol_cat_cur) {
 +            wol_pair_program=wol_cat_cur->name;wol_pair_c3_loc=wol_cat_cur->c3;wol_pair_uvk_loc=wol_cat_cur->uvk;
 +            wol_pair_c3f_loc=wol_cat_cur->c3f;wol_pair_tex_loc=wol_cat_cur->tex;
@@ -2083,12 +2178,14 @@
 +                    putchar('\n');
 +                }
 +            }
++            nvn_sub_end(NPS_A2A,nvn_sub_tt);nvn_sub_begin(&nvn_sub_tt);
 +            glUseProgram(wol_pair_program);
 +            /* build-239: u_wol_uvk defaults to the historical half; the per-draw smart rule below may
 +             * override it for the top family. Programs without the uniform report -1: no-op. */
 +            if(wol_pair_uvk_loc>=0)glUniform1f(wol_pair_uvk_loc,0.5f);
 +            if(wol_pair_c3_loc>=0)glUniform1fv(wol_pair_c3_loc,96,words);
 +            if(wol_pair_c3f_loc>=0)glUniform1fv(wol_pair_c3f_loc,96,fwords);
++            nvn_sub_end(NPS_A2B,nvn_sub_tt);nvn_sub_begin(&nvn_sub_tt);
 +{   /* 2026-10-14: the top2 pair's first-resolving slot is the 4x4 white dummy; print every nonzero
 +     * recorded fragment-stage slot for the first few top2 draws so the real texture slot (the
 +     * poster-portrait / glyph hunt) becomes a measurement. Bounded. */
@@ -2202,6 +2299,7 @@
 +                        if(handle)printf("WOL_PAIR_TEX quiet-pick slot=%u id=%llu %ux%u\n",tslot,(unsigned long long)pid2,pw,ph);
 +                        else printf("WOL_PAIR_TEX quiet-pick=none candidates-empty\n");}
 +                }
++                nvn_sub_end(NPS_A2C1,nvn_sub_tt);nvn_sub_begin(&nvn_sub_tt);
 +                if(wol_fs_testtex()&&wol_pair_tex_loc>=0) {
 +                    /* Known-texture check (review 2026-10-13): a 256x256 UV gradient bound as tex0.
 +                     * If the real fragment shows the gradient, its sampling path is correct and only
@@ -2226,12 +2324,13 @@
 +                        if(o){if(!strcmp(o,"repeat"))fw_val=GL_REPEAT;else if(!strcmp(o,"mirror"))fw_val=GL_MIRRORED_REPEAT;else if(!strcmp(o,"clamp"))fw_val=GL_CLAMP_TO_EDGE;}}
 +                    GLint minf=0;GLenum wrap[2]={GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE};
 +                    struct nvn_texture *t=nvn_render_sampler(handle,0,0,0,&minf,wrap);
-+                    if(t){glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,t->name);glUniform1i(wol_pair_tex_loc,0);
++                    if(t){glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,t->name);glUniform1i(wol_pair_tex_loc,0);wol_res_mark_sample(t);
 +                        if(fw_val){
 +                            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,(GLint)fw_val);
 +                            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,(GLint)fw_val);
 +                            static unsigned fw_told;if(fw_told<4){fw_told++;printf("WOL_FORCE_WRAP applied wrap=0x%x name=%u\n",(unsigned)fw_val,(unsigned)t->name);}}
 +                        if(wol_draw_trace_enabled())printf("WOL_PAIR_TEX slot=%u handle=0x%llx name=%u %ux%u\n",tslot,(unsigned long long)handle,(unsigned)t->name,t->b.width,t->b.height);}if(t->name==139u){static int s139;static unsigned s139on;if(!s139){const char*o=getenv("WOL_SKIP_TEX139");s139on=o&&!strcmp(o,"1");s139=1;}wol_skip_139_this=s139on?1:0;}else wol_skip_139_this=0;
++                    nvn_sub_end(NPS_A2C2,nvn_sub_tt);nvn_sub_begin(&nvn_sub_tt);
 +                    /* Second sampler (f268 draft): bind the next resolvable recorded handle to unit 1. */
 +                    {int t1loc=wol_cat_cur&&wol_cat_cur->tex1>=0?wol_cat_cur->tex1:wol_pair_tex1_loc;
 +                    if(t1loc>=0) {
@@ -2243,11 +2342,12 @@
 +                            struct nvn_texture *ct2=nvn_render_sampler(candidate,0,0,0,&minf2,wrap2);
 +                            if(ct2&&ct2->live&&ct2->b.width&&ct2->b.height){h2=candidate;t2=ct2;break;}
 +                        }
-+                        if(h2&&t2){glActiveTexture(GL_TEXTURE1);glBindTexture(GL_TEXTURE_2D,t2->name);glUniform1i(t1loc,1);
++                        if(h2&&t2){glActiveTexture(GL_TEXTURE1);glBindTexture(GL_TEXTURE_2D,t2->name);glUniform1i(t1loc,1);wol_res_mark_sample(t2);
 +                            glActiveTexture(GL_TEXTURE0);}
 +                    }}
 +                } else printf("WOL_PAIR_TEX none=1\n");
 +            }
++            nvn_sub_end(NPS_A2C3,nvn_sub_tt);nvn_sub_begin(&nvn_sub_tt);
 +            /* WOL_TEXDUMP_GLNAME="n1,n2,...": dump listed GL texture names once each (PAM, alpha kept)
 +             * wherever they are bound - the pair-scoped WOL_TEXDUMP_ID misses textures drawn by pairs
 +             * the recorder is not armed for. 2026-10-14: hunt for the button-icon/poster textures. */
@@ -2288,6 +2388,7 @@
 +                }
 +             }
 +            }
++            nvn_sub_end(NPS_A2C4,nvn_sub_tt);nvn_sub_begin(&nvn_sub_tt);
 +            struct wol_draw_geometry geometry;
 +            /* Late texture dump (independent of the once-per-fragment slot report above): at draws>6000
 +             * dump the COMPOSITE's t0 (the RT it reads - should contain the menu layer) plus the target,
@@ -2333,6 +2434,7 @@
 +                    putchar('\n');
 +                }
 +            }
++            nvn_sub_end(NPS_A3,nvn_sub_tt);nvn_sub_begin(&nvn_sub_tt);
 +            unsigned long long stride=nvn_render.streams[0][0],vsize=nvn_render.vertex[0].size;
 +            if(wol_draw_trace_enabled())printf("WOL_PAIR_DRAW mode=%"PRIu64" first=%"PRIu64" count=%"PRIu64" stride=%llu stream=%llu c3bank=%llx/%u avail=%u target=%"PRIu64"/%ux%u\n",
 +                mode,first,count,stride,vsize,(unsigned long long)c3r.address,(unsigned)c3r.size,avail,
@@ -2764,18 +2866,22 @@
 +                        glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
 +                    }
 +                }
++                nvn_sub_end(NPS_MID,nvn_sub_tt);
 +                if(wol_skip_139_this){static unsigned s139told;if(s139told<4){s139told++;printf("WOL_SKIP_TEX139 draw skipped name=139\n");}}
 +                else if(geometry.indices) {
++                    uint64_t nvn_sub_t0=0;nvn_sub_begin(&nvn_sub_t0);
 +                    GLint saved_elements=0;glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING,&saved_elements);
 +                    GLuint elements=0;
 +                    if(wol_pair_ring_mode())elements=wol_pair_ring_buffer(&wol_pair_ring.element[pair_ring_slot]);
 +                    else glGenBuffers(1,&elements);
 +                    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,elements);
 +                    glBufferData(GL_ELEMENT_ARRAY_BUFFER,(GLsizeiptr)(count*sizeof(uint16_t)),geometry.indices,GL_STREAM_DRAW);
++                    nvn_sub_end(NPS_INDEX,nvn_sub_t0);nvn_sub_begin(&nvn_sub_t0);
 +                    glDrawElements(geometry.primitive,(GLsizei)count,GL_UNSIGNED_SHORT,0);
++                    nvn_sub_end(NPS_SUBMIT,nvn_sub_t0);
 +                    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,(GLuint)saved_elements);
 +                    if(!wol_pair_ring_mode())glDeleteBuffers(1,&elements);
-+                } else if(!wol_skip_139_this) glDrawArrays(geometry.primitive,0,(GLsizei)count);
++                } else if(!wol_skip_139_this) {uint64_t nvn_sub_t0=0;nvn_sub_begin(&nvn_sub_t0);glDrawArrays(geometry.primitive,0,(GLsizei)count);nvn_sub_end(NPS_SUBMIT,nvn_sub_t0);}
 +                if(p2solid){if(p2_saved_blend)glEnable(GL_BLEND);else glDisable(GL_BLEND);
 +                            if(p2_saved_scissor)glEnable(GL_SCISSOR_TEST);else glDisable(GL_SCISSOR_TEST);
 +                            if(p2_saved_depth)glEnable(GL_DEPTH_TEST);else glDisable(GL_DEPTH_TEST);
@@ -2935,7 +3041,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +2180,7 @@
+@@ -704,6 +2248,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -2943,7 +3049,25 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1535,6 +3012,387 @@
+@@ -1340,7 +2885,7 @@
+             if(cadence_stencil && mfc_stencil_preserve_geometry(primitive,indices,count,maximum)) {
+                 nvn_mfc_require(nvn_render.depth,MFC_STENCIL,0);
+                 nvn_render_color_mask(0);nvn_render_depth_mask(GL_FALSE);
+-                glDrawElements(primitive,count,GL_UNSIGNED_SHORT,indices);
++                {uint64_t nvn_sub_t0=0;nvn_sub_begin(&nvn_sub_t0);glDrawElements(primitive,count,GL_UNSIGNED_SHORT,indices);nvn_sub_end(NPS_SUBMIT,nvn_sub_t0);}
+                 nvn_render_color_mask(effective_color_mask);
+                 nvn_render_depth_mask((nvn_render.depth_state[0]>>1)&1);
+                 uint64_t preserved=++megaman_frame_cadence.stencil_preserved_draws;
+@@ -1411,7 +2956,7 @@
+         uint64_t aw_probe_t0=0;if(tpf && nvn_replay.last_frame+1==tpf){glFinish();aw_probe_t0=nvn_nanoseconds();}
+         if(p->aw_noise_location>=0){glActiveTexture(GL_TEXTURE0+7);glBindTexture(GL_TEXTURE_2D,aw_noise.tex);GLint unit=7;nvn_uniform_send(p->aw_noise_location,NVN_UNIFORM_INT,&unit);glActiveTexture(GL_TEXTURE0);}
+ #endif
+-        if(indices)glDrawElements(primitive,count,GL_UNSIGNED_SHORT,indices);else glDrawArrays(primitive,0,count);
++        {uint64_t nvn_sub_t0=0;nvn_sub_begin(&nvn_sub_t0);if(indices)glDrawElements(primitive,count,GL_UNSIGNED_SHORT,indices);else glDrawArrays(primitive,0,count);nvn_sub_end(NPS_SUBMIT,nvn_sub_t0);}
+         zero_depth_draw_end(&depth_draw);nvn_draw_finish_profile();
+ #ifdef ANIMAL_WELL_SHADERS
+         nvn_render.target->aw_draws_since_clear++;
+@@ -1535,6 +3080,388 @@
          begin=end+1;
      }
  }
@@ -3038,6 +3162,7 @@
 +            src->id,dst->id,fw,fh,tw,th);
 +    }
 +    if(!gpu_done)dst->zero_cpu_dirty=1;
++    wol_res_mark_gpu_write(dst);
 +    {   /* PROFDIAG (2026-10-15): per-destination colour-copy attribution, bounded to 8 ids. */
 +        static struct {uint64_t id,calls,bytes;} cc[8];static unsigned ccn;
 +        uint64_t pd_bytes=(uint64_t)to[3]*to[4]*bpp;
@@ -3331,7 +3456,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +3420,16 @@
+@@ -1562,7 +3489,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -3349,9 +3474,34 @@
      case NI_nvnCommandBufferSetLineWidth:case NI_nvnCommandBufferSetPointSize: {
          float size;memcpy(&size,r->vectors,4);
          if(!isfinite(size) || size<=0)stop("ZERO_RASTER_SIZE_INVALID",nvn_caller,r->op,24);
+@@ -1682,7 +3618,7 @@
+             nvn_render.framebuffer=nvn_framebuffer_bind(nvn_render.target,d);nvn_render.pass_skipped=0;
+             zero_udd_restore(d);
+             nvn_low_target(nvn_render.target,d);d->composition_target_seen=1;
+-            zero_texture_storage_state(d)->composition_target_seen=1;return 1;
++            zero_texture_storage_state(d)->composition_target_seen=1;wol_res_mark_rt(d);return 1;
+         }
+         struct nvn_texture *t=nvn_texture_find(targets[0]);
+         nvn_cpu_image_require_target(t);nvn_cpu_image_require_target(d);
+@@ -1697,6 +3633,7 @@
+             if(nvn_low_color(t)<0&&!t->host_scaled)d->composition_other_target=1;}
+         nvn_packaged_require_writable(t,"NVN_LC2_PACKAGED_RENDER_TARGET_REQUIRED");
+         if(!t->name||(d&&(!d->depth_buffer||d->b.width!=t->b.width||d->b.height!=t->b.height)))stop("NVN_FRAMEBUFFER_ATTACHMENTS",nvn_caller,targets[0],24);
++        wol_res_mark_rt(t);if(d)wol_res_mark_rt(d);
+ #ifdef ANIMAL_WELL_SHADERS
+         if(aw_deferred_pass_enabled() && !d && !nvn_skip.active) {
+             if(nvn_render.pass_skipped && nvn_render.aw_deferred_target && nvn_render.pending_color_valid && nvn_render.target){
 --- a/native/nvn_replay.h
 +++ b/native/nvn_replay.h
-@@ -259,7 +259,13 @@
+@@ -251,6 +251,7 @@
+         }
+         if(t->zero_backend_deferred)stop("ZERO_FLOAT_TEXTURE_COPY_BACKEND_REQUIRED",nvn_caller,t->b.format,20);
+         if(t->aw_native_format)stop("AW_FLOAT_TEXTURE_COPY_UNSUPPORTED",nvn_caller,t->aw_native_format,20);
++        wol_res_mark_gpu_upload(t);
+         if(a[2] && !momo_texture_view_single_level(r->payload+24,t->b.format,t->b.target)) {
+             printf("MOMO_COPY_VIEW target=%u levels=%u format=0x%x view=",t->b.target,t->b.levels,t->b.format);
+             for(unsigned i=0;i<MEGAMAN_TEXTURE_VIEW_BYTES;i++)printf("%02x",r->payload[24+i]);
+@@ -259,7 +260,13 @@
          }
          if(nvn_low_color(t)>=0)stop("NVN_LOW_COPY_DESTINATION_REQUIRED",nvn_caller,t->id,20);
          /* The view selects the destination level (Unity uploads one mip per copy, run momo-053). */
@@ -3365,7 +3515,7 @@
          unsigned level_width=t->b.width>>copy_level,level_height=t->b.height>>copy_level;
          if(!level_width)level_width=1;
          if(!level_height)level_height=1;
-@@ -267,6 +273,37 @@
+@@ -267,6 +274,37 @@
             box[0]>level_width || box[3]>level_width-box[0] ||
             box[1]>level_height || box[4]>level_height-box[1])stop("NVN_COPY_REGION_REQUIRED",nvn_caller,a[1],24);
          unsigned bpp=nvn_texture_format_bytes(t->b.format);
@@ -4436,6 +4586,16 @@
          for(unsigned i=0;i<a[1];i++) {
              unsigned source=nvn_megaman_shader_match(inputs[i*2],inputs[i*2+1]),stage=nvn_shader_sources[source].stage;
              if(stage>1 || matched&(1U<<stage))stop("NVN_LC2_SHADER_STAGE_DUPLICATE",nvn_caller,source,24);
+--- a/native/nvn_texture_coherence.h
++++ b/native/nvn_texture_coherence.h
+@@ -113,6 +113,7 @@
+     glPixelStorei(GL_UNPACK_ALIGNMENT,alignment);free(rgba);
+     GLenum error=glGetError();
+     if(error){free(snapshot);stop("NVN_LC2_CPU_IMAGE_UPLOAD_GL",nvn_caller,error,21);}
++    wol_res_mark_guest_upload(t);
+     /* These formats cannot enter any CPU-view path. Finalize already frees
+      * this snapshot, and a new texture identity starts with a NULL pointer. */
+     unsigned first=!t->cpu_snapshot;free(t->cpu_snapshot);t->cpu_snapshot=snapshot;
 --- a/native/nvn_texture_formats.h
 +++ b/native/nvn_texture_formats.h
 @@ -63,7 +63,7 @@
@@ -4538,7 +4698,65 @@
  #include "aw_float_emu.h"
  #include "megaman_blocklinear.h"
  #include "zero_bc_layout.h"
-@@ -99,9 +100,16 @@
+@@ -63,6 +64,57 @@
+ static void zero_texture_storage_require(const struct nvn_texture *t);
+ #include "zero_render_scale.h"
+ #include "zero_texture_storage.h"
++/* WOL_GPU_RESIDENCY=1 (read-only audit, off by default; ScarletNX-style texture
++ * residency, see the 2026-10-16 review): per-slot last sample/write/upload frames
++ * plus a periodic aggregate estimate. No GL calls, no eviction, no behaviour change.
++ * Frames are monotonic presents; the report converts ages with the measured period. */
++static struct {
++    unsigned configured,enabled;uint32_t frame;
++    uint32_t last_sample[4096],last_write[4096],last_upload[4096];
++    uint8_t from_guest[4096],rt[4096];
++    uint64_t last_report_ns;
++} wol_residency;
++static unsigned wol_residency_enabled(void) {
++    if(!wol_residency.configured){const char *o=getenv("WOL_GPU_RESIDENCY");wol_residency.enabled=o&&!strcmp(o,"1");wol_residency.configured=1;
++        if(wol_residency.enabled)printf("WOL_GPU_RESIDENCY enabled=1 scope=read-only-estimate eviction=none\n");}
++    return wol_residency.enabled;
++}
++static unsigned wol_res_slot(const struct nvn_texture *t) {
++    size_t i=(size_t)(t-nvn_textures);return i<4096?(unsigned)i:4096;
++}
++static void wol_res_reset_slot(struct nvn_texture *t) {
++    if(!wol_residency_enabled())return;
++    unsigned i=wol_res_slot(t);if(i>=4096)return;
++    wol_residency.last_sample[i]=wol_residency.last_write[i]=wol_residency.last_upload[i]=0;
++    wol_residency.from_guest[i]=1;wol_residency.rt[i]=0;
++}
++static void wol_res_mark_sample(struct nvn_texture *t) {
++    if(!wol_residency_enabled())return;
++    unsigned i=wol_res_slot(t);if(i>=4096)return;
++    t=zero_texture_storage_state(t);i=wol_res_slot(t);if(i>=4096)return;
++    wol_residency.last_sample[i]=wol_residency.frame?wol_residency.frame:1;
++}
++static void wol_res_mark_rt(struct nvn_texture *t) {
++    if(!wol_residency_enabled())return;
++    unsigned i=wol_res_slot(t);if(i>=4096)return;
++    wol_residency.rt[i]=1;wol_residency.from_guest[i]=0;
++    wol_residency.last_write[i]=wol_residency.frame?wol_residency.frame:1;
++}
++static void wol_res_mark_gpu_write(struct nvn_texture *t) {
++    if(!wol_residency_enabled())return;
++    unsigned i=wol_res_slot(t);if(i>=4096)return;
++    wol_residency.from_guest[i]=0;wol_residency.last_write[i]=wol_residency.frame?wol_residency.frame:1;
++}
++static void wol_res_mark_gpu_upload(struct nvn_texture *t) {
++    if(!wol_residency_enabled())return;
++    unsigned i=wol_res_slot(t);if(i>=4096)return;
++    wol_residency.from_guest[i]=0;wol_residency.last_write[i]=wol_residency.last_upload[i]=wol_residency.frame?wol_residency.frame:1;
++}
++static void wol_res_mark_guest_upload(struct nvn_texture *t) {
++    if(!wol_residency_enabled())return;
++    unsigned i=wol_res_slot(t);if(i>=4096)return;
++    wol_residency.last_write[i]=wol_residency.last_upload[i]=wol_residency.frame?wol_residency.frame:1;
++}
+ /* Cached GPU targets have no fabricated CPU completion. Ordinary GPU
+  * sampling uses their live texture; any native CPU/packed-view/alias access
+  * requires a separately implemented readback before it can be admitted. */
+@@ -99,9 +151,16 @@
  #include "nvn_normal.h"
  #include "nvn_texture_coherence.h"
  static uint64_t nvn_texture_layout(uint64_t address,struct nvn_texture_builder *b,uint64_t levels[14]) {
@@ -4555,7 +4773,7 @@
      /* SDK 17.5.3 builder (measured): the linear stride lives at +0x50 (the former packaged slot), the former stride and
       * packaged-layout slots are unused and +0x60 holds a builder marker (0x50). Packaged textures never occur here. */
      b->stride=(uint32_t)b->packaged;b->packaged=0;b->packaged_layout=0;b->gl_name=0;
-@@ -173,6 +181,18 @@
+@@ -173,6 +232,18 @@
         b->width>(uint32_t)nvn_device.texture_limit || b->height>(uint32_t)nvn_device.texture_limit ||
         0){static unsigned told;if(told++<8)printf("MOMO_TEXTURE_BUILDER flags=0x%x target=%u size=%ux%ux%u levels=%u format=0x%x samples=%u stride=%u\n",
             b->flags,b->target,b->width,b->height,b->depth,b->levels,b->format,b->samples,b->stride);}
@@ -4574,7 +4792,7 @@
      if((b->target!=1 && !((b->target==2||b->target==4) && b->depth==1)) || b->depth!=1 || !b->width || !b->height ||
         b->width>(uint32_t)nvn_device.texture_limit || b->height>(uint32_t)nvn_device.texture_limit ||
         !b->levels || b->levels>14 || b->samples>1)stop("NVN_TEXTURE_DIMENSIONS_REQUIRED",nvn_caller,((uint64_t)b->width<<32)|b->height,20);
-@@ -191,7 +211,7 @@
+@@ -191,7 +262,7 @@
          b->format=0x25;
      }
  #endif
@@ -4583,7 +4801,7 @@
      if(bc) {
          if(b->flags&0x50 || b->packaged_layout)stop("ZERO_BC_LINEAR_BLOCK_LAYOUT_REQUIRED",nvn_caller,b->packaged_layout,20);
          uint64_t size=0;
-@@ -321,7 +341,7 @@
+@@ -321,7 +392,7 @@
      return NULL;
  }
  #endif
@@ -4592,7 +4810,7 @@
  static uint64_t zero_texture_record_id(uint64_t object) {return nvn_texture_find(object)->id;}
  static void aw_clear_texture_admit(uint64_t object,uint64_t view,const int32_t *region) {
      struct nvn_texture *t=nvn_texture_find(object);
-@@ -329,6 +349,7 @@
+@@ -329,6 +400,7 @@
      if(region[0]<0||region[1]<0||region[2]||region[3]<=0||region[4]<=0||region[5]!=1||
         (uint64_t)region[0]+region[3]>t->b.width||(uint64_t)region[1]+region[4]>t->b.height)stop("NVN_CLEAR_TEXTURE_REGION",nvn_caller,object,20);
  }
@@ -4600,7 +4818,7 @@
  static void zero_record_target_view(uint64_t object,const uint8_t *view,unsigned attachment) {
      struct nvn_texture *t=object?nvn_texture_find(object):NULL;
  #ifdef MOMO_SHADERS
-@@ -465,17 +486,44 @@
+@@ -465,17 +537,44 @@
  }
  static void zero_texture_pool_flushed(struct nvn_pool *pool,uint64_t offset,uint64_t bytes) {
      if(!bytes)return;
@@ -4649,7 +4867,12 @@
      unsigned x=box?box[0]/4:0,y=box?box[1]/4:0,width=box?box[3]:m.width,height=box?box[4]:m.height;
      unsigned nx=(width+3)/4,ny=(height+3)/4;size_t linear_bytes=(size_t)nx*ny*m.bytes;
      uint8_t *linear=malloc(linear_bytes);if(!linear)stop("ZERO_BC_LINEAR_MEMORY",nvn_caller,linear_bytes,21);
-@@ -492,28 +540,62 @@
+@@ -488,32 +587,67 @@
+ static void zero_texture_refresh(struct nvn_texture *t) {
+     t=zero_texture_storage_state(t);
+     if(!__atomic_exchange_n(&t->zero_cpu_dirty,0,__ATOMIC_ACQ_REL))return;
++    wol_res_mark_guest_upload(t);
+     t2_page_require_rgba8(t,"T2_PAGE_CPU_REFRESH_REQUIRED");
      if(t->composition_target_seen || t->draws || t->depth_buffer || t->b.target!=1 ||
         t->host_scaled || t->host_half || t->packaged_lazy || t->b.packaged_layout)
          stop("ZERO_TEXTURE_CPU_GPU_COHERENCE_REQUIRED",nvn_caller,t->id,20);
@@ -4721,7 +4944,23 @@
  }
  #include "zero_texture_writes.h"
  static unsigned nvn_texture_dispatch(unsigned id,struct nvn_frame *f,uint64_t *result) {
-@@ -739,6 +821,7 @@
+@@ -602,6 +736,7 @@
+         }
+         if(slot==4096)stop("NVN_TEXTURE_CAPACITY",nvn_caller,slot,21);
+         struct nvn_texture *t=&nvn_textures[slot];*t=(struct nvn_texture){.object=a[0],.id=zero_next_object_id(),.size=size,.b=b,.pool=pool};
++        wol_res_reset_slot(t);
+         /* Frente F: an eligible page gets no GL storage now (the pool holds nothing yet, MEDIDO pc-008: the
+          * copy arrives later) and no budget; the copy decides between the palettized form and RGBA8. */
+         t->t2_page.deferred=t2_page_eligible(&b);
+@@ -721,6 +856,7 @@
+ #if ZERO_ZX_GAME
+             zero_mip_complete_storage(t,zero_bc_srgb(b.format)?0x8c42U:GL_RGBA,nvn_cpu_image_upload_type(t));
+ #endif
++            if(b.levels&&!t->host_half&&!t->packaged_lazy&&!t->t2_page.deferred)wol_res_mark_guest_upload(t);
+             nvn_texture_parameters(t,GL_NEAREST,GL_NEAREST,GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE);
+             glBindTexture(GL_TEXTURE_2D,0);
+         }
+@@ -739,6 +875,7 @@
              printf("MOMO_TEXTURE_IDENTITY id=%"PRIu64" object=0x%"PRIx64" pool=0x%"PRIx64" offset=0x%"PRIx64" bytes=%"PRIu64" size=%ux%u format=0x%x flags=0x%x levels=%u target=%u\n",
                  t->id,a[0],b.pool,b.offset,size,b.width,b.height,b.format,b.flags,b.levels,b.target);
          printf("NVN_TEXTURE_REAL object=0x%"PRIx64" format=0x%x size=%ux%u levels=%u bytes=%"PRIu64" texture=%u depth=%u gpu-storage=%s no-draw\n",a[0],b.format,b.width,b.height,b.levels,size,t->name,t->depth_buffer,t->zero_backend_deferred?"unavailable-native-backing-retained":t->packaged_lazy?"deferred":"allocated");
@@ -4729,6 +4968,43 @@
          if(t->host_scaled)printf("NVN_LC2_SCALED_STORAGE id=%"PRIu64" texture=%u depth=%u flags=0x%x pool=0x%x logical=%ux%u actual=%ux%u initial=%s\n",
              t->id,t->name,t->depth_buffer,b.flags,pool->flags,b.width,b.height,t->host_width,t->host_height,
              shared_storage?"existing-GPU-owner":t->name?"full-decode-uniform":"native-depth-uninitialized");
+@@ -841,3 +978,36 @@
+     }
+     return 1;
+ }
++/* WOL_GPU_RESIDENCY aggregate report (read-only). Called from the present-path
++ * profile cadence (every 60 presents). Estimates are level-0 dims x native bpp;
++ * joined storage views are counted once, on the owner slot. "safely_reconstructible"
++ * is deliberately conservative: guest-backed, not a render target, never written
++ * after its last upload, no pending CPU dirty flag, not a substituted page. */
++static void wol_gpu_residency_report(unsigned frame) {
++    if(!wol_residency_enabled())return;
++    struct timespec now;clock_gettime(CLOCK_MONOTONIC,&now);
++    uint64_t now_ns=(uint64_t)now.tv_sec*1000000000ull+now.tv_nsec;
++    double period_ms=wol_residency.last_report_ns?(double)(now_ns-wol_residency.last_report_ns)*1e-6/60.0:0.0;
++    wol_residency.last_report_ns=now_ns;
++    uint32_t f=wol_residency.frame?wol_residency.frame:frame;
++    double total=0,statics=0,targets=0,in5=0,in15=0,in30=0,recon=0;unsigned live=0;
++    for(unsigned i=0;i<nvn_textures_high&&i<4096;i++) {
++        struct nvn_texture *t=&nvn_textures[i];if(!t->live||!t->name)continue;
++        if(zero_texture_storage_state(t)!=t)continue;   /* joined views are counted on their owner */
++        unsigned bpp=nvn_texture_format_bytes(t->b.format);if(!bpp)bpp=4;
++        double mib=(double)t->b.width*t->b.height*bpp/(1024.0*1024.0);
++        live++;total+=mib;
++        if(wol_residency.rt[i])targets+=mib;else statics+=mib;
++        uint32_t ls=wol_residency.last_sample[i];
++        double age_s=(period_ms>0&&ls&&f>ls)?(double)(f-ls)*period_ms/1000.0:1e9;
++        if(age_s>=5.0)in5+=mib;
++        if(age_s>=15.0)in15+=mib;
++        if(age_s>=30.0)in30+=mib;
++        if(!wol_residency.rt[i]&&wol_residency.from_guest[i]&&!t->t2_page.mode&&!t->packaged_lazy&&
++           wol_residency.last_upload[i]&&
++           (!wol_residency.last_write[i]||wol_residency.last_write[i]<=wol_residency.last_upload[i])&&
++           !t->zero_cpu_dirty&&age_s>=5.0)recon+=mib;
++    }
++    printf("WOL_GPU_RESIDENCY frame=%u live=%u host_total_estimate_mib=%.1f static_mib=%.1f render_targets_mib=%.1f inactive_5s_mib=%.1f inactive_15s_mib=%.1f inactive_30s_mib=%.1f safely_reconstructible_mib=%.1f period-ms=%.2f scope=read-only-level0-estimate\n",
++        frame,live,total,statics,targets,in5,in15,in30,recon,period_ms);
++}
 --- a/native/nvn_window.h
 +++ b/native/nvn_window.h
 @@ -51,8 +51,17 @@

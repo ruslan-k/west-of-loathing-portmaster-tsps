@@ -1,0 +1,118 @@
+{
+ "build": "982cb51b266a54daf71c579b7e4292693a86192c2e72691d86431eba3d9657e9",
+ "host_base": "0x5573a70000",
+ "menu": {
+  "replay_top_ops_ms_per_frame": {},
+  "nvn_profile_ms": {
+   "elapsed": 37.48,
+   "replay": 27.867,
+   "present": 1.996,
+   "readback": 0.161
+  },
+  "nvn_profile_windows": 28,
+  "nvn_detail_ms": {
+   "counter": 0.0,
+   "finish": 14.401,
+   "receipt": 0.0,
+   "swap": 1.446
+  },
+  "elided_vs_real_wait_last": "5041/1681",
+  "replay_cpu_ms": 13.104,
+  "slow_frames": {
+   "n": 209,
+   "period_med": 43.4,
+   "replay_med": 28.8,
+   "finish_med": 14.1
+  },
+  "gpu_residency_last": {
+   "frame": 1681,
+   "live": 206,
+   "host_total_mib": 145.7,
+   "static_mib": 102.6,
+   "rt_mib": 43.1,
+   "inactive_5s_mib": 90.1,
+   "inactive_15s_mib": 90.1,
+   "inactive_30s_mib": 90.1,
+   "safely_reconstructible_mib": 7.7,
+   "period_ms": 37.27
+  },
+  "vtx_census_last": {
+   "frame": 1681,
+   "calls": 0,
+   "bytes": 0,
+   "same_bytes": 0,
+   "diff_bytes": 0,
+   "same_pct": -1.0
+  },
+  "vtx_census_windows": 28,
+  "pointer_profile_last": {
+   "calls_per_60f": 235264,
+   "hint_hits": 173728,
+   "fallbacks": 61536,
+   "estimated_wait_ms_per_frame": 0.928
+  },
+  "aw_profile": {
+   "windows": 0,
+   "samples": 0
+  },
+  "aw_top": [],
+  "aw_top_resolved": []
+ },
+ "game": {
+  "replay_top_ops_ms_per_frame": {},
+  "nvn_profile_ms": {
+   "elapsed": 36.93,
+   "replay": 25.401,
+   "present": 1.937,
+   "readback": 0.084
+  },
+  "nvn_profile_windows": 18,
+  "nvn_detail_ms": {
+   "counter": 0.0,
+   "finish": 12.163,
+   "receipt": 0.0,
+   "swap": 1.433
+  },
+  "elided_vs_real_wait_last": "8281/2761",
+  "replay_cpu_ms": 12.771,
+  "slow_frames": {
+   "n": 76,
+   "period_med": 41.3,
+   "replay_med": 25.7,
+   "finish_med": 12.2
+  },
+  "gpu_residency_last": {
+   "frame": 2761,
+   "live": 239,
+   "host_total_mib": 153.1,
+   "static_mib": 110.1,
+   "rt_mib": 43.1,
+   "inactive_5s_mib": 97.2,
+   "inactive_15s_mib": 97.2,
+   "inactive_30s_mib": 97.2,
+   "safely_reconstructible_mib": 7.1,
+   "period_ms": 36.31
+  },
+  "vtx_census_last": {
+   "frame": 2761,
+   "calls": 300,
+   "bytes": 1764000,
+   "same_bytes": 1764000,
+   "diff_bytes": 0,
+   "same_pct": 100.0
+  },
+  "vtx_census_windows": 18,
+  "pointer_profile_last": {
+   "calls_per_60f": 282829,
+   "hint_hits": 205085,
+   "fallbacks": 77744,
+   "estimated_wait_ms_per_frame": 0.9
+  },
+  "aw_profile": {
+   "windows": 0,
+   "samples": 0
+  },
+  "aw_top": [],
+  "aw_top_resolved": []
+ }
+}
