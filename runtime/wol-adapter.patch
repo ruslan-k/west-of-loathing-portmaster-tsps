@@ -1754,7 +1754,78 @@
  }
  static GLenum nvn_stencil_operation(unsigned value) {
      static const GLenum operations[]={0,GL_KEEP,GL_ZERO,GL_REPLACE,GL_INCR,GL_DECR,GL_INVERT,GL_INCR_WRAP,GL_DECR_WRAP};
-@@ -312,8 +557,19 @@
+@@ -260,10 +505,47 @@
+     *ok=0;return 0;
+ }
+ #endif
++/* WOL_SAMPLE_SPLIT=1: opt-in wall-clock zones inside the sampler path (roadmap sec.3 follow-up:
++ * name the inner cost of the ~3.8 ms/frame a2c1 texture-selection span). Read-only accounting,
++ * one summary per 60 frames, no behaviour change. Zones: pp1 descriptor+resources, pp2 identity
++ * /sampler rejects, pp3 zero_texture_refresh, pp4 require/sample guards, pp5 sampler builder +
++ * filter/wrap, sm1 prepare call + copy-trace + storage sampler require, sm2 unit/packaged/t2
++ * touches, sm3 bind + parameters + cpu-image refresh, sm4 scaled-check + texdiag + reports. */
++static struct {uint64_t ns[9],calls[9];unsigned frame;} wol_sample_split;
++static unsigned wol_ss_enabled(void) {
++    static int configured,enabled;
++    if(!configured){const char *o=getenv("WOL_SAMPLE_SPLIT");enabled=o&&!strcmp(o,"1");configured=1;
++        if(enabled)printf("WOL_SAMPLE_SPLIT enabled=1 zones=pp1-pp5,sm1-sm4 scope=wall-inside-sampler\n");}
++    return enabled;
++}
++static inline uint64_t wol_ss_begin(void){struct timespec ts;clock_gettime(CLOCK_MONOTONIC,&ts);
++    return (uint64_t)ts.tv_sec*1000000000ull+(uint64_t)ts.tv_nsec;}
++static inline void wol_ss_end(unsigned slot,uint64_t t0){if(!t0)return;struct timespec ts;clock_gettime(CLOCK_MONOTONIC,&ts);
++    wol_sample_split.ns[slot]+=(uint64_t)ts.tv_sec*1000000000ull+(uint64_t)ts.tv_nsec-t0;wol_sample_split.calls[slot]++;}
++static void wol_ss_report(unsigned frame) {
++    if(!wol_ss_enabled()||frame<wol_sample_split.frame||frame-wol_sample_split.frame<60)return;
++    unsigned span=frame-wol_sample_split.frame;wol_sample_split.frame=frame;
++    printf("WOL_SAMPLE_SPLIT frame=%u span=%u ms-per-frame pp1=%.3f pp2=%.3f pp3=%.3f pp4=%.3f pp5=%.3f sm1=%.3f sm2=%.3f sm3=%.3f sm4=%.3f calls=%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu\n",
++        frame,span,
++        (double)wol_sample_split.ns[0]/span/1e6,(double)wol_sample_split.ns[1]/span/1e6,
++        (double)wol_sample_split.ns[2]/span/1e6,(double)wol_sample_split.ns[3]/span/1e6,
++        (double)wol_sample_split.ns[4]/span/1e6,(double)wol_sample_split.ns[5]/span/1e6,
++        (double)wol_sample_split.ns[6]/span/1e6,(double)wol_sample_split.ns[7]/span/1e6,
++        (double)wol_sample_split.ns[8]/span/1e6,
++        (unsigned long long)wol_sample_split.calls[0],(unsigned long long)wol_sample_split.calls[1],
++        (unsigned long long)wol_sample_split.calls[2],(unsigned long long)wol_sample_split.calls[3],
++        (unsigned long long)wol_sample_split.calls[4],(unsigned long long)wol_sample_split.calls[5],
++        (unsigned long long)wol_sample_split.calls[6],(unsigned long long)wol_sample_split.calls[7],
++        (unsigned long long)wol_sample_split.calls[8]);
++    memset(wol_sample_split.ns,0,sizeof wol_sample_split.ns);memset(wol_sample_split.calls,0,sizeof wol_sample_split.calls);
++}
+ static struct nvn_sampler_binding nvn_render_sampler_prepare_mode(uint64_t handle,unsigned cpu_view,unsigned real_sample) {
++    int wol_ss=wol_ss_enabled();uint64_t wol_t=wol_ss?wol_ss_begin():0;
+     struct nvn_descriptor *td=nvn_render_descriptor(nvn_replay.texture_pool,1,(uint32_t)handle),*sd=nvn_render_descriptor(nvn_replay.sampler_pool,2,handle>>32);
+     struct nvn_texture *t=NULL;struct nvn_sampler *s=NULL;nvn_render_resources(td,sd,&t,&s);
++    if(wol_ss){wol_ss_end(0,wol_t);wol_t=wol_ss?wol_ss_begin():0;}
+     if(t && t->zero_backend_deferred)stop("ZERO_FLOAT_TEXTURE_SAMPLER_BACKEND_REQUIRED",nvn_caller,t->b.format,20);
++    if(wol_ss){wol_ss_end(1,wol_t);wol_t=wol_ss?wol_ss_begin():0;}
+ #ifdef ANIMAL_WELL_SHADERS
+     if(t && t->aw_clear_valid)aw_clear_flush(t);
+ #endif
+@@ -287,7 +569,9 @@
+         stop("NVN_RENDER_TEXTURE_LIFETIME_FEEDBACK",nvn_caller,handle,24);
+     }
+     if(t->b.target!=1)stop("ZERO_SAMPLED_TEXTURE_TARGET_REQUIRED",nvn_caller,t->b.target,20);
++    if(wol_ss){wol_ss_end(1,wol_t);wol_t=wol_ss?wol_ss_begin():0;}
+     zero_texture_refresh(t);
++    if(wol_ss){wol_ss_end(2,wol_t);wol_t=wol_ss?wol_ss_begin():0;}
+     nvn_normal_require_materialized(t);
+     nvn_rt_storage_require(t);
+     nvn_rt_storage_sample(t,nvn_render.program?nvn_render.program->sources[0]:0,nvn_render.program?nvn_render.program->sources[1]:0,cpu_view,0,0);
+@@ -295,10 +579,12 @@
+      * pixels whose native writes were omitted, even through another handle. */
+     if(real_sample)nvn_mfc_require(t,MFC_COLOR,0);
+     if(nvn_low_color(t)>=0)stop("NVN_LOW_GUEST_SAMPLING_REQUIRED",nvn_caller,t->id,20);
++    if(wol_ss){wol_ss_end(3,wol_t);wol_t=wol_ss?wol_ss_begin():0;}
+     if(cpu_view) {
+         if(t->host_scaled)stop("NVN_LC2_SCALED_CPU_VIEW_REQUIRED",nvn_caller,t->id,20);
+         if(!nvn_texture_view_width(t->b.format,cpu_view,t->b.width))
+             stop("NVN_LC2_CPU_VIEW_FORMAT_REQUIRED",nvn_caller,t->b.format,20);
++        if(wol_ss){wol_ss_end(4,wol_t);}
+         return (struct nvn_sampler_binding){t,GL_NEAREST,GL_NEAREST,{GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}};
+     }
+     if(t->b.format==6)stop("NVN_LC2_R16_NORMALIZED_SAMPLING_REQUIRED",nvn_caller,handle,20);
+@@ -312,8 +598,19 @@
       * sampler2D shaders never evaluate; both are admitted once-logged. Reduction/anisotropy/bias stay closed. */
      {static unsigned aw_sampler_reported;
       if((b->compare || b->lod_min<0) && !aw_sampler_reported++)printf("AW_SAMPLER_ADMIT compare=%u lod-min=%g shaders=sampler2D-only\n",b->compare,b->lod_min);}
@@ -1774,7 +1845,13 @@
      GLenum wrap[2];for(unsigned i=0;i<2;i++) {
          wrap[i]=nvn_megaman_sampler_wrap(b->wrap[i],b->min,b->mag);
          if(!wrap[i])stop("NVN_RENDER_WRAP_REQUIRED",nvn_caller,b->wrap[i],20);
-@@ -345,8 +601,58 @@
+@@ -340,18 +637,71 @@
+         }
+     }
+ #endif
++    if(wol_ss){wol_ss_end(4,wol_t);}
+     return (struct nvn_sampler_binding){t,min_filter,b->mag?GL_LINEAR:GL_NEAREST,{wrap[0],wrap[1]}};
+ }
  static struct nvn_sampler_binding nvn_render_sampler_prepare(uint64_t handle,unsigned cpu_view) {
      return nvn_render_sampler_prepare_mode(handle,cpu_view,!nvn_mfc_omitting_draw());
  }
@@ -1828,12 +1905,43 @@
 +        frame,nvn_copy_trace.copies,nvn_copy_trace.src_id,nvn_copy_trace.dst_id,nvn_copy_trace.draws_src_after,nvn_copy_trace.samples_dst_after,nvn_copy_trace.samples_src_after);
 +}
  static struct nvn_texture *nvn_render_sampler(uint64_t handle,unsigned unit,unsigned cpu_view,unsigned real_sample,GLint *min_filter,GLenum wrap[2]) {
++    int wol_ss=wol_ss_enabled();uint64_t wol_t=wol_ss?wol_ss_begin():0;
      struct nvn_sampler_binding binding=nvn_render_sampler_prepare_mode(handle,cpu_view,real_sample);struct nvn_texture *t=binding.texture;
 +    nvn_copy_trace_sample(t,real_sample);
      if(t2_pass_probe_active())printf("T2_PASS_SAMPLER draw=%u id=%"PRIu64" min=%x mag=%x wrap=%x/%x\n",nvn_replay.draws,t->id,(unsigned)binding.min,(unsigned)binding.mag,(unsigned)binding.wrap[0],(unsigned)binding.wrap[1]);
      t2_page_sampler_filter(t,&binding.min,&binding.mag);   /* Frente F: an index plane is NEAREST whatever the sampler says */
      zero_texture_storage_sampler_require(t,unit,binding.min,binding.mag,binding.wrap[0],binding.wrap[1]);
-@@ -507,8 +813,1296 @@
+     if(min_filter)*min_filter=binding.min;
+     wrap[0]=binding.wrap[0];wrap[1]=binding.wrap[1];
++    if(wol_ss){wol_ss_end(5,wol_t);wol_t=wol_ss?wol_ss_begin():0;}
+     unsigned omitting=!real_sample;
+     glActiveTexture(GL_TEXTURE0+unit);
+     /* A flattened volume/array image (nvn_textures.h) cannot be sampled correctly on GLES2. */
+@@ -359,6 +709,7 @@
+     nvn_packaged_materialize(t);
+     if(real_sample){t2_page_cache_touch(t,nvn_replay.last_frame+1);t2_residency_touch(t);t2_residency_materialize(t);} /* index/palette/blockmap exist before a real sampled bind */
+     if(t->t2_page.deferred)t2_page_materialize_rgba8(t,NULL,0,"sampled-before-copy");   /* Frente F */
++    if(wol_ss){wol_ss_end(6,wol_t);wol_t=wol_ss?wol_ss_begin():0;}
+     GLuint texture_name=t->name;
+     unsigned width=nvn_rt_storage_width(t),height=nvn_rt_storage_height(t);
+     if(cpu_view){texture_name=nvn_texture_cpu_view_name(t,cpu_view);width=nvn_texture_view_width(t->b.format,cpu_view,width);}
+@@ -366,6 +717,7 @@
+         t->t2_page.mode==T2_PAGE_MODE_COMPACT?GL_CLAMP_TO_EDGE:binding.wrap[0],
+         t->t2_page.mode==T2_PAGE_MODE_COMPACT?GL_CLAMP_TO_EDGE:binding.wrap[1]);
+         nvn_cpu_image_refresh(t,omitting);}
++    if(wol_ss){wol_ss_end(7,wol_t);wol_t=wol_ss?wol_ss_begin():0;}
+     if(t->host_scaled&&!t->host_scaled_sampled){t->host_scaled_sampled=1;
+         printf("NVN_LC2_SCALED_SAMPLE object=0x%"PRIx64" id=%"PRIu64" texture=%u pool=0x%"PRIx64" format=0x%x flags=0x%x target=%"PRIu64" program=%u sources=%u/%u logical=%ux%u actual=%ux%u normalized-UV=unchanged\n",
+             t->object,t->id,t->name,t->pool->object,t->b.format,t->b.flags,nvn_render.target->id,nvn_render.program->name,nvn_render.program->sources[0],nvn_render.program->sources[1],t->b.width,t->b.height,width,height);}
+@@ -373,6 +725,7 @@
+      * post-update observation. Initialize still records the original upload. */
+     if(!omitting||!nvn_cpu_image_family(t))nvn_texdiag_sample(t,handle,unit,cpu_view);
+     nvn_resource_lookup_report(nvn_replay.last_frame);nvn_texture_parameter_report(nvn_replay.last_frame);
++    if(wol_ss){wol_ss_end(8,wol_t);wol_ss_report((unsigned)nvn_replay.last_frame);}
+     if(nvn_draw_diagnostic_active()) {
+         GLint previous;GLuint fb;glGetIntegerv(GL_FRAMEBUFFER_BINDING,&previous);glGenFramebuffers(1,&fb);
+         glBindFramebuffer(GL_FRAMEBUFFER,fb);glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,texture_name,0);
+@@ -507,8 +860,1296 @@
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -3130,7 +3238,7 @@
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +2298,7 @@
+@@ -704,6 +2345,7 @@
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -3138,7 +3246,7 @@
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1340,7 +2935,7 @@
+@@ -1340,7 +2982,7 @@
              if(cadence_stencil && mfc_stencil_preserve_geometry(primitive,indices,count,maximum)) {
                  nvn_mfc_require(nvn_render.depth,MFC_STENCIL,0);
                  nvn_render_color_mask(0);nvn_render_depth_mask(GL_FALSE);
@@ -3147,7 +3255,7 @@
                  nvn_render_color_mask(effective_color_mask);
                  nvn_render_depth_mask((nvn_render.depth_state[0]>>1)&1);
                  uint64_t preserved=++megaman_frame_cadence.stencil_preserved_draws;
-@@ -1411,7 +3006,7 @@
+@@ -1411,7 +3053,7 @@
          uint64_t aw_probe_t0=0;if(tpf && nvn_replay.last_frame+1==tpf){glFinish();aw_probe_t0=nvn_nanoseconds();}
          if(p->aw_noise_location>=0){glActiveTexture(GL_TEXTURE0+7);glBindTexture(GL_TEXTURE_2D,aw_noise.tex);GLint unit=7;nvn_uniform_send(p->aw_noise_location,NVN_UNIFORM_INT,&unit);glActiveTexture(GL_TEXTURE0);}
  #endif
@@ -3156,7 +3264,7 @@
          zero_depth_draw_end(&depth_draw);nvn_draw_finish_profile();
  #ifdef ANIMAL_WELL_SHADERS
          nvn_render.target->aw_draws_since_clear++;
-@@ -1535,6 +3130,389 @@
+@@ -1535,6 +3177,389 @@
          begin=end+1;
      }
  }
@@ -3546,7 +3654,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +3540,16 @@
+@@ -1562,7 +3587,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -3564,7 +3672,7 @@
      case NI_nvnCommandBufferSetLineWidth:case NI_nvnCommandBufferSetPointSize: {
          float size;memcpy(&size,r->vectors,4);
          if(!isfinite(size) || size<=0)stop("ZERO_RASTER_SIZE_INVALID",nvn_caller,r->op,24);
-@@ -1682,7 +3669,7 @@
+@@ -1682,7 +3716,7 @@
              nvn_render.framebuffer=nvn_framebuffer_bind(nvn_render.target,d);nvn_render.pass_skipped=0;
              zero_udd_restore(d);
              nvn_low_target(nvn_render.target,d);d->composition_target_seen=1;
@@ -3573,7 +3681,7 @@
          }
          struct nvn_texture *t=nvn_texture_find(targets[0]);
          nvn_cpu_image_require_target(t);nvn_cpu_image_require_target(d);
-@@ -1697,6 +3684,7 @@
+@@ -1697,6 +3731,7 @@
              if(nvn_low_color(t)<0&&!t->host_scaled)d->composition_other_target=1;}
          nvn_packaged_require_writable(t,"NVN_LC2_PACKAGED_RENDER_TARGET_REQUIRED");
          if(!t->name||(d&&(!d->depth_buffer||d->b.width!=t->b.width||d->b.height!=t->b.height)))stop("NVN_FRAMEBUFFER_ATTACHMENTS",nvn_caller,targets[0],24);
