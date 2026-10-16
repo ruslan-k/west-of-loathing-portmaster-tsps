@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Data-free tests for roadmap report contracts and recovered-menu signal gating."""
 import struct
+import os
+import subprocess
 import tempfile
 import unittest
 import zlib
@@ -17,6 +19,16 @@ def png_rgb8(pixels, color=2):
 
 
 class ReportContracts(unittest.TestCase):
+    def test_launcher_injection_default_off_preserves_explicit_opt_in(self):
+        launcher=Path(__file__).resolve().parents[1]/'West of Loathing Switch.sh'
+        lines=[s for s in launcher.read_text().splitlines() if s.startswith('export COTM_INPUT_DIAGNOSTIC=')]
+        self.assertEqual(len(lines),1)
+        for option,expected in ((None,'0'),('0','0'),('1','1')):
+            env=dict(os.environ);env.pop('COTM_INPUT_DIAGNOSTIC',None)
+            if option is not None:env['COTM_INPUT_DIAGNOSTIC']=option
+            r=subprocess.run(['/bin/bash','-c',lines[0]+'; printf %s "$COTM_INPUT_DIAGNOSTIC"'],env=env,capture_output=True,text=True,check=True)
+            self.assertEqual(r.stdout,expected)
+
     def test_read_span_joins_containing_allocation_not_just_equal_base(self):
         text='''WOL_ALLOC event=alloc ptr=0x1000 bytes=0x100 arena=0x1 incomplete=0 parent=a parent=b
 WOL_ROMFS_BUFFER address=0x1020 bytes=100

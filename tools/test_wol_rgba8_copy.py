@@ -11,8 +11,12 @@ assert 'rd_direct=o&&!strcmp(o,"1")' in t, 'direct refresh must stay opt-in (=1)
 refresh=t.split('static void zero_texture_refresh(',1)[1].split('#include "zero_texture_writes.h"',1)[0]
 assert 'stride==row' in refresh and 'type==GL_UNSIGNED_BYTE' in refresh and 'nvn_texture_copy_rgba8' in refresh
 assert 'nvn_texture_rgba8_raw_eligible' in refresh, 'direct refresh must reuse the exact-copy eligibility predicate'
-for guard in ('ZERO_TEXTURE_CPU_GPU_COHERENCE_REQUIRED','ZERO_TEXTURE_REFRESH_RANGE','ZERO_TEXTURE_REFRESH_GL','nvn_texture_decode_upload','glTexSubImage2D','free(pixels)'):
+for guard in ('ZERO_TEXTURE_CPU_GPU_COHERENCE_REQUIRED','ZERO_TEXTURE_REFRESH_RANGE','ZERO_TEXTURE_REFRESH_GL','nvn_texture_decode_upload','free(pixels)'):
     assert guard in refresh, 'copy path must retain '+guard
+if 'glTexSubImage2D' not in refresh:
+    assert 'wol_texture_upload(t,level,width,height,type,upload)' in refresh
+    wrapper=t.split('static void wol_texture_upload(',1)[1].split('static void zero_texture_refresh(',1)[0]
+    assert 'glTexSubImage2D(GL_TEXTURE_2D,level,0,0,width,height,zero_bc_srgb(t->b.format)?0x8c42U:GL_RGBA,type,pixels)' in wrapper, 'ordinary fallback must retain the exact GL upload arguments'
 code=r'''
 #include <assert.h>
 #include <stdio.h>

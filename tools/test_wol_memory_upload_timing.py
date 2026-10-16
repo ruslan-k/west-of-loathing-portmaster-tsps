@@ -34,6 +34,7 @@ class UploadTiming(unittest.TestCase):
 #define GL_TEXTURE_2D 1
 #define GL_RGBA 2
 struct nvn_texture {uint64_t id;struct {unsigned format;} b;};
+static unsigned wol_pbo_upload(struct nvn_texture *t,unsigned l,unsigned w,unsigned h,unsigned k,const void *p){(void)t;(void)l;(void)w;(void)h;(void)k;(void)p;return 0;}
 static unsigned finishes,uploads;static const unsigned char image[4]={1,2,3,4};
 static unsigned zero_bc_srgb(unsigned f){(void)f;return 0;}
 static unsigned nvn_texture_upload_bytes(unsigned t){assert(t==3);return 4;}

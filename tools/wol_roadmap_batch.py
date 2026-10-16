@@ -19,18 +19,22 @@ def main():
     ap.add_argument('--out',type=Path,required=True)
     ap.add_argument('--pairs',type=int,default=3)
     ap.add_argument('--texture-id',default='469',help='explicit runtime identity; use all only after single-texture acceptance')
+    ap.add_argument('--feature',choices=('astc','pbo'),default='astc')
     ap.add_argument('--control-save',default='/mnt/UDISK/wol-goal-20261015/user-after-goblin-attack')
     a=ap.parse_args()
     if not 1<=a.pairs<=3:ap.error('1..3 pairs per round')
     a.out.mkdir(parents=True,exist_ok=False)
     runs=[]
+    variants=('control','postcopy') if a.feature=='astc' else ('control','direct','pbo')
     for i in range(1,a.pairs+1):
-        for variant in ('control','postcopy'):
+        for variant in variants:
             label=f'{a.prefix}-{variant}-{i}'
             out=a.out/label;out.mkdir()
             got=subprocess.run(SSH+['sha256sum /mnt/SDCARD/Roms/PORTS/wol-switch/wol-horizon'],capture_output=True,text=True,check=True).stdout.split()[0]
             if got!=a.elf_sha256:raise RuntimeError('device runtime changed; stop batch')
             flags=['WOL_COPY_AUDIT=0','WOL_ALLOC_TRACE=0','WOL_BC_WRITE_TRACE=0','WOL_ROMFS_LIFETIME=0',
+                   'WOL_UPLOAD_TIMING=0','WOL_PBO_UPLOAD='+('1' if variant=='pbo' else '0'),
+                   'WOL_REFRESH_DIRECT='+('1' if variant=='direct' else '0'),
                    'WOL_ASTC_POSTCOPY='+('1' if variant=='postcopy' else '0'),
                    'WOL_ASTC_POSTCOPY_ID='+a.texture_id,
                    'WOL_ASTC_CACHE='+('/mnt/UDISK/wol-astc-cache-wide.bin' if variant=='postcopy' else '')]
@@ -49,7 +53,7 @@ def main():
             runs.append(dict(label=label,variant=variant,pair=i,path=str(out),runtime_sha256=receipt['runtime_sha256']))
             (a.out/'runs.json').write_text(json.dumps(runs,indent=2)+'\n')
             print('DONE',label,flush=True)
-    assert len(runs)==2*a.pairs
+    assert len(runs)==len(variants)*a.pairs
     print('BATCH_VERIFIED',len(runs),flush=True)
 
 
