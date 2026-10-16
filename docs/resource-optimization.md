@@ -87,6 +87,15 @@ resolve (quiet-pick), ~0.8-1.1 ms in `glUseProgram` plus the two 96-float consta
 ~820 us against ~68 us for ordinary draws. Details, methods and limits:
 [fps-frame-timeline](../evidence/fps-frame-timeline/README.md).
 
+**Sampler micro-zones (2026-10-16, later):** opt-in `WOL_SAMPLE_SPLIT` names the draw-path
+`a2c1` cost: 95% of it is `zero_texture_refresh` - the per-frame 3.7 MB re-upload of texture
+`460` (1280x720) performed on its first sample of each frame (2824 flagged uploads and
+~10.4 GB uploaded in one run; ~578 MB/s effective; the fast memmove copy path is already
+engaged). GPU-copy arm (`WOL_COPY_GPU=1`) removes it (a2c1 6.1 -> 0.39 ms) but grows `finish`
+12.6 -> 25.9 ms (game) and elapsed 34.0 -> 48.0 ms: net negative, now confirmed with exact
+attribution; a frame-end blit pipeline would be the different shape worth trying. Evidence:
+[fps-sampler-split](../evidence/fps-sampler-split/README.md).
+
 **Texture-copy dependency trace (2026-10-16, roadmap section 4):** the per-frame colour copy
 rotates between three source buffers into a fixed destination, samples the destination twice
 right after the copy and re-draws the source afterwards; no destination read ever follows a
