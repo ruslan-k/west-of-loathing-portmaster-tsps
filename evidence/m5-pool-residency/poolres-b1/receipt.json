@@ -1,0 +1,269 @@
+{
+  "label": "poolres-b1",
+  "owner_save_hashes": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"
+  },
+  "stages": [
+    {
+      "name": "startup",
+      "t_ns": 15509420350640
+    },
+    {
+      "name": "menu",
+      "t_ns": 15586825629073
+    },
+    {
+      "name": "continue-load",
+      "t_ns": 15606846912005
+    },
+    {
+      "name": "game-idle",
+      "t_ns": 15619512444165
+    },
+    {
+      "name": "move-right",
+      "t_ns": 15651184320558
+    },
+    {
+      "name": "move-left",
+      "t_ns": 15656070426290
+    },
+    {
+      "name": "map",
+      "t_ns": 15660715189909
+    },
+    {
+      "name": "map-return",
+      "t_ns": 15675287668980
+    },
+    {
+      "name": "pause",
+      "t_ns": 15689849720761
+    },
+    {
+      "name": "pause-return",
+      "t_ns": 15694425419953
+    }
+  ],
+  "cleanup_verified": true,
+  "probe_sha256": "a94983d4a83efdc0b7592d9dd7699234174181820e101421ca2c39861725cb84",
+  "session_sha256": "6da1c13dd34a93c5933de70e5db54af449a0e85b6ebb52659eee88911ebc61bd",
+  "launcher_sha256": "fa30af838b22e01b7a5eeeb7c4f34c4b5eaf3f67c7a984eee0ba87ba90581f3a",
+  "layout_sha256": "ccca10790d36fdea55a4080fe3023e28d998b6f7d6e24de5b99b45f60555e587",
+  "ordinary_title_only": false,
+  "draw_trace": false,
+  "phase_labels_are_requests_not_scene_classifications": true,
+  "heavy_guest_page_sampling": false,
+  "present_watchdog_s": 20.0,
+  "progress_checks": 87,
+  "control_save_hashes": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"
+  },
+  "runtime_sha256": "273b4638cae6dd4d0cbe7d1b4a91eac9e3f68c6b758fb7ef2729a2c28e31af13",
+  "section_sha256": "49bd16718ed0dc46f16599255791c7603e8aa2b5f04898784a39d6cacb9d0722",
+  "last_progress_observation": {
+    "frame": 3881,
+    "ns": 15708109342073,
+    "age_s": 0.011383067
+  },
+  "block_samples": {
+    "game-idle": {
+      "method": "pagemap present/swapped bits per 4KiB page; requested bytes are allocator requests, not physical pages; no reclaim inferred",
+      "blocks": [
+        {
+          "ptr": "0x106058b000",
+          "requested_kib": 196612,
+          "present_kib": 64264,
+          "swapped_kib": 1104,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1050186000",
+          "requested_kib": 196612,
+          "present_kib": 13800,
+          "swapped_kib": 4,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1047752000",
+          "requested_kib": 141520,
+          "present_kib": 130604,
+          "swapped_kib": 10404,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106f85a000",
+          "requested_kib": 98308,
+          "present_kib": 28,
+          "swapped_kib": 120,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x105c188000",
+          "requested_kib": 65540,
+          "present_kib": 48816,
+          "swapped_kib": 436,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1078b00000",
+          "requested_kib": 65536,
+          "present_kib": 65536,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106d8b3000",
+          "requested_kib": 32408,
+          "present_kib": 24300,
+          "swapped_kib": 4,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x107595c000",
+          "requested_kib": 16384,
+          "present_kib": 15412,
+          "swapped_kib": 972,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x107695c000",
+          "requested_kib": 8192,
+          "present_kib": 8192,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10776e2000",
+          "requested_kib": 8192,
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1078700000",
+          "requested_kib": 4096,
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        }
+      ]
+    },
+    "precleanup": {
+      "method": "pagemap present/swapped bits per 4KiB page; requested bytes are allocator requests, not physical pages; no reclaim inferred",
+      "blocks": [
+        {
+          "ptr": "0x106058b000",
+          "requested_kib": 196612,
+          "present_kib": 56092,
+          "swapped_kib": 9276,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1050186000",
+          "requested_kib": 196612,
+          "present_kib": 13928,
+          "swapped_kib": 4,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1047752000",
+          "requested_kib": 141520,
+          "present_kib": 130604,
+          "swapped_kib": 10404,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106f85a000",
+          "requested_kib": 98308,
+          "present_kib": 28,
+          "swapped_kib": 120,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x105c188000",
+          "requested_kib": 65540,
+          "present_kib": 49456,
+          "swapped_kib": 436,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1078b00000",
+          "requested_kib": 65536,
+          "present_kib": 65536,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106d8b3000",
+          "requested_kib": 32408,
+          "present_kib": 24300,
+          "swapped_kib": 4,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x107595c000",
+          "requested_kib": 16384,
+          "present_kib": 16384,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x107695c000",
+          "requested_kib": 8192,
+          "present_kib": 8192,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10776e2000",
+          "requested_kib": 8192,
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1078700000",
+          "requested_kib": 4096,
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        }
+      ]
+    }
+  },
+  "ledger_exit": 0,
+  "restored_save_hashes": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"
+  },
+  "menu_rgb_signal_verified": true,
+  "cleanup_warnings": [],
+  "menu_pids": [
+    22642
+  ]
+}

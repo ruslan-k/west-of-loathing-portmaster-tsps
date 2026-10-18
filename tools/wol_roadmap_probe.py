@@ -17,6 +17,43 @@ from wol_present_watchdog import PresentationStall, require_progress
 import time
 import struct
 import zlib
+import re
+
+
+BLOCK_MIN_BYTES=4*1024*1024
+BLOCK_MAX_BYTES=1024*1024*1024
+
+
+def live_blocks(text,min_bytes=BLOCK_MIN_BYTES,max_bytes=BLOCK_MAX_BYTES):
+    live={}
+    for line in text.splitlines():
+        if not line.startswith('WOL_ALLOC '):
+            continue
+        row=dict(re.findall(r'([\w-]+)=([^\s]+)',line))
+        if 'ptr' not in row or 'bytes' not in row:
+            continue
+        try:
+            ptr=int(row['ptr'],0);n=int(row['bytes'],0)
+        except ValueError:
+            continue
+        if row.get('event')=='free':
+            live.pop(ptr,None)
+        elif row.get('event') in ('alloc','realloc'):
+            live[ptr]=n
+    return sorted(((p,n) for p,n in live.items() if min_bytes<=n<=max_bytes),key=lambda x:-x[1])
+
+
+def decode_pagemap(data):
+    if len(data)%8:
+        raise ValueError('pagemap read is not a whole number of entries')
+    counts=dict(present=0,swapped=0,file_or_shared=0,exclusive=0)
+    for i in range(0,len(data),8):
+        e=int.from_bytes(data[i:i+8],'little')
+        counts['present']+=(e>>63)&1
+        counts['swapped']+=(e>>62)&1
+        counts['file_or_shared']+=(e>>61)&1
+        counts['exclusive']+=(e>>60)&1
+    return dict(pages=len(data)//8,**counts)
 
 
 def kms_rgb_signal(path):
@@ -73,6 +110,7 @@ def main():
     ap.add_argument('--draw-trace',action='store_true',help='per-draw tracing for one short screen (heavy log, not an FPS arm)')
     ap.add_argument('--present-watchdog',type=float,default=0,help='opt-in 5..30s present-progress budget; requires MOMO_FRAME_CLOCK=1')
     ap.add_argument('--stall-gdb',action='store_true',help='on stall only: bounded backtrace of the exact owned PID, no memory dump')
+    ap.add_argument('--block-pages',action='store_true',help='read-only pagemap residency of >=4MiB live WOL_ALLOC blocks at game-idle and before cleanup')
     a=ap.parse_args()
     if a.present_watchdog and (not 5<=a.present_watchdog<=30 or a.ordinary_title):
         ap.error('watchdog requires diagnostic mode and a finite 5..30 second budget')
@@ -160,6 +198,33 @@ def main():
         deadline=time.monotonic()+seconds
         while time.monotonic()<deadline:
             check_progress();time.sleep(min(1,max(0,deadline-time.monotonic())))
+    def sample_blocks(tag):
+        if not a.block_pages or not owned:return
+        if stat_identity(Path('/proc')/str(owned[0]))['start_ticks']!=owned[1]:
+            receipt.setdefault('block_samples',{})[tag]=dict(error='PID/start-time changed');return
+        try:text=(root/'logs/latest.log').read_text(errors='replace')
+        except OSError as e:
+            receipt.setdefault('block_samples',{})[tag]=dict(error=str(e));return
+        blocks=[]
+        try:
+            fd=os.open('/proc/%d/pagemap'%owned[0],os.O_RDONLY)
+            try:
+                for ptr,n in live_blocks(text):
+                    try:
+                        data=os.pread(fd,(n//4096)*8,(ptr//4096)*8)
+                        if len(data)!=(n//4096)*8:raise OSError('short pagemap read')
+                        counts=decode_pagemap(data)
+                        blocks.append(dict(ptr=hex(ptr),requested_kib=n//1024,
+                            present_kib=counts['present']*4,swapped_kib=counts['swapped']*4,
+                            file_or_shared_kib=counts['file_or_shared']*4,exclusive_kib=counts['exclusive']*4))
+                    except (OSError,ValueError) as e:
+                        blocks.append(dict(ptr=hex(ptr),requested_kib=n//1024,error=str(e)))
+            finally:os.close(fd)
+        except OSError as e:
+            receipt.setdefault('block_samples',{})[tag]=dict(error=str(e));return
+        receipt.setdefault('block_samples',{})[tag]=dict(
+            method='pagemap present/swapped bits per 4KiB page; requested bytes are allocator requests, not physical pages; no reclaim inferred',
+            blocks=blocks)
     try:
         if a.control_save:
             for p in save.iterdir():
@@ -196,6 +261,7 @@ def main():
         if a.ordinary_title:return
         stage('continue-load');cmd('press','0x1','0','12','world','180')
         stage('game-idle');pause(30)
+        sample_blocks('game-idle')
         if route is not None:
             receipt['route_sha256']=hashlib.sha256(a.route.read_bytes()).hexdigest()
             for action in route:
@@ -210,6 +276,10 @@ def main():
             stage('pause-return');cmd('press','0x400','0','4','unpause','180');pause(10)
     finally:
         warnings=[]
+        try:
+            sample_blocks('precleanup')
+        except Exception as e:
+            warnings.append('block sample: '+str(e))
         try:
             if launch and launch.poll() is None:
                 launch.wait(timeout=150)
