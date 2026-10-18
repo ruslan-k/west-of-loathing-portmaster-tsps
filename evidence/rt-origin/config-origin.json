@@ -1,0 +1,21 @@
+{
+  "switch_asset_sha256": "ff70840077d769a7d485b2ba579927a99ad3207f1850e720e91fad38a47aa25f",
+  "switch_object_path_id": 29,
+  "script_reference": {
+    "file_id": 1,
+    "path_id": 165
+  },
+  "object_bytes": 76,
+  "ui_camera_reference": [
+    0,
+    12
+  ],
+  "force_width": 1920,
+  "force_height": 1080,
+  "interpretation": "Common Unity 5.6 MonoBehaviour prefix and first three public fields; checked against legitimate desktop UpRender metadata. Native Switch consumer still to be joined.",
+  "script_class": "UpRender",
+  "script_assembly": "Assembly-CSharp.dll",
+  "script_asset_sha256": "4510ea325937bdca03f84fcd0edd1876e901ab4972e4da3474ea821733c1a7f2",
+  "desktop_assembly_sha256": "763d4b9262434afe9dfb564ca0f58d57103faf404889d68bad2023c1c6b71471",
+  "desktop_consumer_fact": "UpRender.UpdateTexture computes minimum render height from forceHeight, growing width with screen aspect; creates RenderTexture using computed m_wRender/m_hRender. This is NOT proof of identical native Switch instructions."
+}

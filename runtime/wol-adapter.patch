@@ -81,17 +81,43 @@
  static int laboratory_save_fd=-1;
  static void save_open(uint64_t pc) {
      if(laboratory_save_fd>=0)return;
-@@ -55,6 +61,9 @@
+@@ -55,6 +61,35 @@
      struct line b={0};text(&b,"ROMFS_OPEN verified-section=");text(&b,LC2_ROMFS_SHA256);text(&b," size=");hex(&b,ROMFS_SIZE);emit(&b);
      romfs_overlay_select();
  }
 +/* Review 2026-10-13: separate counters for the UnityFS/asset loading phase, reported by the
 + * WOL_BOOT_TICK heartbeat (read there via the same include order). */
++#include "wol_romfs_cow.h"
++static unsigned wol_romfs_read_cow(int source,uint64_t offset,uint8_t *dest,uint64_t size,uint64_t pc) {
++    static unsigned attempted;
++    if(!wol_romfs_cow_enabled() || attempted || size<(64ULL<<20) || romfs_overlay_on)return 0;
++    attempted=1;
++    pthread_mutex_lock(&wol_romfs_pool_mutex);
++    if(pthread_mutex_trylock(&regions_mutex)) {
++        pthread_mutex_unlock(&wol_romfs_pool_mutex);
++        printf("WOL_ROMFS_COW refused=regions-busy bytes=%llu\n",(unsigned long long)size);return 0;
++    }
++    if(!wol_romfs_output_eligible((uintptr_t)dest,size) || !wol_romfs_pool_clear((uintptr_t)dest,size)) {
++        pthread_mutex_unlock(&regions_mutex);pthread_mutex_unlock(&wol_romfs_pool_mutex);
++        printf("WOL_ROMFS_COW refused=output-owner-alias-or-policy bytes=%llu\n",(unsigned long long)size);return 0;
++    }
++    struct wol_romfs_cow_result result={0};
++    region_write_begin(pc);
++    int mapped=wol_romfs_cow_read(source,offset,dest,size,"logs",&result);
++    if(mapped==1){wol_romfs_cow_address=result.address;wol_romfs_cow_bytes=result.mapped;}
++    region_write_end(pc);
++    pthread_mutex_unlock(&regions_mutex);pthread_mutex_unlock(&wol_romfs_pool_mutex);
++    printf("WOL_ROMFS_COW result=%d address=0x%llx requested=%llu mapped-address=0x%llx mapped=%llu file-offset=%llu errno=%d backing=readonly-unlinked-disk-private-COW\n",
++        mapped,(unsigned long long)(uintptr_t)dest,(unsigned long long)size,(unsigned long long)result.address,
++        (unsigned long long)result.mapped,(unsigned long long)offset,result.error);
++    if(mapped<0)stop("WOL_ROMFS_COW_COMMIT_FAILED",pc,result.error,21);
++    return mapped==1;
++}
 +static uint64_t wol_romfs_reads,wol_romfs_read_bytes;
  static int filesystem_dispatch(uint8_t *buffer,struct session *s,struct ipc_request *req,enum endpoint endpoint,uint64_t pc) {
      if(endpoint==EP_FSP && req->command==1005) {
          uint32_t mode=0;ipc_reply(buffer,req->token,0,&mode,4,0,req->domain);return 1;
-@@ -71,10 +80,26 @@
+@@ -71,11 +106,28 @@
      if(endpoint==EP_STORAGE_ROMFS && req->command==0) {
          if(req->data_size<16)stop("INVALID_STORAGE_READ_ARGUMENTS",pc,req->data_size,24);
          uint64_t offset,size;memcpy(&offset,req->data,8);memcpy(&size,req->data+8,8);
@@ -118,9 +144,11 @@
 +            printf("WOL_ROMFS_BUFFER seq=%u caller=0x%"PRIx64" address=0x%"PRIx64" bytes=%"PRIu64" file-offset=%"PRIu64" output-capacity=%"PRIu64" ownership=unknown free-safe=0\n",
 +                logged,pc,(uint64_t)(uintptr_t)dest,size,offset,(uint64_t)req->outputs[0].size);}}
          t2_gzram_touch((uintptr_t)dest,size); /* Frente J: pread would EFAULT on a compressed block */
++        if(wol_romfs_read_cow(romfs_fd,ROMFS_OFFSET+offset,dest,size,pc))done=size;
          while(done<size) {
              ssize_t got=pread(romfs_fd,dest+done,size-done,ROMFS_OFFSET+offset+done);
-@@ -83,6 +108,7 @@
+             if(got<0 && errno==EINTR)continue;
+@@ -83,6 +135,7 @@
              done+=(uint64_t)got;
          }
          romfs_overlay_apply(dest,offset,size);
@@ -669,8 +697,22 @@
      ucontext_t *ctx=opaque;uint32_t instruction=bridge_instruction(ctx->uc_mcontext.pc);
      /* These instructions access only the interrupted thread's virtual register
       * state and the monotonic clock. They cannot wake a waiter or modify kernel
-@@ -695,7 +788,7 @@
+@@ -693,9 +786,21 @@
+ static int region_cmp(const void *a,const void *b) {
+     const struct region *x=a,*y=b;return x->base>y->base?1:x->base<y->base?-1:0;
  }
++#include "wol_guest_rt720.h"
++static void wol_guest_rt720_install(void) {
++    const char *o=getenv("WOL_GUEST_RT720");if(!o || strcmp(o,"1"))return;
++    const struct image_segment *s=NULL;
++    for(size_t i=0;i<sizeof(images)/sizeof(images[0]);i++)if(!strcmp(images[i].name,"main.text.seg"))s=&images[i];
++    if(!s || s->file_size!=20762904U)stop("WOL_RT720_SEGMENT_IDENTITY",0,0,24);
++    uint8_t hash[32];char hex[65];zero_sha256((void *)(uintptr_t)s->base,s->file_size,hash);
++    for(unsigned i=0;i<32;i++)sprintf(hex+i*2,"%02x",hash[i]);
++    if(!wol_guest_rt720_apply((void *)(uintptr_t)s->base,s->file_size,hex))stop("WOL_RT720_CODE_IDENTITY",s->base,0,24);
++    __builtin___clear_cache((char *)(uintptr_t)s->base,(char *)(uintptr_t)(s->base+s->file_size));
++    printf("WOL_GUEST_RT720 applied=11 source=exact-guest-dimension-query-and-render-target-owner dimensions=1280x720 crop=unchanged disk-image=unchanged\n");
++}
  int main(int argc,char **argv) {
      (void)argv;if(argc!=1){fprintf(stderr,"Run from the verified native image directory, without arguments.\n");return 1;}
 -    setvbuf(stdout,NULL,_IONBF,0);prctl(PR_SET_NAME,"legacy_runtime-nextos",0,0,0);main_thread_id=(uint64_t)getpid();
@@ -678,7 +720,7 @@
      nvn_platform_argv=argv;
      t2_runtime_health_capture();
      if(t2_video_init())return 24;
-@@ -726,7 +819,7 @@
+@@ -726,7 +831,7 @@
      struct rlimit no_core={0,0};setrlimit(RLIMIT_CORE,&no_core);
      struct rlimit address_limit={HOST_ADDRESS_LIMIT,HOST_ADDRESS_LIMIT};
      if(setrlimit(RLIMIT_AS,&address_limit)){perror("diagnostic memory quota");return 1;}
@@ -687,7 +729,15 @@
      FILE *random=fopen("/dev/urandom","rb");
      if(!random || fread(entropy,1,sizeof(entropy),random)!=sizeof(entropy)){fprintf(stderr,"entropy unavailable\n");return 1;}
      fclose(random);
-@@ -755,6 +848,7 @@
+@@ -739,6 +844,7 @@
+         if(!f || fread(p,1,s->file_size,f)!=s->file_size || fgetc(f)!=EOF){fprintf(stderr,"segment read failed %s\n",s->name);return 1;}
+         fclose(f);
+     }
++    wol_guest_rt720_install();
+     t2_lazy_mesh_apply(images,sizeof(images)/sizeof(images[0])); /* Frente L: lazy quad meshes, T2_LAZY_MESH=0 disables */
+     t2_image_file_map_report();
+     /* Build and staging pin the original main NSO and segment hashes. The
+@@ -755,6 +861,7 @@
       * of this title's modules are passed, so MEGAMAN_LAZY_ZERO=1 fails closed (LAZY_ZERO_NSO_IDENTITY)
       * until the hook is re-pinned for 19.3.9. Off by default. */
      megaman_memory_configure(LC2_SDK_BASE,LC2_SDK_SHA256,LC2_RTLD_BASE,LC2_RTLD_SHA256);
@@ -695,7 +745,7 @@
      tls_stubs_initialize();
      aw_prof_thread=0;aw_prof_start();
      int tls_fast=tls_stubs_install(images,sizeof(images)/sizeof(images[0]));
-@@ -769,7 +863,7 @@
+@@ -769,7 +876,7 @@
                  if(v!=graphics_entries[j].opcode)stop("GRAPHICS_IMAGE_IDENTITY",s->base+off,v,24);
                  graphics_entry=1;
              }
@@ -704,7 +754,7 @@
                 megaman_memory_entry(s->base+off,v) ||
                 (v&0xffe0001fU)==0xd4000001U || (v&0xffffffe0U)==0xd53bd060U ||
                 (v&0xffffffe0U)==0xd53bd040U || (v&0xffffffe0U)==0xd51bd040U ||
-@@ -815,7 +909,9 @@
+@@ -815,7 +922,9 @@
      const char *budget=getenv("MEGAMAN_PROBE_SECONDS");
      if(budget) {
          char *end=NULL;unsigned long seconds=strtoul(budget,&end,10);
@@ -715,7 +765,7 @@
          probe_seconds=(unsigned)seconds;
      }
      printf("NATIVE_PROBE_TIME_BUDGET seconds=%u\n",probe_seconds);
-@@ -826,7 +922,7 @@
+@@ -826,7 +935,7 @@
      guest_profile_configure();
      hid_host_initialize();aud_host_initialize();t2_memwatch_start();
      t2_gzram_start(); /* Frente J */
@@ -798,7 +848,18 @@
 +#endif
 --- a/native/memory.h
 +++ b/native/memory.h
-@@ -103,7 +103,10 @@
+@@ -69,7 +69,10 @@
+     if(base+size<old.base+old.size){struct region suffix=old;suffix.base=base+size;suffix.size=old.base+old.size-suffix.base;region_insert(suffix,pc);}
+     region_coalesce_main_heap();
+ }
++static unsigned wol_romfs_cow_overlap(uint64_t address,uint64_t size);
+ static void stack_alias_locked(uint64_t dest,uint64_t source,uint64_t size,unsigned unmap,uint64_t pc) {
++    if(wol_romfs_cow_overlap(source,size) || wol_romfs_cow_overlap(dest,size))
++        stop("WOL_ROMFS_COW_FUTURE_STACK_ALIAS",pc,source,24);
+     normal_guard_require_clear(dest,size,pc);normal_guard_require_clear(source,size,pc);
+     if(!size || (dest|source|size)&(PAGE-1) || source>=AS_END || size>AS_END-source ||
+        dest<0x60000000 || dest>=0x70000000 || size>0x70000000-dest)
+@@ -103,7 +106,10 @@
      aliases[naliases++]=(struct stack_alias_record){dest,source,size,original.perm,original.attr};
  }
  static unsigned shared_create(uint64_t size,unsigned permission,uint64_t pc) {
@@ -810,6 +871,45 @@
      char name[]="/tmp/cotm-switch-shm-XXXXXX";int fd=mkstemp(name);
      if(fd<0)stop("SHARED_BACKING_FAILED",pc,errno,21);
      unlink(name);fcntl(fd,F_SETFD,FD_CLOEXEC);
+@@ -177,6 +183,38 @@
+ static unsigned transfer_create(uint64_t address,uint64_t size,unsigned permission,uint64_t pc) {
+     pthread_mutex_lock(&regions_mutex);region_write_begin(pc);unsigned result=transfer_create_locked(address,size,permission,pc);region_write_end(pc);pthread_mutex_unlock(&regions_mutex);return result;
+ }
++#include "wol_romfs_gate.h"
++/* Pool publication and read-output backing replacement share this lock. No
++ * renderer/global GL lock is taken from the IPC kernel lock. */
++static pthread_mutex_t wol_romfs_pool_mutex=PTHREAD_MUTEX_INITIALIZER;
++static struct {uint64_t address,size;} wol_romfs_ever_pools[1024];
++static unsigned wol_romfs_ever_pool_count,wol_romfs_pool_overflow;
++static unsigned wol_romfs_pool_clear(uint64_t address,uint64_t size) {
++    if(wol_romfs_pool_overflow)return 0;
++    for(unsigned i=0;i<wol_romfs_ever_pool_count;i++)
++        if(wol_cow_overlap(address,size,wol_romfs_ever_pools[i].address,wol_romfs_ever_pools[i].size))return 0;
++    return 1;
++}
++static uint64_t wol_romfs_cow_address,wol_romfs_cow_bytes;
++static unsigned wol_romfs_cow_overlap(uint64_t address,uint64_t size) {
++    return wol_cow_overlap(address,size,wol_romfs_cow_address,wol_romfs_cow_bytes);
++}
++static void wol_romfs_pool_publish(uint64_t address,uint64_t size) {
++    pthread_mutex_lock(&wol_romfs_pool_mutex);
++    if(wol_romfs_cow_overlap(address,size))stop("WOL_ROMFS_COW_FUTURE_POOL",0,address,24);
++    if(wol_romfs_ever_pool_count<1024)
++        wol_romfs_ever_pools[wol_romfs_ever_pool_count++]=(typeof(wol_romfs_ever_pools[0])){address,size};
++    else wol_romfs_pool_overflow=1;
++    pthread_mutex_unlock(&wol_romfs_pool_mutex);
++}
++static pthread_once_t wol_romfs_once=PTHREAD_ONCE_INIT;
++static unsigned wol_romfs_cow_on;
++static void wol_romfs_configure(void) {
++    const char *o=getenv("WOL_ROMFS_COW");wol_romfs_cow_on=o&&!strcmp(o,"1");
++}
++static unsigned wol_romfs_cow_enabled(void) {
++    pthread_once(&wol_romfs_once,wol_romfs_configure);return wol_romfs_cow_on;
++}
+ static void transfer_release(unsigned index,uint64_t pc) {
+     pthread_mutex_lock(&regions_mutex);region_write_begin(pc);transfer_release_locked(index,pc);region_write_end(pc);pthread_mutex_unlock(&regions_mutex);
+ }
 --- a/native/nvn_astc_cache.h
 +++ b/native/nvn_astc_cache.h
 @@ -46,23 +46,23 @@
@@ -945,7 +1045,7 @@
      case 0x2a:value=262144;break; /* L2 size */
      case 0x2d:value=1;break;
      case 0x2e:value=1;break;
-@@ -294,6 +302,9 @@
+@@ -294,12 +302,16 @@
      if(t2p_in_cmdmem_callback){struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);printf("T2P_CB_NVN name=%s caller=0x%"PRIx64" ns=%"PRIu64"\n",nvn_functions[id].name,f->lr,(uint64_t)t.tv_sec*UINT64_C(1000000000)+(uint64_t)t.tv_nsec);} /* FRENTE-P diag */
      nvn_async_api_enter();
      nvn_bridge_depth++;uint64_t previous=nvn_caller;nvn_caller=f->lr;
@@ -955,7 +1055,14 @@
      uint64_t count=++nvn_calls[id];nvn_bridge_calls++;
      if(id!=NI_nvnDeviceGetProcAddress && (count<=4 || !(count&(count-1)))) {
          struct line log={0};text(&log,"NVN_CALL name=");text(&log,nvn_functions[id].name);text(&log," caller=");location(&log,f->lr);
-@@ -380,5 +391,7 @@
+         text(&log," original=");location(&log,nvn_original[id]);
+         for(unsigned i=0;i<6;i++){text(&log," arg=");hex(&log,f->args[i]);}emit(&log);
+     }
++    wol_rt_origin_call(id,f);
+     uint64_t result=0;
+     if(nvn_memory_dispatch(id,f,&result))goto complete;
+     if(nvn_descriptors_dispatch(id,f,&result))goto complete;
+@@ -380,5 +392,7 @@
         id==NI_nvnMemoryPoolBuilderGetSize || id==NI_nvnMemoryPoolGetSize)
          printf("NVN_RESULT name=%s result=0x%"PRIx64"\n",nvn_functions[id].name,result);
      if(id==NI_nvnQueueSubmitCommands)nvn_pointer_report(nvn_replay.last_frame);
@@ -1351,6 +1458,14 @@
          if(!nvn_device.live || device!=nvn_device.address)stop("NVN_MEMORY_POOL_DEVICE",nvn_caller,device,24);
          uint64_t address=nvn_builder_get(NI_nvnMemoryPoolBuilderGetMemory,a[1],f),size=nvn_builder_get(NI_nvnMemoryPoolBuilderGetSize,a[1],f);
          uint32_t flags=nvn_builder_get(NI_nvnMemoryPoolBuilderGetFlags,a[1],f);
+@@ -156,6 +162,7 @@
+             if(p->object==a[0] || (address<p->address+p->size && p->address<address+size))stop("NVN_MEMORY_POOL_OVERLAP",nvn_caller,address,24);
+         }
+         if(slot==256)stop("NVN_MEMORY_POOL_CAPACITY",nvn_caller,slot,21);
++        if(wol_romfs_cow_enabled())wol_romfs_pool_publish(address,size);
+         nvn_pools[slot]=(struct nvn_pool){.object=a[0],.address=address,.size=size,.flags=flags,.live=1,.generation=1,.owned=owned};
+         printf("NVN_MEMORY_POOL_BOUND address=0x%"PRIx64" size=0x%"PRIx64" flags=0x%x storage=%s lazy-gpu-upload\n",address,size,flags,
+                owned?"driver-owned-demand-paged":"borrowed-guest");
 --- a/native/nvn_platform_sdl.h
 +++ b/native/nvn_platform_sdl.h
 @@ -126,6 +126,19 @@
@@ -4057,7 +4172,47 @@
              if(nvn_render.pass_skipped && nvn_render.aw_deferred_target && nvn_render.pending_color_valid && nvn_render.target){
 --- a/native/nvn_replay.h
 +++ b/native/nvn_replay.h
-@@ -251,6 +251,7 @@
+@@ -131,6 +131,39 @@
+ #include "nvn_replay_errors.h"
+ static void momo_stencil_probe(unsigned draw,unsigned vertex,unsigned fragment);
+ #include "nvn_render.h"
++#include "wol_gpu_timeline.h"
++static struct wol_gpu_timer wol_gpu_timer;
++static unsigned wol_gpu_timer_configured,wol_gpu_pass_ordinal;
++static void wol_gpu_timer_setup(void) {
++    if(wol_gpu_timer_configured)return;
++    wol_gpu_timer_configured=1;
++    const char *extensions=(const char *)glGetString(GL_EXTENSIONS);
++    if(!nvn_egl_extension(extensions,"GL_EXT_disjoint_timer_query")) {
++        wol_gpu_timer.disabled=1;printf("WOL_GPU_TIMELINE unavailable=EXT_disjoint_timer_query\n");return;
++    }
++    wol_gpu_timer.gen=(void (*)(GLsizei,GLuint *))eglGetProcAddress("glGenQueriesEXT");
++    wol_gpu_timer.del=(void (*)(GLsizei,const GLuint *))eglGetProcAddress("glDeleteQueriesEXT");
++    wol_gpu_timer.begin=(void (*)(GLenum,GLuint))eglGetProcAddress("glBeginQueryEXT");
++    wol_gpu_timer.end=(void (*)(GLenum))eglGetProcAddress("glEndQueryEXT");
++    wol_gpu_timer.get=(void (*)(GLuint,GLenum,GLuint *))eglGetProcAddress("glGetQueryObjectuivEXT");
++    wol_gpu_timer.get64=(void (*)(GLuint,GLenum,uint64_t *))eglGetProcAddress("glGetQueryObjectui64vEXT");
++    wol_gpu_timer.integer=glGetIntegerv;
++    printf("WOL_GPU_TIMELINE mode=sample-one-pass-per-120-frames query=EXT_disjoint_timer_query extra-wait=none\n");
++}
++static void wol_gpu_pass_boundary(unsigned before,unsigned set_target) {
++    if(!wol_gpu_timer_enabled())return;
++    wol_gpu_timer_setup();
++    if(wol_gpu_timer.disabled)return;
++    if(before){if(set_target)wol_gpu_timer_end(&wol_gpu_timer);return;}
++    if(!set_target)return;
++    unsigned ordinal=wol_gpu_pass_ordinal++,frame=nvn_replay.last_frame+1;
++    if(ordinal!=(frame/120)%8)return;
++    struct nvn_texture *t=nvn_render.target;
++    if(t && wol_gpu_timer_begin(&wol_gpu_timer,frame,ordinal,0,t->b.width,t->b.height,(uintptr_t)eglGetCurrentContext()))
++        printf("WOL_GPU_PASS frame=%u ordinal=%u target=%llu name=%u fbo=%u depth=%llu logical=%ux%u\n",
++            frame,ordinal,(unsigned long long)t->id,t->name,nvn_render.framebuffer,
++            (unsigned long long)(nvn_render.depth?nvn_render.depth->id:0),t->b.width,t->b.height);
++}
+ /* CPU observations only: no GL query, extra finish, or GPU timestamp is
+  * introduced. Ordinals restart for each command list; the summary window
+  * resets independently, preserving the timestamp of the latest real swap. */
+@@ -251,6 +284,7 @@
          }
          if(t->zero_backend_deferred)stop("ZERO_FLOAT_TEXTURE_COPY_BACKEND_REQUIRED",nvn_caller,t->b.format,20);
          if(t->aw_native_format)stop("AW_FLOAT_TEXTURE_COPY_UNSUPPORTED",nvn_caller,t->aw_native_format,20);
@@ -4065,7 +4220,7 @@
          if(a[2] && !momo_texture_view_single_level(r->payload+24,t->b.format,t->b.target)) {
              printf("MOMO_COPY_VIEW target=%u levels=%u format=0x%x view=",t->b.target,t->b.levels,t->b.format);
              for(unsigned i=0;i<MEGAMAN_TEXTURE_VIEW_BYTES;i++)printf("%02x",r->payload[24+i]);
-@@ -259,7 +260,13 @@
+@@ -259,7 +293,13 @@
          }
          if(nvn_low_color(t)>=0)stop("NVN_LOW_COPY_DESTINATION_REQUIRED",nvn_caller,t->id,20);
          /* The view selects the destination level (Unity uploads one mip per copy, run momo-053). */
@@ -4079,7 +4234,7 @@
          unsigned level_width=t->b.width>>copy_level,level_height=t->b.height>>copy_level;
          if(!level_width)level_width=1;
          if(!level_height)level_height=1;
-@@ -267,6 +274,58 @@
+@@ -267,6 +307,58 @@
             box[0]>level_width || box[3]>level_width-box[0] ||
             box[1]>level_height || box[4]>level_height-box[1])stop("NVN_COPY_REGION_REQUIRED",nvn_caller,a[1],24);
          unsigned bpp=nvn_texture_format_bytes(t->b.format);
@@ -4138,7 +4293,7 @@
          if(!bpp || nvn_texture_format_depth(t->b.format))stop("NVN_COPY_TEXTURE_FORMAT_REQUIRED",nvn_caller,t->b.format,20);
          uint64_t row=(uint64_t)box[3]*bpp,stride=nvn_replay.row_stride?nvn_replay.row_stride:row;
          if(stride<row || stride>64U*1024U*1024U)stop("NVN_COPY_ROW_STRIDE",nvn_caller,stride,24);
-@@ -294,10 +353,30 @@
+@@ -294,10 +386,30 @@
                  stop("NVN_COPY_TEXTURE_DECODE_REQUIRED",nvn_caller,t->b.format,20);
          nvn_texture_copy_cpu(t,box,src,stride,copy_level);
          glBindTexture(GL_TEXTURE_2D,t->name);glPixelStorei(GL_UNPACK_ALIGNMENT,1);
@@ -4169,7 +4324,15 @@
  }
  static uint64_t nvn_replay_run_list(struct nvn_command_list *list,unsigned batch_errors,unsigned snapshot) {
      struct nvn_queue *q=NULL;unsigned asynchronous=nvn_async_enabled();(void)q;(void)asynchronous;
-@@ -327,12 +406,14 @@
+@@ -322,22 +434,28 @@
+                 }
+ #endif
+                 zero_gpu_cost_context(nvn_functions[r.op].name,0,0,0,0,0,0);
++                wol_gpu_pass_boundary(1,r.op==NI_nvnCommandBufferSetRenderTargets);
+                 nvn_replay_record(&r);
++                if(is_draw && wol_gpu_timer.active)wol_gpu_timer.draws++;
++                wol_gpu_pass_boundary(0,r.op==NI_nvnCommandBufferSetRenderTargets);
+                 if(nvn_phase.enabled){unsigned k=r.op==NI_nvnCommandBufferCopyBufferToTexture?NPH_COPY:NPH_OTHER;
                      if(is_draw){k=nvn_phase.target_changed?NPH_DRAWFIRST:NPH_DRAWCALL;nvn_phase.target_changed=0;uint64_t c=0;if(nvn_cpu_nanoseconds(&c)&&c>=draw_cpu0)nvn_phase.draw_cpu_ns+=c-draw_cpu0;}
                      if(r.op==NI_nvnCommandBufferSetRenderTargets)nvn_phase.target_changed=1;
                      uint64_t before=nvn_phase.mark;nvn_phase_end(k);if(r.op<NI_COUNT){nvn_phase.op_ns[r.op]+=nvn_phase.mark-before;nvn_phase.op_calls[r.op]++;}}
@@ -4185,6 +4348,23 @@
  #endif
                  zero_gpu_cost_context("outside-record",0,0,0,0,0,0);
                  consumed+=r.bytes;next=r.next;
+             }
+             if(next || consumed!=list->recorded_bytes)stop("NVN_COMMAND_RECORD_COUNT",nvn_caller,next,24);
++            if(wol_gpu_timer_enabled())wol_gpu_timer_end(&wol_gpu_timer);
+             if(batch_errors)nvn_replay_error_boundary(); /* before fence/completion/publication */
+             if(!asynchronous&&!snapshot) {
+                 /* MOMO_SUBMIT_FINISH=0: end an executed list with a flush instead of a full wait, to tell
+@@ -359,6 +477,10 @@
+         struct nvn_queue *q=nvn_queue_find(a[0]);
+         if(a[1]>256)stop("NVN_QUEUE_SUBMIT_COUNT",nvn_caller,a[1],24);
+         const uint64_t *handles=nvn_pointer(a[2],a[1]*8,PROT_READ);nvn_gl_acquire();
++        if(wol_gpu_timer_enabled()) {
++            wol_gpu_timer_setup();wol_gpu_timer_poll(&wol_gpu_timer,(uintptr_t)eglGetCurrentContext());
++            wol_gpu_pass_ordinal=0;
++        }
+         unsigned asynchronous=nvn_async_enabled(),batch_errors=nvn_replay_errors_batched();uint64_t submitted_handles[256];
+         t2_queue_submits_seen++;
+         if(asynchronous)nvn_async_admit_locked(q,a[1]);
 --- a/native/nvn_samplers.h
 +++ b/native/nvn_samplers.h
 @@ -9,6 +9,20 @@
@@ -5641,7 +5821,7 @@
      unsigned x=box?box[0]/4:0,y=box?box[1]/4:0,width=box?box[3]:m.width,height=box?box[4]:m.height;
      unsigned nx=(width+3)/4,ny=(height+3)/4;size_t linear_bytes=(size_t)nx*ny*m.bytes;
      uint8_t *linear=malloc(linear_bytes);if(!linear)stop("ZERO_BC_LINEAR_MEMORY",nvn_caller,linear_bytes,21);
-@@ -485,35 +629,173 @@
+@@ -485,37 +629,216 @@
          stop("ZERO_BC_TILED_DECODE",nvn_caller,t->id,24);
      free(linear);
  }
@@ -5824,8 +6004,51 @@
 +    printf("ZERO_TEXTURE_FLUSH_UPLOADED id=%"PRIu64" format=0x%x native-cpu-bytes=preserved before-sampler rgba8-copy-levels=%u\n",t->id,t->b.format,copied);
  }
  #include "zero_texture_writes.h"
++#include "wol_rt_origin.h"
++static int wol_rt_origin_pair(void *opaque,uint64_t address,uint64_t pair[2]) {
++    int fd=*(int *)opaque;
++    return accessible(address,16,PROT_READ) && pread(fd,pair,16,(off_t)address)==16;
++}
++/* Runs at the original guest API boundary, before GL-worker routing. Does not
++ * replace a request, validate it on the runtime's behalf, or stop the game. */
++static void wol_rt_origin_call(unsigned id,const struct nvn_frame *f) {
++    if(id!=NI_nvnTextureInitialize && id!=NI_nvnTextureFinalize)return;
++    static pthread_mutex_t trace_mutex=PTHREAD_MUTEX_INITIALIZER;
++    if(pthread_mutex_trylock(&trace_mutex))return;
++    static unsigned configured,on,events;static int fd=-1;
++    if(!configured){const char *o=getenv("WOL_RT_ORIGIN");on=o&&!strcmp(o,"1");configured=1;}
++    if(!on || events>=512){pthread_mutex_unlock(&trace_mutex);return;}
++    events++;
++    struct line l={0};text(&l,"WOL_RT_ORIGIN event=");text(&l,id==NI_nvnTextureInitialize?"initialize":"finalize");
++    text(&l," seq=");hex(&l,events);text(&l," object=");hex(&l,f->args[0]);
++    text(&l," caller=");location(&l,f->lr);text(&l," guest-thread=");hex(&l,guest_thread_index);
++    struct timespec now;clock_gettime(CLOCK_MONOTONIC,&now);
++    text(&l," ns=");hex(&l,(uint64_t)now.tv_sec*1000000000ULL+(uint64_t)now.tv_nsec);
++    if(fd<0)fd=open("/proc/self/mem",O_RDONLY|O_CLOEXEC);
++    if(fd<0 || pthread_mutex_trylock(&regions_mutex)) {
++        text(&l," observation=unavailable");emit(&l);pthread_mutex_unlock(&trace_mutex);return;
++    }
++    if(id==NI_nvnTextureInitialize) {
++        struct nvn_texture_builder b;
++        uint64_t address=f->args[1];
++#if !defined(WOL_TEXTURE_BUILDER_UNPREFIXED) || !WOL_TEXTURE_BUILDER_UNPREFIXED
++        if(address<=UINT64_MAX-8)address+=8;else address=UINT64_MAX;
++#endif
++        if(accessible(address,sizeof b,PROT_READ) && pread(fd,&b,sizeof b,(off_t)address)==sizeof b) {
++            text(&l," width=");hex(&l,b.width);text(&l," height=");hex(&l,b.height);
++            text(&l," format=");hex(&l,b.format);text(&l," target=");hex(&l,b.target);
++            text(&l," levels=");hex(&l,b.levels);text(&l," samples=");hex(&l,b.samples);
++            text(&l," flags=");hex(&l,b.flags);text(&l," pool=");hex(&l,b.pool);text(&l," offset=");hex(&l,b.offset);
++        } else text(&l," builder=unreadable");
++    }
++    uint64_t parents[8];unsigned n=wol_rt_origin_frames(f->fp,f->sp,parents,8,wol_rt_origin_pair,&fd);
++    for(unsigned i=0;i<n;i++){text(&l," parent=");location(&l,parents[i]);}
++    pthread_mutex_unlock(&regions_mutex);text(&l," mutation=none");emit(&l);pthread_mutex_unlock(&trace_mutex);
++}
  static unsigned nvn_texture_dispatch(unsigned id,struct nvn_frame *f,uint64_t *result) {
-@@ -602,6 +884,7 @@
+     uint64_t *a=f->args;*result=0;
+     if(id==NI_nvnTextureWriteTexels || id==NI_nvnTextureFlushTexels){zero_texture_write(f,id==NI_nvnTextureFlushTexels);return 1;}
+@@ -602,6 +925,7 @@
          }
          if(slot==4096)stop("NVN_TEXTURE_CAPACITY",nvn_caller,slot,21);
          struct nvn_texture *t=&nvn_textures[slot];*t=(struct nvn_texture){.object=a[0],.id=zero_next_object_id(),.size=size,.b=b,.pool=pool};
@@ -5833,7 +6056,7 @@
          /* Frente F: an eligible page gets no GL storage now (the pool holds nothing yet, MEDIDO pc-008: the
           * copy arrives later) and no budget; the copy decides between the palettized form and RGBA8. */
          t->t2_page.deferred=t2_page_eligible(&b);
-@@ -693,12 +976,21 @@
+@@ -693,12 +1017,21 @@
                      for(unsigned y=0;y<height;y++)if(!nvn_texture_decode_upload(b.format,b.swizzle,upload_type,rgba+(size_t)y*width*upload_bpp,src+y*stride,width))
                          stop("NVN_TEXTURE_INITIAL_FORMAT",nvn_caller,b.format,20);
                  }
@@ -5856,7 +6079,7 @@
  #if MEGAMAN_HOST_DIAGNOSTIC
                  /* Observation remains an independent RGBA8 reference; packed
                   * UNORM5 may truthfully differ by one readback code value. */
-@@ -721,6 +1013,7 @@
+@@ -721,6 +1054,7 @@
  #if ZERO_ZX_GAME
              zero_mip_complete_storage(t,zero_bc_srgb(b.format)?0x8c42U:GL_RGBA,nvn_cpu_image_upload_type(t));
  #endif
@@ -5864,7 +6087,7 @@
              nvn_texture_parameters(t,GL_NEAREST,GL_NEAREST,GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE);
              glBindTexture(GL_TEXTURE_2D,0);
          }
-@@ -739,6 +1032,7 @@
+@@ -739,6 +1073,7 @@
              printf("MOMO_TEXTURE_IDENTITY id=%"PRIu64" object=0x%"PRIx64" pool=0x%"PRIx64" offset=0x%"PRIx64" bytes=%"PRIu64" size=%ux%u format=0x%x flags=0x%x levels=%u target=%u\n",
                  t->id,a[0],b.pool,b.offset,size,b.width,b.height,b.format,b.flags,b.levels,b.target);
          printf("NVN_TEXTURE_REAL object=0x%"PRIx64" format=0x%x size=%ux%u levels=%u bytes=%"PRIu64" texture=%u depth=%u gpu-storage=%s no-draw\n",a[0],b.format,b.width,b.height,b.levels,size,t->name,t->depth_buffer,t->zero_backend_deferred?"unavailable-native-backing-retained":t->packaged_lazy?"deferred":"allocated");
@@ -5872,7 +6095,7 @@
          if(t->host_scaled)printf("NVN_LC2_SCALED_STORAGE id=%"PRIu64" texture=%u depth=%u flags=0x%x pool=0x%x logical=%ux%u actual=%ux%u initial=%s\n",
              t->id,t->name,t->depth_buffer,b.flags,pool->flags,b.width,b.height,t->host_width,t->host_height,
              shared_storage?"existing-GPU-owner":t->name?"full-decode-uniform":"native-depth-uninitialized");
-@@ -841,3 +1135,36 @@
+@@ -841,3 +1176,36 @@
      }
      return 1;
  }
@@ -6022,6 +6245,88 @@
 +}
 +#endif
 --- /dev/null
++++ b/native/wol_gpu_timeline.h
+@@ -0,0 +1,46 @@
++/* One asynchronous EXT_disjoint_timer_query, sampled every 120 frames.
++ * No waits, no result query before availability; context mismatch disables
++ * observation without touching a foreign-context name. Not a fast path. */
++struct wol_gpu_timer {
++    void (*gen)(GLsizei,GLuint *);void (*del)(GLsizei,const GLuint *);
++    void (*begin)(GLenum,GLuint);void (*end)(GLenum);
++    void (*get)(GLuint,GLenum,GLuint *);void (*get64)(GLuint,GLenum,uint64_t *);
++    void (*integer)(GLenum,GLint *);
++    GLuint query;unsigned active,pending,disabled,frame,op,draws,width,height,shots,discarded;
++    uintptr_t context;
++};
++static unsigned wol_gpu_timer_enabled(void) {
++    static int configured;static unsigned on;
++    if(!configured){const char *o=getenv("WOL_GPU_TIMELINE");on=o&&!strcmp(o,"1");configured=1;}
++    return on;
++}
++static unsigned wol_gpu_timer_poll(struct wol_gpu_timer *t,uintptr_t context) {
++    if(!t->pending || t->active || t->disabled)return 0;
++    if(context!=t->context){t->disabled=1;return 0;}
++    GLuint ready=0;t->get(t->query,0x8867,&ready);
++    if(!ready)return 0;
++    GLint disjoint=0;t->integer(0x8fbb,&disjoint);
++    uint64_t ns=0;t->get64(t->query,0x8866,&ns);
++    if(disjoint)t->discarded++;
++    else printf("WOL_GPU_TIMELINE frame=%u op=%u draws=%u logical=%ux%u gpu_ns=%llu context=%p asynchronous=1\n",
++        t->frame,t->op,t->draws,t->width,t->height,(unsigned long long)ns,(void *)context);
++    t->del(1,&t->query);t->query=0;t->pending=0;
++    return 1;
++}
++static unsigned wol_gpu_timer_begin(struct wol_gpu_timer *t,unsigned frame,unsigned op,
++                                    unsigned draws,unsigned width,unsigned height,uintptr_t context) {
++    if(t->disabled || t->pending || t->active || !context || frame%120 || t->shots>=64)return 0;
++    if(t->context && context!=t->context){t->disabled=1;return 0;}
++    if(!t->gen || !t->del || !t->begin || !t->end || !t->get || !t->get64 || !t->integer)return 0;
++    t->context=context;t->frame=frame;t->op=op;t->draws=draws;t->width=width;t->height=height;
++    t->gen(1,&t->query);
++    if(!t->query){t->disabled=1;return 0;}
++    GLint disjoint=0;t->integer(0x8fbb,&disjoint);
++    if(disjoint){t->del(1,&t->query);t->query=0;t->discarded++;return 0;}
++    t->begin(0x88bf,t->query);t->active=1;t->shots++;
++    return 1;
++}
++static void wol_gpu_timer_end(struct wol_gpu_timer *t) {
++    if(!t->active)return;
++    t->end(0x88bf);t->active=0;t->pending=1;
++}
+--- /dev/null
++++ b/native/wol_guest_rt720.h
+@@ -0,0 +1,30 @@
++/* Owner-version-specific startup-only guest RT constants, default-off caller.
++ * Changes guest allocation requests (not host descriptor lies), preserving
++ * the existing 1280x720 crop. No runtime docked/TV mode is introduced. */
++#define WOL_RT720_MAIN_SHA256 "df8a2524a65ec784f5781908be3734fa7c448f16c4c1029ee5b0fd4b63a0de84"
++/* Coordinate Unity's dimension-query branches with its NVN builders.
++ * Preserve every original branch/test and return ABI; only constants change. */
++static const struct {uint32_t offset,before,after;} wol_rt720_sites[11]={
++    {0xaef090,0x52808709U,0x52805a09U}, /* conditional query height */
++    {0xaef094,0x32190fe8U,0x5280a008U}, /* conditional query width */
++    {0xaef0ac,0x32190fe8U,0x5280a008U}, /* explicit query width */
++    {0xaef0b4,0x52808708U,0x52805a08U}, /* explicit query height */
++    {0xaef47c,0x52808714U,0x52805a14U}, /* shared color/depth height register */
++    {0xaef480,0x32190fe1U,0x5280a001U}, /* color storage-size query width */
++    {0xaef520,0x32190fe1U,0x5280a001U}, /* depth storage-size query width */
++    {0xaef6b0,0x32190fe1U,0x5280a001U}, /* swapchain actual builder width */
++    {0xaef6b4,0x52808702U,0x52805a02U}, /* swapchain actual builder height */
++    {0xaef7e4,0x52808703U,0x52805a03U}, /* companion color/depth owner height */
++    {0xaef7e8,0x32190fe2U,0x5280a002U}, /* companion color/depth owner width */
++};
++static unsigned wol_guest_rt720_apply(uint8_t *text,size_t bytes,const char *sha256) {
++    if(!text || !sha256 || strcmp(sha256,WOL_RT720_MAIN_SHA256))return 0;
++    for(unsigned i=0;i<11;i++) {
++        uint32_t word=0;
++        if(wol_rt720_sites[i].offset>bytes || bytes-wol_rt720_sites[i].offset<4)return 0;
++        memcpy(&word,text+wol_rt720_sites[i].offset,4);
++        if(word!=wol_rt720_sites[i].before)return 0;
++    }
++    for(unsigned i=0;i<11;i++)memcpy(text+wol_rt720_sites[i].offset,&wol_rt720_sites[i].after,4);
++    return 1;
++}
+--- /dev/null
 +++ b/native/wol_handheld.h
 @@ -0,0 +1,20 @@
 +/* Immutable existing AM policy. No TV/docked branch or environment selector.
@@ -6043,6 +6348,141 @@
 +    printf("WOL_MODE_TRACE endpoint=%s cmd=%llu domain=%u value0=%llu value1=%llu bytes=%zu pc=0x%llx ns=%llu\n",
 +        endpoint,(unsigned long long)command,domain,(unsigned long long)a,(unsigned long long)b,bytes,
 +        (unsigned long long)pc,(unsigned long long)now.tv_sec*1000000000ULL+(unsigned long long)now.tv_nsec);
++}
+--- /dev/null
++++ b/native/wol_romfs_cow.h
+@@ -0,0 +1,87 @@
++/* Byte-exact synchronous read using private disk-backed interior pages.
++ * Caller proves exclusive unpinned output pages and serializes VM changes.
++ * Return 1 mapped, 0 no VM change (use pread), -1 failed destructive commit
++ * (caller MUST stop; Linux MAP_FIXED failure need not preserve old mappings).
++ * No page advice, anonymous full-image copy, persistent cache or source writes. */
++#include <sys/vfs.h>
++struct wol_romfs_cow_result {uint64_t address,mapped;int error;};
++static int wol_romfs_cow_read(int source,uint64_t offset,uint8_t *dest,uint64_t size,
++                              const char *directory,struct wol_romfs_cow_result *out) {
++    if(!out)return 0;
++    *out=(struct wol_romfs_cow_result){0};
++    const uint64_t page=(uint64_t)sysconf(_SC_PAGESIZE);
++    uint64_t address=(uintptr_t)dest;
++    struct stat st;
++    if(page!=4096 || !size || !dest || size>SIZE_MAX || address>UINT64_MAX-size ||
++       offset>INT64_MAX || size>(uint64_t)INT64_MAX-offset || fstat(source,&st) ||
++       !S_ISREG(st.st_mode) || st.st_size<0 || offset>(uint64_t)st.st_size ||
++       size>(uint64_t)st.st_size-offset || !directory)return 0;
++    uint64_t prefix=(page-address%page)%page;
++    if(size<=prefix || size-prefix<page)return 0;
++    uint64_t span=(size-prefix)&~(page-1),suffix=size-prefix-span;
++    if(!span)return 0;
++    uint8_t edges[8192],block[65536];
++    size_t edge_size[2]={(size_t)prefix,(size_t)suffix};
++    uint64_t edge_off[2]={offset,offset+prefix+span};
++    for(unsigned i=0;i<2;i++) {
++        size_t done=0;
++        while(done<edge_size[i]) {
++            ssize_t n=pread(source,edges+i*4096+done,edge_size[i]-done,(off_t)(edge_off[i]+done));
++            if(n<0 && errno==EINTR)continue;
++            if(n<=0)return 0;
++            done+=(size_t)n;
++        }
++    }
++    char path[512];
++    int count=snprintf(path,sizeof path,"%s/wol-romfs-cow-XXXXXX",directory);
++    if(count<0 || (size_t)count>=sizeof path)return 0;
++    int writer=mkstemp(path),reader=-1,ok=0;
++    if(writer<0){out->error=errno;return 0;}
++    fcntl(writer,F_SETFD,FD_CLOEXEC);
++    struct statfs fs;
++    /* tmpfs cannot provide reclaimable disk-backed clean pages. */
++    if(fstatfs(writer,&fs) || (unsigned long)fs.f_type==0x01021994UL || ftruncate(writer,(off_t)span))goto done;
++    for(uint64_t at=0;at<span;) {
++        size_t chunk=span-at>sizeof block?sizeof block:(size_t)(span-at),got=0;
++        while(got<chunk) {
++            ssize_t n=pread(source,block+got,chunk-got,(off_t)(offset+prefix+at+got));
++            if(n<0 && errno==EINTR)continue;
++            if(n<=0)goto done;
++            got+=(size_t)n;
++        }
++        size_t written=0;
++        while(written<chunk) {
++            ssize_t n=pwrite(writer,block+written,chunk-written,(off_t)(at+written));
++            if(n<0 && errno==EINTR)continue;
++            if(n<=0)goto done;
++            written+=(size_t)n;
++        }
++        at+=chunk;
++    }
++    if(fsync(writer))goto done;
++    reader=open(path,O_RDONLY|O_CLOEXEC|O_NOFOLLOW);
++    if(reader<0)goto done;
++    struct stat disk,rd;
++    if(fstat(writer,&disk) || fstat(reader,&rd) || disk.st_dev!=rd.st_dev ||
++       disk.st_ino!=rd.st_ino || rd.st_size!=(off_t)span)goto done;
++    close(writer);writer=-1;
++    if(unlink(path))goto done;
++    path[0]=0;
++    /* Probe file mapping before the destructive fixed-address commit. */
++    void *probe=mmap(NULL,(size_t)span,PROT_READ|PROT_WRITE,MAP_PRIVATE,reader,0);
++    if(probe==MAP_FAILED)goto done;
++    if(munmap(probe,(size_t)span))goto done;
++    out->address=address+prefix;out->mapped=span;
++    void *mapped=mmap((void *)(uintptr_t)out->address,(size_t)span,
++                      PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_FIXED,reader,0);
++    if(mapped==MAP_FAILED || (uintptr_t)mapped!=out->address){ok=-1;goto done;}
++    if(prefix)memcpy(dest,edges,(size_t)prefix);
++    if(suffix)memcpy(dest+prefix+span,edges+4096,(size_t)suffix);
++    ok=1;
++done:
++    out->error=ok==1?0:errno;
++    if(writer>=0)close(writer);
++    if(reader>=0)close(reader);
++    if(path[0])unlink(path);
++    return ok;
++}
+--- /dev/null
++++ b/native/wol_romfs_gate.h
+@@ -0,0 +1,22 @@
++/* Caller holds regions_mutex and, for pool checks, the dedicated pool/COW lock.
++ * No allocation ownership/free-page claim is made by this read-output gate. */
++static unsigned wol_cow_overlap(uint64_t a,uint64_t n,uint64_t b,uint64_t m) {
++    return n && m && (a<=b?b-a<n:a-b<m);
++}
++static unsigned wol_romfs_output_eligible(uint64_t address,uint64_t size) {
++    if(!size || address<HEAP_BASE || address-HEAP_BASE>=heap_size || size>heap_size-(address-HEAP_BASE) ||
++       normal_guard_overlap(address,size))return 0;
++    const char *gz=getenv("T2_GUEST_ZRAM"),*lazy=getenv("MEGAMAN_LAZY_ZERO"),*pages=getenv("T2_PAGE_CATALOGUE");
++    if((gz && strcmp(gz,"0")) || (lazy && strcmp(lazy,"0")) || (pages && *pages))return 0;
++    for(unsigned i=0;i<naliases;i++)if(wol_cow_overlap(address,size,aliases[i].source,aliases[i].size) ||
++        wol_cow_overlap(address,size,aliases[i].dest,aliases[i].size))return 0;
++    for(unsigned i=0;i<16;i++)if(transfer_regions[i].open &&
++        wol_cow_overlap(address,size,transfer_regions[i].address,transfer_regions[i].size))return 0;
++    for(uint64_t at=address,left=size;left;) {
++        struct region r=query(at);
++        if(r.state!=5 || r.perm!=3 || r.attr || !r.name || strcmp(r.name,"main_heap") || at<r.base || at-r.base>=r.size)return 0;
++        uint64_t step=r.size-(at-r.base);if(step>left)step=left;
++        at+=step;left-=step;
++    }
++    return 1;
++}
+--- /dev/null
++++ b/native/wol_rt_origin.h
+@@ -0,0 +1,17 @@
++/* Read-only walker over the current call's guest stack. Reader failure,
++ * misalignment, cyclic/backward links and >1 MiB extent terminate observation.
++ * No speculative stack scan, arbitrary dereference, mprotect or guest writes. */
++static unsigned wol_rt_origin_frames(uint64_t fp,uint64_t sp,uint64_t *out,unsigned capacity,
++                                     int (*reader)(void *,uint64_t,uint64_t[2]),void *opaque) {
++    unsigned count=0;
++    if(!out || !reader)return 0;
++    if(capacity>8)capacity=8;
++    while(count<capacity && fp>=sp && fp-sp<=0xffff0 && !(fp&15)) {
++        uint64_t pair[2];
++        if(!reader(opaque,fp,pair))break;
++        out[count++]=pair[1];
++        if(pair[0]<=fp)break;
++        fp=pair[0];
++    }
++    return count;
 +}
 --- /dev/null
 +++ b/native/wol_upload_guard.h

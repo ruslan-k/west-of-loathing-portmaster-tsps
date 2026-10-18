@@ -1,0 +1,202 @@
+{
+  "schema": 1,
+  "elf_sha256": "dcc3d6f1d377bb42af0f7be4c44e3ca7b09682cedc389a7479b387eb6846a11d",
+  "symbols": {
+    "heap_size": {
+      "offset": 1859120,
+      "size": 8
+    },
+    "nregions": {
+      "offset": 1853696,
+      "size": 8
+    },
+    "nvn_pools": {
+      "offset": 30737312,
+      "size": 14336
+    },
+    "nvn_textures": {
+      "offset": 25728168,
+      "size": 3014656
+    },
+    "nvn_textures_high": {
+      "offset": 1856328,
+      "size": 4
+    },
+    "regions": {
+      "offset": 31256080,
+      "size": 40960
+    }
+  },
+  "texture": {
+    "object": [
+      0,
+      8
+    ],
+    "id": [
+      8,
+      8
+    ],
+    "size": [
+      16,
+      8
+    ],
+    "b.width": [
+      56,
+      4
+    ],
+    "b.height": [
+      60,
+      4
+    ],
+    "b.depth": [
+      64,
+      4
+    ],
+    "b.levels": [
+      68,
+      4
+    ],
+    "b.format": [
+      72,
+      4
+    ],
+    "b.flags": [
+      48,
+      4
+    ],
+    "b.target": [
+      52,
+      4
+    ],
+    "b.offset": [
+      40,
+      8
+    ],
+    "b.pool": [
+      32,
+      8
+    ],
+    "pool": [
+      128,
+      8
+    ],
+    "name": [
+      256,
+      4
+    ],
+    "depth_buffer": [
+      260,
+      4
+    ],
+    "live": [
+      264,
+      4
+    ],
+    "references": [
+      268,
+      4
+    ],
+    "draws": [
+      272,
+      4
+    ],
+    "zero_storage": [
+      136,
+      8
+    ],
+    "host_scaled": [
+      376,
+      4
+    ],
+    "host_width": [
+      380,
+      4
+    ],
+    "host_height": [
+      384,
+      4
+    ],
+    "cpu_snapshot": [
+      528,
+      8
+    ],
+    "zero_backend_deferred": [
+      404,
+      4
+    ],
+    "host_upload_type": [
+      516,
+      4
+    ]
+  },
+  "pool": {
+    "object": [
+      0,
+      8
+    ],
+    "address": [
+      8,
+      8
+    ],
+    "size": [
+      16,
+      8
+    ],
+    "generation": [
+      24,
+      8
+    ],
+    "flags": [
+      32,
+      4
+    ],
+    "references": [
+      36,
+      4
+    ],
+    "live": [
+      40,
+      4
+    ],
+    "retired": [
+      44,
+      4
+    ],
+    "owned": [
+      48,
+      4
+    ]
+  },
+  "region": {
+    "base": [
+      0,
+      8
+    ],
+    "size": [
+      8,
+      8
+    ],
+    "perm": [
+      16,
+      4
+    ],
+    "state": [
+      20,
+      4
+    ],
+    "attr": [
+      32,
+      4
+    ]
+  },
+  "source_sha256": {
+    "t2_page_wrap.h": "950e12cde4975dada63d70ac3e7f68f1a926744f7a4668a026d1c5daf4035230",
+    "t2_page_substitution.h": "1848f794191406567925459386b9dbfd8490b62dd25b90ce096ba464154ae2d2",
+    "nvn_textures.h": "1622349daee98e3b5df691708ae0a594754480d7211d199ad95c43999e1583a6",
+    "nvn_memory.h": "a709378e884dd975a8ce64510a0cb198332be8ab8d5ce25ea598ef73a0d1d9da",
+    "loader.c": "a274a1f9d971fb5b9b972f53e2459abdd26089612108831af8eab3a26d826225"
+  },
+  "texture_size": 736,
+  "pool_size": 56,
+  "region_size": 40
+}
