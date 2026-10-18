@@ -1,0 +1,175 @@
+{
+  "type": "RenderTexture",
+  "type_index": 1365,
+  "code_registration": 31843312,
+  "field_registration": 31843560,
+  "methods": [
+    {
+      "name": ".ctor",
+      "method_index": 10135,
+      "native_offset": 7239848
+    },
+    {
+      "name": ".ctor",
+      "method_index": 10136,
+      "native_offset": 7240872
+    },
+    {
+      "name": "Internal_CreateRenderTexture",
+      "method_index": 10137,
+      "native_offset": 7240432
+    },
+    {
+      "name": "GetTemporary",
+      "method_index": 10138,
+      "native_offset": 7241324
+    },
+    {
+      "name": "GetTemporary",
+      "method_index": 10139,
+      "native_offset": 7241496
+    },
+    {
+      "name": "ReleaseTemporary",
+      "method_index": 10140,
+      "native_offset": 7241640
+    },
+    {
+      "name": "Internal_GetWidth",
+      "method_index": 10141,
+      "native_offset": 7241740
+    },
+    {
+      "name": "Internal_SetWidth",
+      "method_index": 10142,
+      "native_offset": 7241840
+    },
+    {
+      "name": "Internal_GetHeight",
+      "method_index": 10143,
+      "native_offset": 7241948
+    },
+    {
+      "name": "Internal_SetHeight",
+      "method_index": 10144,
+      "native_offset": 7242048
+    },
+    {
+      "name": "Internal_SetSRGBReadWrite",
+      "method_index": 10145,
+      "native_offset": 7240760
+    },
+    {
+      "name": "get_width",
+      "method_index": 10146,
+      "native_offset": 7242156
+    },
+    {
+      "name": "set_width",
+      "method_index": 10147,
+      "native_offset": 7242256
+    },
+    {
+      "name": "get_height",
+      "method_index": 10148,
+      "native_offset": 7242364
+    },
+    {
+      "name": "set_height",
+      "method_index": 10149,
+      "native_offset": 7242464
+    },
+    {
+      "name": "set_depth",
+      "method_index": 10150,
+      "native_offset": 7240536
+    },
+    {
+      "name": "get_format",
+      "method_index": 10151,
+      "native_offset": 7242572
+    },
+    {
+      "name": "set_format",
+      "method_index": 10152,
+      "native_offset": 7240648
+    },
+    {
+      "name": "get_useMipMap",
+      "method_index": 10153,
+      "native_offset": 7242672
+    },
+    {
+      "name": "set_useMipMap",
+      "method_index": 10154,
+      "native_offset": 7242772
+    },
+    {
+      "name": "get_autoGenerateMips",
+      "method_index": 10155,
+      "native_offset": 7242880
+    },
+    {
+      "name": "set_autoGenerateMips",
+      "method_index": 10156,
+      "native_offset": 7242980
+    },
+    {
+      "name": "set_antiAliasing",
+      "method_index": 10157,
+      "native_offset": 7243088
+    },
+    {
+      "name": "Create",
+      "method_index": 10158,
+      "native_offset": 7243196
+    },
+    {
+      "name": "INTERNAL_CALL_Create",
+      "method_index": 10159,
+      "native_offset": 7243296
+    },
+    {
+      "name": "Release",
+      "method_index": 10160,
+      "native_offset": 7243396
+    },
+    {
+      "name": "INTERNAL_CALL_Release",
+      "method_index": 10161,
+      "native_offset": 7243496
+    },
+    {
+      "name": "IsCreated",
+      "method_index": 10162,
+      "native_offset": 7243596
+    },
+    {
+      "name": "INTERNAL_CALL_IsCreated",
+      "method_index": 10163,
+      "native_offset": 7243696
+    },
+    {
+      "name": "GenerateMips",
+      "method_index": 10164,
+      "native_offset": 7243796
+    },
+    {
+      "name": "INTERNAL_CALL_GenerateMips",
+      "method_index": 10165,
+      "native_offset": 7243896
+    },
+    {
+      "name": "set_active",
+      "method_index": 10166,
+      "native_offset": 7243996
+    }
+  ],
+  "fields": [],
+  "input_sha256": {
+    "global-metadata.dat": "53932d51525f6c840d7ca4e97e3920b9d1a432aa7dd9c2c63dfb36791efe4ee0",
+    "main.text.seg": "df8a2524a65ec784f5781908be3734fa7c448f16c4c1029ee5b0fd4b63a0de84",
+    "main.rodata.seg": "5426429f1e970e93cdadd02cfa6114529e790da76f4628302045cd1282ca0e82",
+    "main.data.seg": "e0909cd376eb888dfc9e86f728b5c16abbd4a8c92e4db1a68be50b87fd162649"
+  }
+}

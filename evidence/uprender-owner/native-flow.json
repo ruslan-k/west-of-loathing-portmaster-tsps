@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "basis": "owner-only native disassembly and metadata23/code-registration/field-offset join; raw code excluded",
+  "producer": {
+    "type": "UpRender",
+    "awake": "0x513df8",
+    "update_texture": "0x513eb4",
+    "constructor_call": "0x514838",
+    "constructor_return": "0x51483c",
+    "width_field_offset": 32,
+    "height_field_offset": 36,
+    "rendertexture_ctor": "0x6e7ca8"
+  },
+  "verified_argument_flow": "UpRender +32/+36 -> w1/w2 at main+0x514838 -> RenderTexture::.ctor, depth=24; live control has two 1920x1080 calls from guest thread 0",
+  "difference_from_desktop": "Pinned Switch function directly consumes forceWidth and forceHeight for construction; desktop minimum-height/aspect calculation is not assumed for the Switch build.",
+  "queue_probe": {
+    "site": "0xc8b570",
+    "scope": "separate queued native GPU-resource object, not claimed equal to RenderTexture cached native pointer",
+    "cross_queue_pointer_identity_join": false
+  },
+  "settings_variant": {
+    "flag": "WOL_UPRENDER_720=1",
+    "default": false,
+    "mutation": "exactly 8 process-local component-field bytes during Awake, before the first UpdateTexture; requires original 1920x1080",
+    "new_size": [
+      1280,
+      720
+    ],
+    "not_changed": [
+      "owner game files",
+      "serialized data",
+      "SDK allocation constants",
+      "NVN descriptors",
+      "shaders",
+      "swap policy",
+      "launch mode"
+    ]
+  }
+}

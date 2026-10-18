@@ -520,7 +520,15 @@
      }
      emit(&b);
  }
-@@ -214,7 +236,12 @@
+@@ -193,6 +215,7 @@
+ #include "t2_guest_memory.h" /* Frente J */
+ #include "t2_lazy_mesh.h" /* Frente L */
+ #include "graphics_trace.h"
++#include "wol_uprender_trace.h"
+ #include "megaman_movie.h"
+ #include "megaman_memory.h"
+ #include "megaman_heap_mapping.h"
+@@ -214,7 +237,12 @@
          text(&b," entry=");location(&b,t->entry);emit(&b);
          /* A blocked thread is inside its system call, so its kernel frame is stable and says who it
           * is waiting for. This is the whole point of the census. */
@@ -534,7 +542,7 @@
      }
  }
  #include "zero_address_arbiter.h"
-@@ -258,11 +285,47 @@
+@@ -258,11 +286,47 @@
      }
      return 0;
  }
@@ -582,7 +590,7 @@
          for(unsigned i=0;i<31;i++){struct line r={0};text(&r,"FAULT_REG x");hex(&r,i);text(&r,"=");hex(&r,ctx->uc_mcontext.regs[i]);text(&r," ");location(&r,ctx->uc_mcontext.regs[i]);emit(&r);}
  #ifdef AW_NO_ROMFS
          if(pc==LC2_SDK_BASE+0x1dfe90) {
-@@ -288,6 +351,23 @@
+@@ -288,6 +352,23 @@
          }
  #endif
          for(unsigned i=0;i<24;i++){uint64_t at=ctx->uc_mcontext.sp+i*8,v=0;if(!accessible(at,8,PROT_READ))break;memcpy(&v,(void *)(uintptr_t)at,8);struct line w={0};text(&w,"FAULT_STACK +");hex(&w,i*8);text(&w,"=");hex(&w,v);text(&w," ");location(&w,v);emit(&w);}
@@ -606,15 +614,16 @@
          if(momo_dump_address) {
              /* Bounded stall diagnostic: hexdump of a guest range chosen by MOMO_DUMP=address:bytes. */
              const unsigned char *at=(const unsigned char *)(uintptr_t)momo_dump_address;
-@@ -301,6 +381,7 @@
+@@ -301,6 +382,8 @@
      }
      uint32_t instruction=bridge_instruction(pc);
      if(!instruction || *(const uint32_t *)(uintptr_t)pc!=TRAP_OPCODE)stop("UNKNOWN_TRAP",pc,0,23);
++    if(wol_up_handle(pc,instruction,ctx))return;
 +    if(wol_alloc_handle(pc,instruction,ctx))return;
      if(graphics_trace_entry(pc,instruction,ctx))return;
      if(megaman_movie_handle(pc,instruction,ctx))return;
      if(megaman_memory_handle(pc,instruction,ctx))return;
-@@ -380,7 +461,7 @@
+@@ -380,7 +463,7 @@
      if(svc==2) {
          /* SetMemoryPermission: nn::ro::ProtectRelro on the sdk data image (SDK 17). Only R/RW/none on an
           * existing private image or heap range; the split region keeps its state and attributes. */
@@ -623,7 +632,7 @@
          uint64_t address=r[0],size=r[1];unsigned perm=(unsigned)r[2];
          if((address|size)&(PAGE-1) || !size || perm>3 || perm==2)stop("INVALID_MEMORY_PERMISSION_REQUEST",pc,address,24);
          struct region old=query(address);
-@@ -391,7 +472,7 @@
+@@ -391,7 +474,7 @@
      }
      if(svc==3) {
          /* SetMemoryAttribute: SDK 17 ProtectRelro locks the permission (attribute 0x10) after making it read-only. */
@@ -632,7 +641,7 @@
          uint64_t address=r[0],size=r[1];unsigned mask=(unsigned)r[2],attr=(unsigned)r[3];
          if((address|size)&(PAGE-1) || !size || mask!=0x10 || attr!=0x10)stop("UNSUPPORTED_MEMORY_ATTRIBUTE",pc,mask,20);
          struct region old=query(address);
-@@ -401,7 +482,7 @@
+@@ -401,7 +484,7 @@
          r[0]=0;ctx->uc_mcontext.pc+=4;return;
      }
      if(svc==1) {
@@ -641,7 +650,7 @@
          uint64_t requested=r[1];
          if(requested%(2ULL<<20) || requested>HEAP_LIMIT)stop("HEAP_REQUEST_OUTSIDE_EXPERIMENT_LIMIT",pc,requested,20);
          /* The first allocation and same-size queries are supported. Growing or
-@@ -539,7 +620,14 @@
+@@ -539,7 +622,14 @@
          emit_svc(&b,svc);stack_alias(r[0],r[1],r[2],svc==5,pc);r[0]=0;ctx->uc_mcontext.pc+=4;return;
      }
      if(svc==0x13) {
@@ -657,7 +666,7 @@
          if(s->endpoint!=EP_SHARED)stop("INVALID_SHARED_MEMORY_HANDLE",pc,r[0],24);
          shared_map(s->initialized,r[1],r[2],r[3],pc);r[0]=0;ctx->uc_mcontext.pc+=4;return;
      }
-@@ -571,7 +659,7 @@
+@@ -571,7 +661,7 @@
              struct line w={0};text(&w,"MOMO_WAIT_KEY thread=");hex(&w,guest_thread_index);
              text(&w," key=");hex(&w,r[0]);text(&w," mutex=");hex(&w,r[1]);text(&w," tag=");hex(&w,r[2]);
              text(&w," timeout=");hex(&w,r[3]);emit(&w);
@@ -666,7 +675,7 @@
          }
          r[0]=key_wait(r[0],r[1],r[2],(int64_t)r[3],pc);ctx->uc_mcontext.pc+=4;return;
      }
-@@ -598,7 +686,7 @@
+@@ -598,7 +688,7 @@
      if(svc==0x33) {
          emit_svc(&b,svc);r[0]=messenger_thread_context(r[0],r[1],pc);ctx->uc_mcontext.pc+=4;return;
      }
@@ -675,7 +684,7 @@
      if(svc==0x26) {
          emit_svc(&b,svc);stop("GUEST_SVC_BREAK",pc,guest_terminate_result?guest_terminate_result:r[0],25);
      }
-@@ -621,14 +709,19 @@
+@@ -621,14 +711,19 @@
              struct line b={0};text(&b,"MOMO_SAMPLE thread=");hex(&b,guest_thread_index);
              text(&b," in-kernel=");hex(&b,signal_handler_depth);text(&b," pc=");
              location(&b,ctx->uc_mcontext.pc);emit(&b);
@@ -697,7 +706,7 @@
      ucontext_t *ctx=opaque;uint32_t instruction=bridge_instruction(ctx->uc_mcontext.pc);
      /* These instructions access only the interrupted thread's virtual register
       * state and the monotonic clock. They cannot wake a waiter or modify kernel
-@@ -693,9 +786,21 @@
+@@ -693,9 +788,36 @@
  static int region_cmp(const void *a,const void *b) {
      const struct region *x=a,*y=b;return x->base>y->base?1:x->base<y->base?-1:0;
  }
@@ -713,6 +722,21 @@
 +    __builtin___clear_cache((char *)(uintptr_t)s->base,(char *)(uintptr_t)(s->base+s->file_size));
 +    printf("WOL_GUEST_RT720 applied=11 source=exact-guest-dimension-query-and-render-target-owner dimensions=1280x720 crop=unchanged disk-image=unchanged\n");
 +}
++static void wol_up_configure(void) {
++    const char *t=getenv("WOL_UPRENDER_TRACE"),*p=getenv("WOL_UPRENDER_720"),*g=getenv("WOL_GUEST_RT720");
++    wol_up_patch=p&&!strcmp(p,"1");wol_up_trace=wol_up_patch || (t&&!strcmp(t,"1"));
++    if(!wol_up_trace)return;
++    if(g&&!strcmp(g,"1"))stop("WOL_UP_CONFLICTING_SIZE_EXPERIMENT",0,0,24);
++    const struct image_segment *s=NULL;
++    for(size_t i=0;i<sizeof(images)/sizeof(images[0]);i++)if(!strcmp(images[i].name,"main.text.seg"))s=&images[i];
++    if(!s || s->file_size!=20762904U)stop("WOL_UP_IMAGE_IDENTITY",0,0,24);
++    uint8_t hash[32];char hex[65];zero_sha256((void *)(uintptr_t)s->base,s->file_size,hash);
++    for(unsigned i=0;i<32;i++)sprintf(hex+i*2,"%02x",hash[i]);
++    if(strcmp(hex,WOL_RT720_MAIN_SHA256))stop("WOL_UP_IMAGE_IDENTITY",0,0,24);
++    wol_up_mem=open("/proc/self/mem",O_RDONLY|O_CLOEXEC);
++    if(wol_up_mem<0)stop("WOL_UP_OBSERVER_UNAVAILABLE",0,errno,21);
++    printf("WOL_UPRENDER_CONFIG trace=1 component-settings-720=%u image=exact-metadata23-main source-files-unchanged=1\n",wol_up_patch);
++}
  int main(int argc,char **argv) {
      (void)argv;if(argc!=1){fprintf(stderr,"Run from the verified native image directory, without arguments.\n");return 1;}
 -    setvbuf(stdout,NULL,_IONBF,0);prctl(PR_SET_NAME,"legacy_runtime-nextos",0,0,0);main_thread_id=(uint64_t)getpid();
@@ -720,7 +744,7 @@
      nvn_platform_argv=argv;
      t2_runtime_health_capture();
      if(t2_video_init())return 24;
-@@ -726,7 +831,7 @@
+@@ -726,7 +848,7 @@
      struct rlimit no_core={0,0};setrlimit(RLIMIT_CORE,&no_core);
      struct rlimit address_limit={HOST_ADDRESS_LIMIT,HOST_ADDRESS_LIMIT};
      if(setrlimit(RLIMIT_AS,&address_limit)){perror("diagnostic memory quota");return 1;}
@@ -729,15 +753,16 @@
      FILE *random=fopen("/dev/urandom","rb");
      if(!random || fread(entropy,1,sizeof(entropy),random)!=sizeof(entropy)){fprintf(stderr,"entropy unavailable\n");return 1;}
      fclose(random);
-@@ -739,6 +844,7 @@
+@@ -739,6 +861,8 @@
          if(!f || fread(p,1,s->file_size,f)!=s->file_size || fgetc(f)!=EOF){fprintf(stderr,"segment read failed %s\n",s->name);return 1;}
          fclose(f);
      }
++    wol_up_configure();
 +    wol_guest_rt720_install();
      t2_lazy_mesh_apply(images,sizeof(images)/sizeof(images[0])); /* Frente L: lazy quad meshes, T2_LAZY_MESH=0 disables */
      t2_image_file_map_report();
      /* Build and staging pin the original main NSO and segment hashes. The
-@@ -755,6 +861,7 @@
+@@ -755,6 +879,7 @@
       * of this title's modules are passed, so MEGAMAN_LAZY_ZERO=1 fails closed (LAZY_ZERO_NSO_IDENTITY)
       * until the hook is re-pinned for 19.3.9. Off by default. */
      megaman_memory_configure(LC2_SDK_BASE,LC2_SDK_SHA256,LC2_RTLD_BASE,LC2_RTLD_SHA256);
@@ -745,16 +770,16 @@
      tls_stubs_initialize();
      aw_prof_thread=0;aw_prof_start();
      int tls_fast=tls_stubs_install(images,sizeof(images)/sizeof(images[0]));
-@@ -769,7 +876,7 @@
+@@ -769,7 +894,7 @@
                  if(v!=graphics_entries[j].opcode)stop("GRAPHICS_IMAGE_IDENTITY",s->base+off,v,24);
                  graphics_entry=1;
              }
 -            if(graphics_entry || megaman_movie_entry(s->base+off,v) ||
-+            if(graphics_entry || wol_alloc_site(s->base+off,v) || megaman_movie_entry(s->base+off,v) ||
++            if(graphics_entry || wol_alloc_site(s->base+off,v) || wol_up_site(s->base+off,v) || megaman_movie_entry(s->base+off,v) ||
                 megaman_memory_entry(s->base+off,v) ||
                 (v&0xffe0001fU)==0xd4000001U || (v&0xffffffe0U)==0xd53bd060U ||
                 (v&0xffffffe0U)==0xd53bd040U || (v&0xffffffe0U)==0xd51bd040U ||
-@@ -815,7 +922,9 @@
+@@ -815,7 +940,9 @@
      const char *budget=getenv("MEGAMAN_PROBE_SECONDS");
      if(budget) {
          char *end=NULL;unsigned long seconds=strtoul(budget,&end,10);
@@ -765,7 +790,7 @@
          probe_seconds=(unsigned)seconds;
      }
      printf("NATIVE_PROBE_TIME_BUDGET seconds=%u\n",probe_seconds);
-@@ -826,7 +935,7 @@
+@@ -826,7 +953,7 @@
      guest_profile_configure();
      hid_host_initialize();aud_host_initialize();t2_memwatch_start();
      t2_gzram_start(); /* Frente J */
@@ -6507,6 +6532,82 @@
 +    unsigned overlap=bytes && k->bytes &&
 +        (address<=k->address?k->address-address<bytes:address-k->address<k->bytes);
 +    if(overlap || (name && name==k->name))s->host_valid=0;
++}
+--- /dev/null
++++ b/native/wol_uprender_policy.h
+@@ -0,0 +1,6 @@
++/* Exact UpRender setting variant, NOT a descriptor or shader override.
++ * Caller proves live component ownership and write access before applying. */
++static unsigned wol_uprender_720(uint32_t dims[2],unsigned enabled) {
++    if(!enabled || !dims || dims[0]!=1920 || dims[1]!=1080)return 0;
++    dims[0]=1280;dims[1]=720;return 1;
++}
+--- /dev/null
++++ b/native/wol_uprender_trace.h
+@@ -0,0 +1,64 @@
++/* Exact metadata-v23 UpRender native observation. Original instructions are
++ * replayed, including BL/BLR link register and ADRP semantics. Default OFF.
++ * Optional component settings experiment is separate from observation. */
++#include "wol_uprender_policy.h"
++static unsigned wol_up_trace,wol_up_patch,wol_up_events[5];
++static int wol_up_mem=-1;
++static const struct {uint64_t offset;uint32_t opcode;} wol_up_sites[]={
++    {0x513df8,0xa9be4ff4U}, /* UpRender.Awake prologue */
++    {0x513eb4,0xd10203ffU}, /* UpRender.UpdateTexture prologue */
++    {0x514838,0x94074d1cU}, /* producer -> RenderTexture constructor */
++    {0x51483c,0xf000cd08U}, /* returned RenderTexture cached native pointer */
++    {0xc8b570,0xd63f0100U}, /* queued resource virtual create */
++};
++static unsigned wol_up_site(uint64_t pc,uint32_t op) {
++    if(!wol_up_trace && !wol_up_patch)return 0;
++    for(unsigned i=0;i<5;i++)if(pc==LC2_MAIN_BASE+wol_up_sites[i].offset) {
++        if(op!=wol_up_sites[i].opcode)stop("WOL_UP_CODE_IDENTITY",pc,op,24);
++        return i+1;
++    }
++    return 0;
++}
++static unsigned wol_up_read(uint64_t address,void *out,size_t bytes) {
++    return wol_up_mem>=0 && accessible(address,bytes,PROT_READ) &&
++           pread(wol_up_mem,out,bytes,(off_t)address)==(ssize_t)bytes;
++}
++static unsigned wol_up_handle(uint64_t pc,uint32_t op,ucontext_t *ctx) {
++    unsigned action=wol_up_site(pc,op);if(!action)return 0;
++    unsigned i=action-1;__typeof__(ctx->uc_mcontext.regs[0]) *r=ctx->uc_mcontext.regs;
++    uint64_t owner=i<2?r[0]:i<4?r[19]:0;uint32_t dims[2]={0};
++    unsigned readable=i<4 && owner<=UINT64_MAX-40 && wol_up_read(owner+32,dims,8);
++    unsigned changed=0;
++    if(i==0 && wol_up_patch) {
++        if(!readable || (owner&7) || !accessible(owner+32,8,PROT_READ|PROT_WRITE) || !wol_uprender_720(dims,1))
++            stop("WOL_UP_COMPONENT_SETTINGS",pc,owner,24);
++        memcpy((void *)(uintptr_t)(owner+32),dims,8);changed=1;
++    }
++    if(wol_up_events[i]++<64) {
++        struct line l={0};text(&l,"WOL_UPRENDER event=");text(&l,i==0?"awake":i==1?"update":i==2?"construct":i==3?"constructed":"queued-create");
++        text(&l," thread=");hex(&l,guest_thread_index);text(&l," owner=");hex(&l,owner);
++        text(&l," pc=");location(&l,pc);
++        if(readable){text(&l," forceWidth=");hex(&l,dims[0]);text(&l," forceHeight=");hex(&l,dims[1]);}
++        text(&l," settings-changed=");hex(&l,changed);
++        if(i==2){text(&l," render-object=");hex(&l,r[0]);text(&l," width=");hex(&l,(uint32_t)r[1]);text(&l," height=");hex(&l,(uint32_t)r[2]);text(&l," depth-bits=");hex(&l,(uint32_t)r[3]);}
++        if(i==3){uint64_t native=0;text(&l," render-object=");hex(&l,r[21]);
++            if(r[21]<=UINT64_MAX-24 && wol_up_read(r[21]+16,&native,8)){text(&l," native=");hex(&l,native);}}
++        if(i==4){text(&l," native=");hex(&l,r[1]);text(&l," method=");location(&l,r[8]);}
++        emit(&l);
++    }
++    if(i==0) {
++        uint64_t sp=ctx->uc_mcontext.sp-32,pair[2]={r[20],r[19]};
++        if(!accessible(sp,16,PROT_WRITE))stop("WOL_UP_STACK",pc,sp,24);
++        memcpy((void *)(uintptr_t)sp,pair,16);ctx->uc_mcontext.sp=sp;ctx->uc_mcontext.pc=pc+4;
++    } else if(i==1){ctx->uc_mcontext.sp-=128;ctx->uc_mcontext.pc=pc+4;}
++    else if(i==2){r[30]=pc+4;ctx->uc_mcontext.pc=LC2_MAIN_BASE+0x6e7ca8;}
++    else if(i==3) {
++        uint32_t imm=((op>>29)&3)|(((op>>5)&0x7ffff)<<2);
++        int64_t delta=(int64_t)((int32_t)(imm<<11)>>11)*4096;
++        r[8]=(pc&~4095ULL)+delta;ctx->uc_mcontext.pc=pc+4;
++    } else {
++        if(!accessible(r[8],4,PROT_EXEC))stop("WOL_UP_QUEUE_TARGET",pc,r[8],24);
++        ctx->uc_mcontext.pc=r[8];r[30]=pc+4;
++    }
++    return 1;
 +}
 --- a/native/zero_texture_writes.h
 +++ b/native/zero_texture_writes.h
