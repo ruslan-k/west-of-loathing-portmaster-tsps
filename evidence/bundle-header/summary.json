@@ -1,0 +1,111 @@
+{
+  "label": "bundlehdr-b1",
+  "runtime_sha256": "273b4638cae6dd4d0cbe7d1b4a91eac9e3f68c6b758fb7ef2729a2c28e31af13",
+  "section_sha256": "49bd16718ed0dc46f16599255791c7603e8aa2b5f04898784a39d6cacb9d0722",
+  "cleanup_verified": true,
+  "cleanup_warnings": [],
+  "present_watchdog_s": 5.0,
+  "progress_checks": 27,
+  "failure": {
+    "kind": "presentation-stall",
+    "observation": {
+      "frame": 2001,
+      "ns": 15123046127623,
+      "age_s": 5.61695517
+    },
+    "gdb_exit": 0,
+    "diagnostic_dir": "/mnt/UDISK/roadmap-v2-bundlehdr-b1/stall"
+  },
+  "header_probe": [
+    {
+      "seconds_since_read_observed": 0,
+      "length": 144392040,
+      "matches_read": true,
+      "class_name": "Byte[]",
+      "namespace": "System"
+    },
+    {
+      "seconds_since_read_observed": 10,
+      "length": 11633735,
+      "matches_read": false,
+      "class_name": "Byte[]",
+      "namespace": "System"
+    },
+    {
+      "seconds_since_read_observed": 60,
+      "length": 11633735,
+      "matches_read": false,
+      "class_name": "Byte[]",
+      "namespace": "System"
+    }
+  ],
+  "romfs_read_bytes": 144392040,
+  "last_frames": [
+    [
+      1999,
+      15122993992303
+    ],
+    [
+      2000,
+      15123020750819
+    ],
+    [
+      2001,
+      15123046127623
+    ]
+  ],
+  "memory_during_stall": [
+    {
+      "checks": "400",
+      "avail": "251",
+      "swapfree": "1425",
+      "swaptotal": "2017",
+      "rss": "478",
+      "swap": "527",
+      "level": "0"
+    },
+    {
+      "checks": "440",
+      "avail": "207",
+      "swapfree": "1469",
+      "swaptotal": "2017",
+      "rss": "531",
+      "swap": "479",
+      "level": "0"
+    },
+    {
+      "checks": "480",
+      "avail": "91",
+      "swapfree": "1575",
+      "swaptotal": "2017",
+      "rss": "661",
+      "swap": "373",
+      "level": "0"
+    }
+  ],
+  "stall_process_status": {
+    "VmRSS_kib": 716000,
+    "VmSwap_kib": 365676,
+    "threads": 44
+  },
+  "thread_states": {
+    "main": "futex_wake (running)",
+    "guest_workers": "28 x futex_wait_queue_me",
+    "mali": "8 utility + purge + cmar backends normal",
+    "sdl_audio/alsa": "poll/nanosleep normal"
+  },
+  "black_capture_mean_luma": 7.48,
+  "interpretation": [
+    "144 MiB read target IS a consistent System.Byte[] at read time on the exact pinned runtime.",
+    "Same address holds an 11.6 MB Byte[] at +10 s and +60 s: the launch bundle array was collected and its storage recycled inside the managed heap; pages were not returned to the OS.",
+    "The stall capture shows an active load (RSS 478->716 MB, swap-in, MemAvailable 251->91 MiB) with a black screen, running/futex-wake main thread and no proven deadlock; the 5 s budget aborted the first long gap, so neither permanence nor a root cause is established.",
+    "A2 (no extra tracing) froze with gulch already visible; this run had heavy alloc/romfs lifetime tracing at 720 ON; flags are not proven causal for either event."
+  ],
+  "not_proven": [
+    "GC root reachability or pin lifetime",
+    "page reclamation or safe free",
+    "cause of A2/bundlehdr stalls",
+    "physical gameplay acceptance"
+  ],
+  "no_swap_achieved": false
+}

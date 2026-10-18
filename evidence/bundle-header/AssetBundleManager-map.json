@@ -1,0 +1,110 @@
+{
+  "type": "AssetBundleManager",
+  "type_index": 2522,
+  "code_registration": 31843312,
+  "field_registration": 31843560,
+  "methods": [
+    {
+      "name": ".ctor",
+      "method_index": 12590,
+      "native_offset": 4665004
+    },
+    {
+      "name": "get_instance",
+      "method_index": 12591,
+      "native_offset": 4666512
+    },
+    {
+      "name": "ClipLoadSound",
+      "method_index": 12592,
+      "native_offset": 4666784
+    },
+    {
+      "name": "SprLoad",
+      "method_index": 12593,
+      "native_offset": 4667004
+    },
+    {
+      "name": "Load",
+      "method_index": -1,
+      "native_offset": null
+    },
+    {
+      "name": "LoadSceneAsync",
+      "method_index": 12594,
+      "native_offset": 4667224
+    },
+    {
+      "name": "Init",
+      "method_index": 12595,
+      "native_offset": 4667924
+    },
+    {
+      "name": "FTryCompleteInit",
+      "method_index": 12596,
+      "native_offset": 4668036
+    },
+    {
+      "name": "CancelInit",
+      "method_index": 12597,
+      "native_offset": 4668676
+    },
+    {
+      "name": "EnsureInstance",
+      "method_index": 12598,
+      "native_offset": 4666672
+    },
+    {
+      "name": "FTryLoadAssetBundleInternal",
+      "method_index": 12599,
+      "native_offset": 4665676
+    },
+    {
+      "name": "FTryCompleteInitInternal",
+      "method_index": 12600,
+      "native_offset": 4668196
+    },
+    {
+      "name": "CancelInitInternal",
+      "method_index": 12601,
+      "native_offset": 4668764
+    },
+    {
+      "name": "AssbunFind",
+      "method_index": 12602,
+      "native_offset": 4668772
+    },
+    {
+      "name": "LoadObject",
+      "method_index": -1,
+      "native_offset": null
+    },
+    {
+      "name": "LoadSceneAsyncInternal",
+      "method_index": 12603,
+      "native_offset": 4667400
+    }
+  ],
+  "fields": [
+    {
+      "name": "ASSET_BUNDLE_SUBDIRECTORY",
+      "offset": 0
+    },
+    {
+      "name": "s_abm",
+      "offset": 0
+    },
+    {
+      "name": "m_aAbli",
+      "offset": 16
+    },
+    {
+      "name": "m_aryAbliLoading",
+      "offset": 24
+    },
+    {
+      "name": "m_mpStrAbi",
+      "offset": 32
+    }
+  ]
+}
