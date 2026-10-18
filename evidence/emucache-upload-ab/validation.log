@@ -1,0 +1,45 @@
+test_disabled_and_alloc_free_realloc_preserve_guest_instruction_semantics (test_wol_memory_alloc_hook.AllocHookTests.test_disabled_and_alloc_free_realloc_preserve_guest_instruction_semantics) ... ok
+test_complete_only_default_off_and_full_restore_before_partial_write (test_wol_memory_astc_postcopy.PostCopyTests.test_complete_only_default_off_and_full_restore_before_partial_write) ... ok
+test_disagreeing_status_and_rollup_stay_separate (test_wol_memory_benchmark.BenchmarkTests.test_disagreeing_status_and_rollup_stay_separate) ... ok
+test_frame_counter_gaps_are_not_lost (test_wol_memory_benchmark.BenchmarkTests.test_frame_counter_gaps_are_not_lost) ... ok
+test_log_archive_failure_does_not_skip_owner_save_restore (test_wol_memory_benchmark.BenchmarkTests.test_log_archive_failure_does_not_skip_owner_save_restore) ... CLEANUP_VERIFIED {"schema": 1, "label": "fixture", "owner_save_sha256": {"slot.json": "1d7ab677b9c8d933e3a772b444883294fc5332c1788e5e1ed3ee44443287c297"}, "harness_sha256": "42a1fa4a9a456552f8e3b07e76a80e6201389c4019b4e41245d88649e0678cde", "cold_cache_requested": false, "runtime_sha256": "cd2c9c08109990f1425f4a536b6d3325f38dbd619e0035bce7473ae3c8fc8239", "section_sha256": "b9b9a3eb31a736f240bbf8e81e7a73f83a0b580c00af8de2bfaf5c270a14c818", "cleanup_verified": true, "cleanup_warnings": ["runtime archive: fixture archive ENOSPC"], "game_remaining": [], "menu_pids": [1], "restored_save_sha256": {"slot.json": "1d7ab677b9c8d933e3a772b444883294fc5332c1788e5e1ed3ee44443287c297"}}
+ok
+test_menu_capture_failure_stays_a_failure (test_wol_memory_benchmark.BenchmarkTests.test_menu_capture_failure_stays_a_failure) ... ok
+test_menu_capture_retries_before_claiming_cleanup (test_wol_memory_benchmark.BenchmarkTests.test_menu_capture_retries_before_claiming_cleanup) ... ok
+test_observer_shutdown_error_does_not_skip_save_restore (test_wol_memory_benchmark.BenchmarkTests.test_observer_shutdown_error_does_not_skip_save_restore) ... CLEANUP_VERIFIED {"schema": 1, "label": "fixture", "owner_save_sha256": {"slot.json": "1d7ab677b9c8d933e3a772b444883294fc5332c1788e5e1ed3ee44443287c297"}, "harness_sha256": "42a1fa4a9a456552f8e3b07e76a80e6201389c4019b4e41245d88649e0678cde", "cold_cache_requested": false, "runtime_sha256": "cd2c9c08109990f1425f4a536b6d3325f38dbd619e0035bce7473ae3c8fc8239", "section_sha256": "b9b9a3eb31a736f240bbf8e81e7a73f83a0b580c00af8de2bfaf5c270a14c818", "cleanup_verified": true, "cleanup_warnings": ["observer shutdown: fixture observer shutdown failure"], "game_remaining": [], "menu_pids": [1], "restored_save_sha256": {"slot.json": "1d7ab677b9c8d933e3a772b444883294fc5332c1788e5e1ed3ee44443287c297"}}
+ok
+test_png_readiness_rejects_black_even_when_capture_succeeds (test_wol_memory_benchmark.BenchmarkTests.test_png_readiness_rejects_black_even_when_capture_succeeds) ... ok
+test_unowned_runtime_preserves_backup_and_marks_pending_recovery (test_wol_memory_benchmark.BenchmarkTests.test_unowned_runtime_preserves_backup_and_marks_pending_recovery) ... OWNER_SAVE_RESTORE_PENDING /var/home/ruslan/.hermes/cache/scratch/tmpmdgnba9r/out/owner-save
+ok
+test_exact_bytes_identity_epochs_and_bounded_storage (test_wol_memory_copy_equal.CopyEqualityContract.test_exact_bytes_identity_epochs_and_bounded_storage) ... ok
+test_fixed_reply_widths_unknown_command_and_trace_default_off (test_wol_memory_handheld.HandheldContract.test_fixed_reply_widths_unknown_command_and_trace_default_off) ... ok
+test_frame_intervals_are_not_thresholded_or_profile_span_fps (test_wol_memory_ledger.LedgerTests.test_frame_intervals_are_not_thresholded_or_profile_span_fps) ... ok
+test_identity_change_refuses_torn_sample (test_wol_memory_ledger.LedgerTests.test_identity_change_refuses_torn_sample) ... ok
+test_mali_commit_uses_hex_commit_column_not_virtual_size (test_wol_memory_ledger.LedgerTests.test_mali_commit_uses_hex_commit_column_not_virtual_size) ... ok
+test_only_exact_pid_contexts_are_included (test_wol_memory_ledger.LedgerTests.test_only_exact_pid_contexts_are_included) ... ok
+test_unavailable_gpu_is_not_zero (test_wol_memory_ledger.LedgerTests.test_unavailable_gpu_is_not_zero) ... ok
+test_added_nested_and_removed_source_files_are_reproducible (test_wol_memory_overlay.OverlayGenerationTests.test_added_nested_and_removed_source_files_are_reproducible) ... ok
+test_apply_and_byte_exact_parity_rejects_stale_source (test_wol_memory_overlay.OverlayTests.test_apply_and_byte_exact_parity_rejects_stale_source) ... ok
+test_default_off_busy_fallback_retired_reuse_and_context_identity (test_wol_memory_pbo.PboLifecycle.test_default_off_busy_fallback_retired_reuse_and_context_identity) ... ok
+test_layout_must_match_exact_executable (test_wol_memory_profile.ProfileTests.test_layout_must_match_exact_executable) ... ok
+test_lifetime_uses_ids_not_reused_object_addresses (test_wol_memory_profile.ProfileTests.test_lifetime_uses_ids_not_reused_object_addresses) ... ok
+test_no_free_page_claim_from_pagemap (test_wol_memory_profile.ProfileTests.test_no_free_page_claim_from_pagemap) ... ok
+test_pagemap_classifies_without_reading_page_contents (test_wol_memory_profile.ProfileTests.test_pagemap_classifies_without_reading_page_contents) ... ok
+test_platform_snapshot_has_online_mask_and_clock_map (test_wol_memory_profile.ProfileTests.test_platform_snapshot_has_online_mask_and_clock_map) ... ok
+test_pool_union_is_not_added_twice (test_wol_memory_profile.ProfileTests.test_pool_union_is_not_added_twice) ... ok
+test_smaps_preserves_status_disagreement (test_wol_memory_profile.ProfileTests.test_smaps_preserves_status_disagreement) ... ok
+test_kms_capture_success_does_not_validate_all_black_menu (test_wol_memory_roadmap.ReportContracts.test_kms_capture_success_does_not_validate_all_black_menu) ... ok
+test_launcher_injection_default_off_preserves_explicit_opt_in (test_wol_memory_roadmap.ReportContracts.test_launcher_injection_default_off_preserves_explicit_opt_in) ... ok
+test_nonmatched_saves_refuse_comparison (test_wol_memory_roadmap.ReportContracts.test_nonmatched_saves_refuse_comparison) ... ok
+test_pool_views_are_not_added_as_new_heap (test_wol_memory_roadmap.ReportContracts.test_pool_views_are_not_added_as_new_heap) ... ok
+test_read_span_joins_containing_allocation_not_just_equal_base (test_wol_memory_roadmap.ReportContracts.test_read_span_joins_containing_allocation_not_just_equal_base) ... ok
+test_reused_address_is_not_old_pool_owner (test_wol_memory_roadmap.ReportContracts.test_reused_address_is_not_old_pool_owner) ... ok
+test_unknown_counter_is_not_zero (test_wol_memory_roadmap.ReportContracts.test_unknown_counter_is_not_zero) ... ok
+test_default_off_census_exact_bits_program_banks_context_and_error (test_wol_memory_uniform_cache.UniformCacheTests.test_default_off_census_exact_bits_program_banks_context_and_error) ... ok
+test_upload_commit_writes_aliases_context_and_reuse (test_wol_memory_upload_guard.UploadGuardContract.test_upload_commit_writes_aliases_context_and_reuse) ... ok
+test_pixels_unchanged_and_finish_only_in_bounded_opt_in_diagnostic (test_wol_memory_upload_timing.UploadTiming.test_pixels_unchanged_and_finish_only_in_bounded_opt_in_diagnostic) ... ok
+
+----------------------------------------------------------------------
+Ran 37 tests in 1.087s
+
+OK

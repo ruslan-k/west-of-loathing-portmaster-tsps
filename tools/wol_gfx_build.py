@@ -14,16 +14,13 @@ assert name.startswith('wol-horizon-build-') and '/' not in name
 out = spike/name
 assert not out.exists(), out
 patch = repo/'runtime/wol-adapter.patch'
+from wol_overlay_verify import generate, verify
 previous = patch.read_text()
-chunks=[]
-for p in sorted((base/'native').iterdir()):
-    q=src/'native'/p.name
-    if p.is_file() and q.is_file() and p.read_bytes()!=q.read_bytes():
-        chunks.extend(difflib.unified_diff(p.read_text().splitlines(True),q.read_text().splitlines(True),
-            fromfile='a/native/'+p.name,tofile='b/native/'+p.name))
-text=''.join(chunks)
+text = generate(base, src)
 assert 'WOL_DRAW_GEOMETRY' in text
 patch.write_text(text)
+parity = verify(base, src, patch)
+print('SOURCE_PARITY', len(parity['native_files']), flush=True)
 print('OVERLAY',len(text),hashlib.sha256(text.encode()).hexdigest(),flush=True)
 args=['docker','run','--rm','--security-opt','label=disable','-v',str(spike)+':/workspace',
       '-v',str(repo)+':/work','--entrypoint','/bin/sh','pmjs-arm64-spruce-local:20261002-gcc10',

@@ -1,0 +1,21 @@
+{
+  "before": {
+    "governor": "simple_ondemand",
+    "min_freq": "150000000",
+    "max_freq": "600000000"
+  },
+  "requested_governor": "performance",
+  "cleanup": true,
+  "during": {
+    "governor": "performance",
+    "min_freq": "150000000",
+    "max_freq": "600000000",
+    "cur_freq": "600000000"
+  },
+  "probe_exit": 0,
+  "restored": {
+    "governor": "simple_ondemand",
+    "min_freq": "150000000",
+    "max_freq": "600000000"
+  }
+}

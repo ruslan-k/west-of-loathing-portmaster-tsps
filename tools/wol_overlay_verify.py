@@ -11,6 +11,24 @@ import tempfile
 from pathlib import Path
 
 
+import difflib
+
+
+def generate(base, reference):
+    """Diff the complete native file union, including additions and removals."""
+    left={p.relative_to(base):p for p in (base/'native').rglob('*') if p.is_file()}
+    right={p.relative_to(reference):p for p in (reference/'native').rglob('*') if p.is_file()}
+    chunks=[]
+    for path in sorted(left.keys() | right.keys()):
+        a=left[path].read_text() if path in left else ''
+        b=right[path].read_text() if path in right else ''
+        if a==b:continue
+        chunks.extend(difflib.unified_diff(a.splitlines(True),b.splitlines(True),
+            fromfile='a/'+str(path) if path in left else '/dev/null',
+            tofile='b/'+str(path) if path in right else '/dev/null'))
+    return ''.join(chunks)
+
+
 def verify(base, reference, overlay):
     with tempfile.TemporaryDirectory(prefix='wol-overlay-') as td:
         root = Path(td)

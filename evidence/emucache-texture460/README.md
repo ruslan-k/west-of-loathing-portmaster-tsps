@@ -1,0 +1,8 @@
+# Destination-copy equality preflight (roadmap §14.2)
+
+Two independently hashed diagnostic builds; owner section stays `49bd16718ed0dc46f16599255791c7603e8aa2b5f04898784a39d6cacb9d0722`.
+
+- `copyequal1` (`a8715c97130043368fdd70f8e712bcc240de862b5901c19ca1a04a2cab76ca08`) exposed a **census-selection flaw**: the single selected boot object (id 283) was later replaced by id 460, so its equality counts do not cover gameplay. The simultaneous own-destination GPU audits do cover id 460: every sampled destination agrees byte-exactly with the zero CPU copy, while the rendered producer disagrees. This does not rehabilitate producer sampling.
+- `copyequal2` (`16ef47b725a0800fe15dd7638161c94d32217916eea6f9e65f9b275e33376b1c`) removes sticky object selection and resets the one bounded snapshot whenever object/id/pool/address/bytes/GL name/EGL context changes. Last periodic record: **3,600 observations, 2 first/new identities, 3,598 exact repeats, 0 changed, 0 unavailable**. The 3,686,400-byte snapshot costs 3.52 MiB. Cumulative snapshot comparison time 7,303,991,184 ns includes initial copies; this is a diagnostic cost, not transferable upload savings.
+
+CPU copy semantics and all host uploads remain unchanged in these arms (`host_valid=unknown skipped=0`). Exact previous destination equality alone does not permit skipping a host write. The subsequent guarded experimental upload cache is documented separately. Requested movement/map/pause labels require independent image review; real KMS captures and both successful cleanup/save receipts are included. These are process-cold launches, not cache-cold or swap-disabled boots.

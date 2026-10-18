@@ -40,7 +40,7 @@
      }
 --- a/native/display.h
 +++ b/native/display.h
-@@ -97,7 +97,23 @@
+@@ -97,7 +97,24 @@
          uint64_t count=0;
          if(req->outputs[0].size>=0x60) {
              uint8_t info[0x60]={0};memcpy(info,"Default",8);info[0x40]=1;
@@ -61,6 +61,7 @@
 +                    }
 +                }
 +            }
++            wol_mode_trace("VI-ListDisplays",req->command,req->domain,max_w,max_h,sizeof(info),pc);
 +            uint64_t limits[3]={1,max_w,max_h};memcpy(info+0x48,limits,sizeof(limits));
              memcpy((void *)(uintptr_t)req->outputs[0].address,info,sizeof(info));count=1;
          }
@@ -287,7 +288,15 @@
  static void endpoint_destroy(enum endpoint endpoint,unsigned state);
  static void nv_destroy(unsigned state);
  static void bsd_destroy(unsigned state);
-@@ -305,6 +305,12 @@
+@@ -235,6 +235,7 @@
+     size_t cmif=(12+count*4+15)&~15U;if(req->domain)cmif+=16;
+     put32(buffer+cmif,0x4f434653);put32(buffer+cmif+12,req->token);
+ }
++#include "wol_handheld.h"
+ #include "clocks.h"
+ #include "filesystem.h"
+ #include "save.h"
+@@ -305,6 +306,12 @@
      /* MOMODORA: FMOD plays through AudioOut (docs/AUDIO.md), so the real audout:u is wired, not the
       * device-list stub the Animal Well trunk needed. */
      if(!memcmp(name,"audout:u",8))found=EP_AUDOUT_MANAGER;
@@ -300,7 +309,7 @@
      return found;
  }
  static unsigned sm_permitted(const char *name) {
-@@ -452,6 +458,18 @@
+@@ -452,6 +459,18 @@
          if(trace && endpoint==EP_HID && req.command==201 && ++aw_vibration_logged>16)trace=0;
      }
  #endif
@@ -319,12 +328,10 @@
      if(trace) {
          struct line b={0};text(&b,"IPC handle=");hex(&b,handle);text(&b," endpoint=");hex(&b,endpoint);
          text(&b," type=");hex(&b,req.type);text(&b," command=");hex(&b,req.command);
-@@ -523,6 +541,83 @@
-     if(endpoint==EP_AW_STUB) {
-         struct line stub={0};text(&stub,"AW_STUB_SERVICE command=");hex(&stub,req.command);text(&stub," data=");hex(&stub,req.data_size);emit(&stub);
+@@ -525,6 +544,83 @@
          if(req.command==0){ipc_child(buffer,s,&req,EP_AW_STUB,pc);return;}
-+        ipc_reply(buffer,req.token,0,NULL,0,0,req.domain);return;
-+    }
+         ipc_reply(buffer,req.token,0,NULL,0,0,req.domain);return;
+     }
 +    if(endpoint==EP_PL_STUB) {
 +        /* WoL: the SDK's shared-font manager is first polled from a battle-scene UI path,
 +         * right after a 1920x1080 capture-sized texture. The poller (see the SDK accessor
@@ -400,9 +407,30 @@
 +        }
 +        for(unsigned i=0;i<req.num_outputs;i++)
 +            if(req.outputs[i].size)memset((void *)(uintptr_t)req.outputs[i].address,0,req.outputs[i].size);
-         ipc_reply(buffer,req.token,0,NULL,0,0,req.domain);return;
-     }
++        ipc_reply(buffer,req.token,0,NULL,0,0,req.domain);return;
++    }
      if(aud_dispatch(buffer,s,&req,endpoint,state,pc))return;
+     if(aout_dispatch(buffer,s,&req,endpoint,state,pc))return;
+     if(zero_friends_dispatch(buffer,s,&req,endpoint,state,pc))return;
+@@ -603,6 +699,7 @@
+         app_state.foreground=1;ipc_reply(buffer,req.token,0,NULL,0,0,req.domain);return;
+     }
+     if(endpoint==EP_COMMON) {
++        wol_mode_trace("AM-request",req.command,req.domain,req.data_size,0,0,pc);
+         if(req.command==66) {
+             if(req.data_size<4 || read32(req.data)>1)stop("INVALID_CPU_BOOST_MODE",pc,req.data_size,24);
+             app_state.cpu_boost=read32(req.data);
+@@ -620,8 +717,8 @@
+             /* SDK 12+: SetRequestExitToLibraryAppletAtExecuteNextProgramEnabled; no library applet runs here. */
+             ipc_reply(buffer,req.token,0,NULL,0,0,req.domain);return;
+         }
+-        if(req.command==5){value=0;size=1;} /* Portable operation mode. */
+-        if(req.command==6){value=0;size=4;} /* Normal performance mode. */
++        size=wol_handheld_value(req.command,&value);
++        if(size)wol_mode_trace("AM",req.command,req.domain,value,0,size,pc);
+         if(req.command==9){value=app_state.foreground?1:2;size=1;}
+         if(size){ipc_reply(buffer,req.token,0,&value,size,0,req.domain);return;}
+     }
 --- a/native/loader.c
 +++ b/native/loader.c
 @@ -8,6 +8,7 @@
@@ -3523,7 +3551,7 @@
          zero_depth_draw_end(&depth_draw);nvn_draw_finish_profile();
  #ifdef ANIMAL_WELL_SHADERS
          nvn_render.target->aw_draws_since_clear++;
-@@ -1535,6 +3226,433 @@
+@@ -1535,6 +3226,465 @@
          begin=end+1;
      }
  }
@@ -3572,6 +3600,35 @@
 +            from[3],from[4],from[0],from[1],src->b.samples,src->draws,src->zero_cpu_dirty,bytes,mismatch,flipped,nonzero,cs,gs,(void *)eglGetCurrentContext());
 +    } else printf("WOL_COPY_AUDIT_UNAVAILABLE frame=%u complete=%u gl-error=0x%x\n",frame,complete,error);
 +    free(gpu);
++}
++#include "wol_copy_equal.h"
++/* Read-only preflight: full destination snapshots only, one bounded identity at
++ * a time. No GL calls or upload suppression; host validity is explicitly unknown. */
++static void wol_color_copy_equal(struct nvn_texture *dst,const uint32_t to[6],
++                                  const uint8_t *data,uint64_t bytes,unsigned bpp) {
++    static int configured,on;static struct wol_copy_equal_state state;
++    static uint64_t calls,first,equal,changed,unavailable,compare_ns;
++    if(!configured){const char *o=getenv("WOL_COPY_EQUAL");on=o&&!strcmp(o,"1");configured=1;}
++    if(!on || bpp!=4 || to[0] || to[1] || to[3]!=dst->b.width || to[4]!=dst->b.height ||
++       bytes<1024U*1024U || bytes>WOL_COPY_EQUAL_LIMIT)return;
++    struct wol_copy_equal_key key={.object=dst->object,.id=dst->id,.pool=dst->pool->object,
++        .address=dst->pool->address+dst->b.offset,.bytes=bytes,.name=dst->name,
++        .context=(uintptr_t)eglGetCurrentContext()};
++    uint64_t begin=wol_upload_clock();
++    unsigned result=wol_copy_equal_observe(&state,&key,data);
++    compare_ns+=wol_upload_clock()-begin;calls++;
++    if(result==0)first++;
++    else if(result==1)equal++;
++    else if(result==2)changed++;
++    else unavailable++;
++    if(calls<=4 || !(calls%120)) {
++        printf("WOL_COPY_EQUAL id=%llu object=0x%llx pool=0x%llx address=0x%llx gl=%u context=%p calls=%llu first=%llu equal=%llu changed=%llu unavailable=%llu snapshot_bytes=%llu compare_ns=%llu host_valid=unknown skipped=0\n",
++            (unsigned long long)dst->id,(unsigned long long)dst->object,(unsigned long long)dst->pool->object,
++            (unsigned long long)key.address,dst->name,(void *)eglGetCurrentContext(),
++            (unsigned long long)calls,(unsigned long long)first,(unsigned long long)equal,
++            (unsigned long long)changed,(unsigned long long)unavailable,(unsigned long long)bytes,
++            (unsigned long long)compare_ns);
++    }
 +}
 +static unsigned wol_color_texture_copy(const struct nvn_record *r) {
 +    const uint64_t *a=r->args;
@@ -3658,6 +3715,7 @@
 +            src->id,dst->id,fw,fh,tw,th);
 +    }
 +    if(!gpu_done) {
++        wol_color_copy_equal(dst,to,d,dst_bytes,bpp);
 +        wol_copy_audit(src,dst,from,to,d,0);
 +        wol_copy_audit(dst,dst,to,to,d,1);
 +        dst->zero_cpu_dirty=1;
@@ -3731,6 +3789,7 @@
 +    return 1;
 +}
 +static unsigned wol_blit_region(struct nvn_texture *src,const uint32_t from[6],struct nvn_texture *dst,const uint32_t to[6],unsigned flip_v) {
++    wol_upload_forget(dst);
 +    if(!wol_rblit_realize())return 0;
 +    GLint previous=0;glGetIntegerv(GL_FRAMEBUFFER_BINDING,&previous);
 +    GLuint fb=0;glGenFramebuffers(1,&fb);glBindFramebuffer(GL_FRAMEBUFFER,fb);
@@ -3840,6 +3899,7 @@
 +    /* The larger extent is the rendered camera target, the smaller one the panel-sized resolve target. */
 +    struct nvn_texture *src=((uint64_t)a->b.width*a->b.height>=(uint64_t)b->b.width*b->b.height)?a:b;
 +    struct nvn_texture *dst=(src==a)?b:a;
++    wol_upload_forget(dst);
 +    unsigned bpp=nvn_texture_format_bytes(src->b.format);
 +    if(src->b.format!=dst->b.format||!bpp) {
 +        printf("WOL_DOWNSAMPLE_CONTRACT src=%"PRIu64"(f=0x%x) dst=%"PRIu64"(f=0x%x) action=accepted-no-copy\n",
@@ -3957,7 +4017,7 @@
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +3680,16 @@
+@@ -1562,7 +3712,16 @@
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -3975,7 +4035,7 @@
      case NI_nvnCommandBufferSetLineWidth:case NI_nvnCommandBufferSetPointSize: {
          float size;memcpy(&size,r->vectors,4);
          if(!isfinite(size) || size<=0)stop("ZERO_RASTER_SIZE_INVALID",nvn_caller,r->op,24);
-@@ -1682,9 +3809,10 @@
+@@ -1682,9 +3841,10 @@
              nvn_render.framebuffer=nvn_framebuffer_bind(nvn_render.target,d);nvn_render.pass_skipped=0;
              zero_udd_restore(d);
              nvn_low_target(nvn_render.target,d);d->composition_target_seen=1;
@@ -3987,7 +4047,7 @@
          nvn_cpu_image_require_target(t);nvn_cpu_image_require_target(d);
          nvn_rt_storage_target(t,d);
          nvn_mfc_target(t);nvn_mfc_target(d);
-@@ -1697,6 +3825,7 @@
+@@ -1697,6 +3857,7 @@
              if(nvn_low_color(t)<0&&!t->host_scaled)d->composition_other_target=1;}
          nvn_packaged_require_writable(t,"NVN_LC2_PACKAGED_RENDER_TARGET_REQUIRED");
          if(!t->name||(d&&(!d->depth_buffer||d->b.width!=t->b.width||d->b.height!=t->b.height)))stop("NVN_FRAMEBUFFER_ATTACHMENTS",nvn_caller,targets[0],24);
@@ -5227,7 +5287,15 @@
              if(stage>1 || matched&(1U<<stage))stop("NVN_LC2_SHADER_STAGE_DUPLICATE",nvn_caller,source,24);
 --- a/native/nvn_texture_coherence.h
 +++ b/native/nvn_texture_coherence.h
-@@ -109,10 +109,15 @@
+@@ -15,6 +15,7 @@
+ /* CopyBufferToTexture writes CPU and GL independently of this sampler cache.
+  * Invalidate even if the CPU producer later restores the previous bytes. */
+ static void nvn_cpu_image_invalidate(struct nvn_texture *t) {
++    wol_upload_forget(t);
+     if(nvn_cpu_image_family(t)){free(t->cpu_snapshot);t->cpu_snapshot=NULL;}
+ }
+ /* Reject before framebuffer binding, including before first sampling. A
+@@ -109,10 +110,15 @@
              free(rgba);free(snapshot);stop("NVN_LC2_CPU_IMAGE_DECODE",nvn_caller,t->b.format,20);
          }
      glPixelStorei(GL_UNPACK_ALIGNMENT,1);
@@ -5353,10 +5421,51 @@
      unsigned aw_clear_valid,aw_clear_mask,aw_clear_known,aw_draws_since_clear,aw_caustic_half;float aw_clear_color[4];GLint aw_clear_scissor[4];
      GLuint zero_mip_masks[2];unsigned zero_mip_tail;unsigned momo_scale_alias_checked,momo_scale_alias_free;
      unsigned zero_depth_valid,zero_stencil_value,zero_depth_discarded;float zero_depth_value;
-@@ -63,6 +65,57 @@
+@@ -63,6 +65,100 @@
  static void zero_texture_storage_require(const struct nvn_texture *t);
  #include "zero_render_scale.h"
  #include "zero_texture_storage.h"
++#include "wol_copy_equal.h"
++#include "wol_upload_guard.h"
++static struct wol_upload_guard wol_upload_guard;
++static unsigned wol_upload_skip_configured,wol_upload_skip_on;
++static uint64_t wol_upload_skip_calls,wol_upload_skip_hits,wol_upload_skip_bytes;
++static unsigned wol_upload_skip_enabled(void) {
++    if(!wol_upload_skip_configured){const char *o=getenv("WOL_UPLOAD_SKIP");wol_upload_skip_on=o&&!strcmp(o,"1");wol_upload_skip_configured=1;}
++    return wol_upload_skip_on;
++}
++static struct wol_copy_equal_key wol_upload_key(const struct nvn_texture *t) {
++    return (struct wol_copy_equal_key){.object=t->object,.id=t->id,.pool=t->pool->object,
++        .address=t->pool->address+t->b.offset,.bytes=t->size,.name=t->name,.context=(uintptr_t)eglGetCurrentContext()};
++}
++static void wol_upload_forget(struct nvn_texture *t) {
++    if(!t || !wol_upload_skip_enabled() || !t->pool)return;
++    wol_upload_guard_write(&wol_upload_guard,t->pool->address+t->b.offset,t->size,t->name);
++}
++static unsigned wol_upload_skip_refresh(struct nvn_texture *t,unsigned type,const char *copy_option) {
++    if(!wol_upload_skip_enabled() || type!=GL_UNSIGNED_BYTE || !copy_option || strcmp(copy_option,"1") ||
++       !t->live || !t->name || !t->pool || !t->pool->live || t->zero_storage || !eglGetCurrentContext() ||
++       t->size<1024U*1024U || t->size>WOL_COPY_EQUAL_LIMIT || t->size!=(uint64_t)t->b.width*t->b.height*4 ||
++       t->b.levels!=1 || t->levels[0] || t->b.target!=1 || t->b.depth!=1 || t->b.samples ||
++       t->b.stride || t->host_scaled || t->host_half || t->packaged_lazy || t->b.packaged_layout ||
++       t->b.gl_name || t->astc_from_cache || t->composition_target_seen || t->draws || t->depth_buffer ||
++       t->cpu_snapshot || !nvn_texture_rgba8_raw_eligible(t->b.format,t->b.swizzle))return 0;
++    struct wol_copy_equal_key key=wol_upload_key(t);
++    const void *source=nvn_pointer(key.address,key.bytes,PROT_READ);
++    unsigned skip=wol_upload_guard_prepare(&wol_upload_guard,&key,source);
++    wol_upload_skip_calls++;
++    if(skip){wol_upload_skip_hits++;wol_upload_skip_bytes+=key.bytes;}
++    if(wol_upload_skip_calls<=4 || !(wol_upload_skip_calls%120))
++        printf("WOL_UPLOAD_SKIP id=%llu calls=%llu skipped=%llu bytes=%llu context=%p comparison=exact source=own-last-successful-upload\n",
++            (unsigned long long)t->id,(unsigned long long)wol_upload_skip_calls,
++            (unsigned long long)wol_upload_skip_hits,(unsigned long long)wol_upload_skip_bytes,(void *)eglGetCurrentContext());
++    return skip;
++}
++static void wol_upload_commit(struct nvn_texture *t,unsigned error) {
++    if(!wol_upload_skip_on || !t || !t->pool)return;
++    struct wol_copy_equal_key key=wol_upload_key(t);
++    if(t->id==wol_upload_guard.copy.key.id)wol_upload_guard_commit(&wol_upload_guard,&key,error);
++}
 +/* WOL_GPU_RESIDENCY=1 (read-only audit, off by default; ScarletNX-style texture
 + * residency, see the 2026-10-16 review): per-slot last sample/write/upload frames
 + * plus a periodic aggregate estimate. No GL calls, no eviction, no behaviour change.
@@ -5388,6 +5497,7 @@
 +    wol_residency.last_sample[i]=wol_residency.frame?wol_residency.frame:1;
 +}
 +static void wol_res_mark_rt(struct nvn_texture *t) {
++    wol_upload_forget(t);
 +    if(!wol_residency_enabled())return;
 +    unsigned i=wol_res_slot(t);if(i>=4096)return;
 +    wol_residency.rt[i]=1;wol_residency.from_guest[i]=0;
@@ -5399,6 +5509,7 @@
 +    wol_residency.from_guest[i]=0;wol_residency.last_write[i]=wol_residency.frame?wol_residency.frame:1;
 +}
 +static void wol_res_mark_gpu_upload(struct nvn_texture *t) {
++    wol_upload_forget(t);
 +    if(!wol_residency_enabled())return;
 +    unsigned i=wol_res_slot(t);if(i>=4096)return;
 +    wol_residency.from_guest[i]=0;wol_residency.last_write[i]=wol_residency.last_upload[i]=wol_residency.frame?wol_residency.frame:1;
@@ -5411,7 +5522,7 @@
  /* Cached GPU targets have no fabricated CPU completion. Ordinary GPU
   * sampling uses their live texture; any native CPU/packed-view/alias access
   * requires a separately implemented readback before it can be admitted. */
-@@ -99,9 +152,16 @@
+@@ -99,9 +195,16 @@
  #include "nvn_normal.h"
  #include "nvn_texture_coherence.h"
  static uint64_t nvn_texture_layout(uint64_t address,struct nvn_texture_builder *b,uint64_t levels[14]) {
@@ -5428,7 +5539,7 @@
      /* SDK 17.5.3 builder (measured): the linear stride lives at +0x50 (the former packaged slot), the former stride and
       * packaged-layout slots are unused and +0x60 holds a builder marker (0x50). Packaged textures never occur here. */
      b->stride=(uint32_t)b->packaged;b->packaged=0;b->packaged_layout=0;b->gl_name=0;
-@@ -173,6 +233,18 @@
+@@ -173,6 +276,18 @@
         b->width>(uint32_t)nvn_device.texture_limit || b->height>(uint32_t)nvn_device.texture_limit ||
         0){static unsigned told;if(told++<8)printf("MOMO_TEXTURE_BUILDER flags=0x%x target=%u size=%ux%ux%u levels=%u format=0x%x samples=%u stride=%u\n",
             b->flags,b->target,b->width,b->height,b->depth,b->levels,b->format,b->samples,b->stride);}
@@ -5447,7 +5558,7 @@
      if((b->target!=1 && !((b->target==2||b->target==4) && b->depth==1)) || b->depth!=1 || !b->width || !b->height ||
         b->width>(uint32_t)nvn_device.texture_limit || b->height>(uint32_t)nvn_device.texture_limit ||
         !b->levels || b->levels>14 || b->samples>1)stop("NVN_TEXTURE_DIMENSIONS_REQUIRED",nvn_caller,((uint64_t)b->width<<32)|b->height,20);
-@@ -191,7 +263,7 @@
+@@ -191,7 +306,7 @@
          b->format=0x25;
      }
  #endif
@@ -5456,7 +5567,7 @@
      if(bc) {
          if(b->flags&0x50 || b->packaged_layout)stop("ZERO_BC_LINEAR_BLOCK_LAYOUT_REQUIRED",nvn_caller,b->packaged_layout,20);
          uint64_t size=0;
-@@ -321,7 +393,7 @@
+@@ -321,7 +436,7 @@
      return NULL;
  }
  #endif
@@ -5465,7 +5576,7 @@
  static uint64_t zero_texture_record_id(uint64_t object) {return nvn_texture_find(object)->id;}
  static void aw_clear_texture_admit(uint64_t object,uint64_t view,const int32_t *region) {
      struct nvn_texture *t=nvn_texture_find(object);
-@@ -329,6 +401,7 @@
+@@ -329,6 +444,7 @@
      if(region[0]<0||region[1]<0||region[2]||region[3]<=0||region[4]<=0||region[5]!=1||
         (uint64_t)region[0]+region[3]>t->b.width||(uint64_t)region[1]+region[4]>t->b.height)stop("NVN_CLEAR_TEXTURE_REGION",nvn_caller,object,20);
  }
@@ -5473,7 +5584,7 @@
  static void zero_record_target_view(uint64_t object,const uint8_t *view,unsigned attachment) {
      struct nvn_texture *t=object?nvn_texture_find(object):NULL;
  #ifdef MOMO_SHADERS
-@@ -427,6 +500,7 @@
+@@ -427,6 +543,7 @@
  }
  #include "nvn_packaged_lazy.h"
  #include "zero_sha256.h"
@@ -5481,7 +5592,7 @@
  static void zero_cube_initialize(struct nvn_texture *t) {
      const uint8_t *source=nvn_pointer(t->pool->address+t->b.offset,t->size,PROT_READ);
      static const uint8_t expected[32]={142,255,1,7,29,163,133,249,165,207,47,120,57,86,140,71,31,192,133,57,11,154,119,92,81,82,84,173,30,0,160,247};uint8_t actual[32];
-@@ -465,17 +539,44 @@
+@@ -465,17 +582,44 @@
  }
  static void zero_texture_pool_flushed(struct nvn_pool *pool,uint64_t offset,uint64_t bytes) {
      if(!bytes)return;
@@ -5530,7 +5641,7 @@
      unsigned x=box?box[0]/4:0,y=box?box[1]/4:0,width=box?box[3]:m.width,height=box?box[4]:m.height;
      unsigned nx=(width+3)/4,ny=(height+3)/4;size_t linear_bytes=(size_t)nx*ny*m.bytes;
      uint8_t *linear=malloc(linear_bytes);if(!linear)stop("ZERO_BC_LINEAR_MEMORY",nvn_caller,linear_bytes,21);
-@@ -485,35 +586,166 @@
+@@ -485,35 +629,173 @@
          stop("ZERO_BC_TILED_DECODE",nvn_caller,t->id,24);
      free(linear);
  }
@@ -5640,6 +5751,12 @@
 +    copy_option=getenv("WOL_RGBA8_COPY");
 +#endif
      unsigned type=nvn_cpu_image_upload_type(t),output_bpp=nvn_texture_upload_bytes(type);
++    if(wol_upload_skip_refresh(t,type,copy_option)) {
++        glBindTexture(GL_TEXTURE_2D,t->name);
++        GLenum error=glGetError();
++        if(error){wol_upload_forget(t);stop("ZERO_TEXTURE_REFRESH_GL",nvn_caller,error,21);}
++        return;
++    }
      glBindTexture(GL_TEXTURE_2D,t->name);GLint alignment;glGetIntegerv(GL_UNPACK_ALIGNMENT,&alignment);glPixelStorei(GL_UNPACK_ALIGNMENT,1);
 +    if(t->astc_from_cache) {
 +        /* M6: leave the compressed storage before RGBA subimage writes; the level loop below re-fills it. */
@@ -5692,8 +5809,10 @@
          if(height>1)height>>=1;
      }
      glPixelStorei(GL_UNPACK_ALIGNMENT,alignment);
-     GLenum error=glGetError();if(error)stop("ZERO_TEXTURE_REFRESH_GL",nvn_caller,error,21);
+-    GLenum error=glGetError();if(error)stop("ZERO_TEXTURE_REFRESH_GL",nvn_caller,error,21);
 -    printf("ZERO_TEXTURE_FLUSH_UPLOADED id=%"PRIu64" format=0x%x native-cpu-bytes=preserved before-sampler\n",t->id,t->b.format);
++    GLenum error=glGetError();wol_upload_commit(t,error);
++    if(error)stop("ZERO_TEXTURE_REFRESH_GL",nvn_caller,error,21);
 +    {   /* PROFDIAG (2026-10-15): per-texture refresh attribution, bounded to 8 ids. */
 +        static struct {uint64_t id,calls,bytes,direct;} zr[8];static unsigned zrn;
 +        unsigned k;for(k=0;k<zrn;k++)if(zr[k].id==t->id)break;
@@ -5706,7 +5825,7 @@
  }
  #include "zero_texture_writes.h"
  static unsigned nvn_texture_dispatch(unsigned id,struct nvn_frame *f,uint64_t *result) {
-@@ -602,6 +834,7 @@
+@@ -602,6 +884,7 @@
          }
          if(slot==4096)stop("NVN_TEXTURE_CAPACITY",nvn_caller,slot,21);
          struct nvn_texture *t=&nvn_textures[slot];*t=(struct nvn_texture){.object=a[0],.id=zero_next_object_id(),.size=size,.b=b,.pool=pool};
@@ -5714,7 +5833,7 @@
          /* Frente F: an eligible page gets no GL storage now (the pool holds nothing yet, MEDIDO pc-008: the
           * copy arrives later) and no budget; the copy decides between the palettized form and RGBA8. */
          t->t2_page.deferred=t2_page_eligible(&b);
-@@ -693,12 +926,21 @@
+@@ -693,12 +976,21 @@
                      for(unsigned y=0;y<height;y++)if(!nvn_texture_decode_upload(b.format,b.swizzle,upload_type,rgba+(size_t)y*width*upload_bpp,src+y*stride,width))
                          stop("NVN_TEXTURE_INITIAL_FORMAT",nvn_caller,b.format,20);
                  }
@@ -5737,7 +5856,7 @@
  #if MEGAMAN_HOST_DIAGNOSTIC
                  /* Observation remains an independent RGBA8 reference; packed
                   * UNORM5 may truthfully differ by one readback code value. */
-@@ -721,6 +963,7 @@
+@@ -721,6 +1013,7 @@
  #if ZERO_ZX_GAME
              zero_mip_complete_storage(t,zero_bc_srgb(b.format)?0x8c42U:GL_RGBA,nvn_cpu_image_upload_type(t));
  #endif
@@ -5745,7 +5864,7 @@
              nvn_texture_parameters(t,GL_NEAREST,GL_NEAREST,GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE);
              glBindTexture(GL_TEXTURE_2D,0);
          }
-@@ -739,6 +982,7 @@
+@@ -739,6 +1032,7 @@
              printf("MOMO_TEXTURE_IDENTITY id=%"PRIu64" object=0x%"PRIx64" pool=0x%"PRIx64" offset=0x%"PRIx64" bytes=%"PRIu64" size=%ux%u format=0x%x flags=0x%x levels=%u target=%u\n",
                  t->id,a[0],b.pool,b.offset,size,b.width,b.height,b.format,b.flags,b.levels,b.target);
          printf("NVN_TEXTURE_REAL object=0x%"PRIx64" format=0x%x size=%ux%u levels=%u bytes=%"PRIu64" texture=%u depth=%u gpu-storage=%s no-draw\n",a[0],b.format,b.width,b.height,b.levels,size,t->name,t->depth_buffer,t->zero_backend_deferred?"unavailable-native-backing-retained":t->packaged_lazy?"deferred":"allocated");
@@ -5753,7 +5872,7 @@
          if(t->host_scaled)printf("NVN_LC2_SCALED_STORAGE id=%"PRIu64" texture=%u depth=%u flags=0x%x pool=0x%x logical=%ux%u actual=%ux%u initial=%s\n",
              t->id,t->name,t->depth_buffer,b.flags,pool->flags,b.width,b.height,t->host_width,t->host_height,
              shared_storage?"existing-GPU-owner":t->name?"full-decode-uniform":"native-depth-uninitialized");
-@@ -841,3 +1085,36 @@
+@@ -841,3 +1135,36 @@
      }
      return 1;
  }
@@ -5868,9 +5987,99 @@
  #ifdef AW_NO_ROMFS
          {const char *o=getenv("AW_GUEST_ONE_CORE");if(o&&!strcmp(o,"1")){CPU_ZERO(&set);CPU_SET(0,&set);}} /* race bisection: every guest thread on CPU0 */
          {const char *o=getenv("AW_CPU0_EXCLUSIVE");if(o&&!strcmp(o,"1")&&t!=&threads[0]){CPU_CLR(0,&set);if(!CPU_COUNT(&set)){CPU_SET(1,&set);CPU_SET(2,&set);}
+--- /dev/null
++++ b/native/wol_copy_equal.h
+@@ -0,0 +1,31 @@
++#ifndef WOL_COPY_EQUAL_H
++#define WOL_COPY_EQUAL_H
++/* Bounded exact successive destination snapshot census, NOT an upload skip.
++ * Result: 0 first/new identity, 1 byte-exact equal, 2 changed, 3 unavailable.
++ * No hash-only equivalence, source-GPU alias, or host-validity assumption. */
++#define WOL_COPY_EQUAL_LIMIT (4U*1024U*1024U)
++struct wol_copy_equal_key {
++    uint64_t object,id,pool,address,bytes,name,context;
++};
++struct wol_copy_equal_state {
++    struct wol_copy_equal_key key;
++    uint8_t *snapshot;
++    size_t capacity;
++    unsigned valid;
++};
++static unsigned wol_copy_equal_observe(struct wol_copy_equal_state *s,
++        const struct wol_copy_equal_key *key,const void *bytes) {
++    if(!s || !key || !bytes || !key->bytes || key->bytes>WOL_COPY_EQUAL_LIMIT)return 3;
++    size_t n=(size_t)key->bytes;
++    if(n>s->capacity) {
++        uint8_t *p=realloc(s->snapshot,n);
++        if(!p){s->valid=0;return 3;}
++        s->snapshot=p;s->capacity=n;s->valid=0;
++    }
++    unsigned same=s->valid && !memcmp(&s->key,key,sizeof(*key));
++    unsigned result=same?(memcmp(s->snapshot,bytes,n)?2:1):0;
++    if(result!=1)memcpy(s->snapshot,bytes,n);
++    s->key=*key;s->valid=1;
++    return result;
++}
++#endif
+--- /dev/null
++++ b/native/wol_handheld.h
+@@ -0,0 +1,20 @@
++/* Immutable existing AM policy. No TV/docked branch or environment selector.
++ * Command 60 is deliberately NOT added: implement only a genuinely observed ABI.
++ * These are guest policy values, not Linux governor/clock requests. */
++static size_t wol_handheld_value(uint64_t command,uint32_t *value) {
++    if(command==5){*value=0;return 1;} /* GetOperationMode: u8 Handheld. */
++    if(command==6){*value=0;return 4;} /* GetPerformanceMode: u32 Normal. */
++    return 0;
++}
++/* Called under the existing IPC kernel lock; bounded read-only logging only. */
++static void wol_mode_trace(const char *endpoint,uint64_t command,unsigned domain,
++                           uint64_t a,uint64_t b,size_t bytes,uint64_t pc) {
++    static int configured,on;static unsigned records;
++    if(!configured){const char *o=getenv("WOL_MODE_TRACE");on=o&&!strcmp(o,"1");configured=1;}
++    if(!on || records>=128)return;
++    records++;
++    struct timespec now;clock_gettime(CLOCK_MONOTONIC,&now);
++    printf("WOL_MODE_TRACE endpoint=%s cmd=%llu domain=%u value0=%llu value1=%llu bytes=%zu pc=0x%llx ns=%llu\n",
++        endpoint,(unsigned long long)command,domain,(unsigned long long)a,(unsigned long long)b,bytes,
++        (unsigned long long)pc,(unsigned long long)now.tv_sec*1000000000ULL+(unsigned long long)now.tv_nsec);
++}
+--- /dev/null
++++ b/native/wol_upload_guard.h
+@@ -0,0 +1,26 @@
++/* Exact last-successful-upload bytes, scoped to one bounded host image.
++ * A prepared CPU snapshot is not valid GPU content until successful commit.
++ * Every non-refresh host writer must invalidate overlapping storage first. */
++struct wol_upload_guard {
++    struct wol_copy_equal_state copy;
++    unsigned host_valid;
++};
++static unsigned wol_upload_guard_prepare(struct wol_upload_guard *s,
++        const struct wol_copy_equal_key *key,const void *bytes) {
++    unsigned equal=wol_copy_equal_observe(&s->copy,key,bytes)==1;
++    unsigned skip=equal && s->host_valid;
++    if(!skip)s->host_valid=0;
++    return skip;
++}
++static void wol_upload_guard_commit(struct wol_upload_guard *s,
++        const struct wol_copy_equal_key *key,unsigned error) {
++    s->host_valid=!error && s->copy.valid && !memcmp(&s->copy.key,key,sizeof(*key));
++}
++static void wol_upload_guard_write(struct wol_upload_guard *s,uint64_t address,
++                                   uint64_t bytes,uint64_t name) {
++    const struct wol_copy_equal_key *k=&s->copy.key;
++    if(!s->host_valid)return;
++    unsigned overlap=bytes && k->bytes &&
++        (address<=k->address?k->address-address<bytes:address-k->address<k->bytes);
++    if(overlap || (name && name==k->name))s->host_valid=0;
++}
 --- a/native/zero_texture_writes.h
 +++ b/native/zero_texture_writes.h
-@@ -5,7 +5,28 @@
+@@ -2,10 +2,32 @@
+  * the retained guest storage receive the same bytes in native call order. */
+ static void zero_texture_write(struct nvn_frame *f,unsigned flush) {
+     uint64_t *a=f->args;struct nvn_texture *t=nvn_texture_find(a[0]);
++    wol_upload_forget(t);
      uint8_t view[MEGAMAN_TEXTURE_VIEW_BYTES]={0};
      if(a[1])memcpy(view,nvn_pointer(a[1],MEGAMAN_TEXTURE_VIEW_BYTES,PROT_READ),MEGAMAN_TEXTURE_VIEW_BYTES);
      unsigned level=0,layer=0;uint16_t first,count;
@@ -5900,7 +6109,7 @@
      /* SDK 18.3.2 view (16 bytes, megaman_texture_view.h): flags at [7], level base/count at [4]/[5],
       * layer base/count as u16 at [0]/[2]. A texel write selects one level of one layer. */
      memcpy(&first,view,2);memcpy(&count,view+2,2);
-@@ -33,6 +54,11 @@
+@@ -33,6 +55,11 @@
         (t->pool->flags&1))
          stop("ZERO_TEXEL_STORAGE_REQUIRED",nvn_caller,t->id,20);
      uint32_t box[6];memcpy(box,nvn_pointer(a[2],sizeof(box),PROT_READ),sizeof(box));
@@ -5912,7 +6121,7 @@
      unsigned width=t->b.width>>level,height=t->b.height>>level;
      if(!width)width=1;
      if(!height)height=1;
-@@ -98,6 +124,7 @@
+@@ -98,6 +125,7 @@
      __atomic_thread_fence(__ATOMIC_SEQ_CST);
      GLenum binding=t->b.target==8?GL_TEXTURE_CUBE_MAP:GL_TEXTURE_2D;
      glBindTexture(binding,t->name);GLint alignment;glGetIntegerv(GL_UNPACK_ALIGNMENT,&alignment);glPixelStorei(GL_UNPACK_ALIGNMENT,1);

@@ -3,7 +3,24 @@
 import tempfile
 import unittest
 from pathlib import Path
-from wol_overlay_verify import verify
+from wol_overlay_verify import verify, generate
+
+
+class OverlayGenerationTests(unittest.TestCase):
+    def test_added_nested_and_removed_source_files_are_reproducible(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d)
+            for name in ('base','ref'):
+                (root/name/'native/sub').mkdir(parents=True)
+                (root/name/'native/keep.h').write_text('unchanged\n')
+            (root/'base/native/old.h').write_text('removed\n')
+            (root/'ref/native/sub/new.h').write_text('added\n')
+            overlay=root/'overlay.patch'
+            overlay.write_text(generate(root/'base',root/'ref'))
+            result=verify(root/'base',root/'ref',overlay)
+            self.assertEqual(set(result['native_files']),{'native/keep.h','native/sub/new.h'})
+            self.assertIn('--- /dev/null',overlay.read_text())
+            self.assertIn('+++ /dev/null',overlay.read_text())
 
 
 class OverlayTests(unittest.TestCase):
