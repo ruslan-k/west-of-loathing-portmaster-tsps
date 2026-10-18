@@ -220,81 +220,61 @@ The owner confirmed the ordinary map and requested an audit for similar defects 
 
 Every new experiment must end in measured acceptance, explicit rejection or a concrete unmet prerequisite. Implementation, installation and publication are distinct from a performance win.
 
-## 13. M7 preflight: Switch handheld operation mode and 720p
+## 13. M7: permanently handheld Horizon profile (no TV mode / no switch)
 
-**Review date:** 2026-10-18. Source baseline: `main` at `6b55a2ad0e730367ee8ae9fbb3b5574e93189587`. **Status: audit complete; handheld-mode diagnostic, mode override and any new 720p internal-target A/B are NOT implemented or device-tested here.** This is a high-priority *low-footprint preflight*, not a claim that WoL currently runs in TV mode or will switch its internal render resolution.
+**Requirement confirmed 2026-10-18:** **handheld is the only supported mode** of this WoL PortMaster runtime. There must be **no user-facing or diagnostic runtime option** for switching to TV/docked mode: no `WOL_SWITCH_MODE=auto|handheld|docked`, no `docked` branch in the runtime's own operation-mode policy and no dynamic mode-change notifications. Build-to-build historical controls may be used for A/B; they are not an operating-mode toggle. **Status:** emulator implementation surveyed, current game's guest-reported mode still unknown; no runtime modification or device A/B is claimed. See [cross-emulator code audit](handheld-mode-emulators.md).
 
-### 13.1 The three different resolutions
+### 13.1 What we know
 
-| Layer | Known state | Evidence / caveat |
+| Layer | Actual state | Limitation |
 | --- | --- | --- |
-| Original Switch handheld screen/output | Maximum **1280×720** (tabletop likewise); docked HDMI output up to **1920×1080** | [Nintendo official specification](https://www.nintendo.com/sg/hardware/switch/modal/specs/body.html) |
-| This TSPS game's host SDL/KMSDRM presentation | **1280×720** | Port launch/runtime window, `WOL_PRESENT_SOURCE`, real KMS screenshots, `docs/tsps-horizon-adapter.md` |
-| Guest Unity internal render targets | Some created as **1920×1080**, subsequently copied/downsampled or composited to a 1280×720 view | `docs/tsps-horizon-adapter.md`, `docs/resource-optimization.md`, NVN texture and render-target traces |
+| Native Switch handheld screen | 1280×720 output | Does not prohibit an internal 1080p render target |
+| WoL host window on TSPS | 1280×720 SDL/KMSDRM and KMS captures | Host output size does **not** prove guest operation mode |
+| Unity/NVN render graph | Includes 1920×1080 camera/intermediate targets | Still unproven that docked mode caused these allocations |
+| `native/input.h` HID cmds 128/129 | Npad handheld **controller activation** already implemented | **Not** `nn::oe::GetOperationMode` |
+| `native/display.h` `WOL_DISPLAY_MAX` | Existing `vi` `ListDisplays` maximum *layer* dimensions (default 1920×1080) | Earlier override test did not change Unity RT sizes; this value is not docked state |
+| Guest applet/oe mode query | Not yet captured from WoL | Inherited GPL runtime might already answer handheld |
 
-**An output of 720p does not imply that Unity internally renders at 720p, nor prove handheld mode.** The original Switch handheld *output* maximum also does not require every title to render every pass at native 720p; games may use custom fixed or dynamic internal resolutions.
+A single uncompressed RGBA8 1920×1080 level is ~7.91 MiB compared with ~3.52 MiB at 1280×720: theoretical ~4.39 MiB/image host or guest storage difference when an *actual allocation* shrinks, not an FPS or RAM promise.
 
-At RGBA8 one 1920×1080 level occupies 7.91 MiB versus 3.52 MiB for 1280×720, a theoretical **4.39 MiB saving per replaced image** (and 2.25× fewer pixels for that pass). Guest logical allocations, depth, driver alignment, swapchain and GPU render graph affect actual memory/FPS. There is no guaranteed 2.25× total-game FPS improvement.
+### 13.2 What other open-source Switch emulators actually do
 
-### 13.2 What the repository actually implements
+- **[Ryujinx — `ICommonStateGetter.cs`](https://github.com/kotx/Ryujinx/blob/534f92506bf8c6aba29bb86917bf10954a360d8e/src/Ryujinx.HLE/HOS/Services/Am/AppletAE/AllSystemAppletProxiesService/SystemAppletProxy/ICommonStateGetter.cs)**: command **5** returns a u8 from shared system `DockedMode`, command **60** returns two u32 values from actual display information, command **6** delegates to APM. Event handles and notification queue are separate.
+- **[Skyline — `ICommonStateGetter.cpp`](https://github.com/msummers10/skyline/blob/master/app/src/main/cpp/skyline/services/am/controller/ICommonStateGetter.cpp)**: `GetOperationMode` returns its mode field; `GetDefaultDisplayResolution` returns **1280×720** for handheld and **1920×1080** for docked. The service [declarations](https://github.com/msummers10/skyline/blob/master/app/src/main/cpp/skyline/services/am/controller/ICommonStateGetter.h) register commands **5**, **6** and **60** and define `Handheld=0`, `Docked=1`; events/ReceiveMessage are independent.
+- **[ScarletNX — `am.c`](https://github.com/scarletnx/ScarletNX/blob/main/src/nx/hle/services/am.c)**: command 5 helper writes `g_opt_docked ? 1 : 0`; resolution helper writes `g_opt_docked ? 1920 : 1280` and `g_opt_docked ? 1080 : 720`. Its [SWIPC service declarations](https://github.com/scarletnx/ScarletNX/blob/main/src/nx/hle/services/am.swipc) confirm return types u8 for command 5 and two i32 for command 60. Our port can eliminate that setting and hardcode handheld.
+- **Historical yuzu**: its AM service also selected mode via `use_docked_mode`; not required for this single-device title-specific runtime. **[ReverseNX](https://github.com/masagrator/SaltyNX/blob/master/saltysd_core/source/ReverseNX.cpp)** demonstrates why querying default resolution, operation mode and applet notifications are different mechanisms. These are **design references**, not code or libraries copied into this GPL overlay.
 
-- `West of Loathing Switch.sh` uses a **1280×720** SDL/KMSDRM output; it does **not** set an operation-mode override or `WOL_DISPLAY_MAX`. Do not confuse its real screen size with guest applet state.
-- `runtime/wol-adapter.patch` has `native/input.h` handlers for HID commands **128/129** (`SetNpadHandheldActivationMode` / `GetNpadHandheldActivationMode`): these control Npad/handheld *controller activation*, **NOT** `nn::oe::GetOperationMode`. Do not change the Npad value to fake the console's dock state.
-- The `native/display.h` diagnostic `WOL_DISPLAY_MAX=WxH` changes `vi` `ListDisplays` advertised **maximum layer dimensions** (default 1920×1080). **Its previous M7 test was inert for Unity's camera target sizes.** This proves only that this particular display advertisement is not the controlling input.
-- No explicit `WOL_HANDHELD`/`WOL_SWITCH_MODE`, `nn::oe::GetOperationMode`, or `GetDefaultDisplayResolution` override was found in the committed title overlay and launcher. The *inherited* 199-file GPL runtime has other service handlers; they have **not** been exhaustively traced in a real WoL launch. Therefore **TV mode is not confirmed** and handheld mode may already be reported. Inspect restored baseline/actual IPC before touching behavior.
+**Preferred specialization:** return `Handheld=0` and `1280,720` from the *version-correct Horizon API actually used by WoL*, using one immutable internal policy (ideally two constants and shared helper). There is no need for a TV-mode config flag, alternate runtime mode or mode-switch UI.
 
-### 13.3 Correct Switch API points (do not invent command layouts)
+### 13.3 Implementation boundaries and correct API contracts
 
-The relevant Switch operation-mode API value is `0=Handheld`, `1=Console/Docked`; compare [libnx AppletOperationMode enum](https://switchbrew.github.io/libnx/applet_8h_source.html) and [Switchbrew AM services](https://switchbrew.org/wiki/AM_services). Candidate IPC endpoint: `nn::am::service::ICommonStateGetter` command **5** (`GetOperationMode`). Its command **6** (`GetPerformanceMode`) is **separate** and should not be forced blindly. A system profile can report different performance modes without changing host Linux clocks.
+- `nn::am::service::ICommonStateGetter::GetOperationMode`: command **5**, reply `u8 0` with correct CMIF/domain shape.
+- `ICommonStateGetter::GetDefaultDisplayResolution`: command **60**, reply **two 32-bit values** `1280,720` with original ABI/endianness and successful result.
+- `GetPerformanceMode`: command **6**, **separate APM contract**. Do not write a u8 as a 32-bit response or assume guest handheld operation mode automatically sets host CPU/GPU clocks. If service supports a handheld performance profile, ensure it reports a semantically compatible value after verifying the original SDK/APM ABI and observed call path.
+- Mode change / display resolution change notification events: if mode is immutable throughout the process, retain valid handles and legitimate initial focus/startup messages but **never synthesize dock/undock change messages** or spuriously signal resolution-change events.
+- HID's `SetNpadHandheldActivationMode` (128) must **not** be used as an operation-mode switch. Confirm handheld controller IDs/style are accepted for real device input independently.
+- `vi` `ListDisplays` maximum layer size is **capability metadata, not handheld/docked mode**. Do not blindly hardcode its maximum 1280×720 if guest needs a larger layer or if previous tests were inert. Keep the current output window 1280×720.
+- Other APIs such as `omm`/SDK shared-state getters must be implemented **only when observed in the owner's request trace**; firmware/version and SDK-specific service IDs differ. No unconditional fake endpoint.
 
-Check `nn::oe::GetOperationMode` and `nn::oe::GetDefaultDisplayResolution` call sites in the owner SDK/guest code as well as the actual IPC requests they generate. Depending on the title's Horizon SDK, default resolution may come from the operation-mode getter, a cached shared state, `vi`/AM, or other service. `omm` commands **0** (mode) and **11** (default resolution) exist in *later* Switch firmware interfaces; do not install a fake OMM path on an older SDK without observing its use. [Switchbrew OMM](https://switchbrew.org/wiki/OMM_services).
+### 13.4 Execution sequence — no mode toggle
 
-Independent proof that games can probe more than one point: [ReverseNX implementation](https://github.com/masagrator/SaltyNX/blob/master/saltysd_core/source/ReverseNX.cpp) intercepts `GetOperationMode`, `GetPerformanceMode`, `GetDefaultDisplayResolution` and mode-change notification paths. This is an architectural reference, **not** a binary/library to ship in the PortMaster runtime and not proof WoL calls those getters.
+**P0A: determine what the original guest is actually told.** Reconstruct the manifest-pinned GPL runtime, inspect the actual inherited AM/service dispatch and the guest SDK call sites; add an optional **read-only logging flag** `WOL_MODE_TRACE=1` (logging, **not a TV/handheld toggle**). Trace `GetOperationMode`, `GetDefaultDisplayResolution`, `GetPerformanceMode`, `ListDisplays`, and relevant event access, with returned values and boot/Unity-init timing. Correlate with `NVN_TEXTURE_REAL` allocation dimensions.
 
-### 13.4 P0A: read-only `WOL_MODE_TRACE=1` (first experiment)
+**P0B: implement the immutable handheld policy at the one authoritative service boundary.** If the inherited runtime already returns 0 and 1280×720 consistently, keep that behavior and add regression assertions rather than patching redundantly. Otherwise implement explicit replies `0` and `1280,720` in the actual observed AM/oe path with proper IPC payload sizes. No environment-variable choice, no TV fallback, no dynamic console mode state. Invalid calls retain existing fail-closed behavior.
 
-1. Trace **actual** service discovery, endpoint type and command IDs plus the **returned** values relevant to operation mode, default display resolution, performance mode, `ListDisplays`, and current display resolution. Preserve the original SDK request/result byte shape; do not infer an output offset from a header comment.
-2. Log one bounded receipt per unique query/caller and phase (boot, Unity display initialization, menu, gameplay, map, pause, scene change). Example *proposed log schema*, not an existing feature:
+**P0C: A/B via **different builds**, not a mode switch.** A = pinned pre-change HEAD; B = fixed handheld-only implementation, both built from the same owner data, with identical save, scene, launcher, clock profile and instrumentation. Alternate A–B–A–B across cold process starts. Never expose A as a selectable runtime TV mode. Measure returned mode/resolution, actual 1920×1080 vs 1280×720 guest RT allocations, GPU memory, process PSS/SwapPSS, `MemAvailable`, `CmaFree`, full-frame intervals P50/P95/P99, KMS renders and clean Spruce recovery. Include street movement, title/WANTED stencil, map/title/markers, dialogue, saloon and owner-observed battle.
 
-   ```text
-   WOL_MODE_QUERY phase=unity-init endpoint=... command=... api=GetOperationMode value=0 source=measured caller=...
-   WOL_MODE_QUERY phase=unity-init api=GetDefaultDisplayResolution width=1280 height=720 source=measured caller=...
-   WOL_MODE_TARGET phase=... nvn-id=... actual=1920x1080 type=color ...
-   ```
+**Acceptance for the mode feature:** every observed mode query returns handheld, every default-resolution query returns 1280×720, no contradictory performance/notification state, no TV mode setting exists, output and controls work. **Separate performance acceptance:** lower-sized *real* internal RT allocations and a reproducible FPS/memory gain. It is valid for the fixed handheld feature to succeed even if Unity still creates 1080p targets.
 
-3. Correlate returned operation mode and default-resolution answers **before the first** `NVN_TEXTURE_REAL` 1920×1080 camera target, and distinguish window swapchain textures from Unity camera color/depth targets. Detect whether guest `Screen.SetResolution` or Unity's own fixed configuration chooses 1080p later.
-4. If the inherited runtime already answers **handheld (0)** and **1280×720** before initialization, mark operation-mode forcing **NOT AN FPS LEVER ON THIS ROUTE**; do not add a redundant override. Investigate Unity/native render-scale call sites instead.
-5. If the title never queries operation mode/resolution in the inspected flow, record this as an unobserved gate; do not fabricate an IPC response merely to test a flag.
+### 13.5 Decision following measurements
 
-**Deliverable:** `evidence/handheld-mode-probe/` with runtime/owner section hashes, device traces, resolved query source, first 1920×1080 allocation timeline, `1280×720` output proof and main-source parity. Add data-free unit tests for command/value/reporting paths; no commercial SDK/assets in git.
-
-### 13.5 P0B: startup-only forced handheld A/B (only if a controlling query exists)
-
-When P0A establishes the real consumed service path, add a **default-off, fail-closed** flag such as `WOL_SWITCH_MODE=handheld`; baseline `auto` must retain the inherited service behavior, and optional `docked` may provide a diagnostic control. Evaluate which additional default-resolution answer needs coordination. Only override values **on the proven call path**, not every vaguely related service or the HID handheld activation mode.
-
-- Return **0** for the validated operation-mode getter; where the observed interface requires it, report **1280×720** for default handheld display resolution with the exact version-correct ABI.
-- Apply the change **before** SDK/Unity display initialization, not by toggling modes mid-frame. Preserve event/notification consistency; do not invent pending dock-state changes on first boot. Keep performance-mode, CPU/GPU clocks, fan/thermal and Npad input unchanged so the A/B isolates only mode/resolution selection.
-- Compare **A auto → B handheld → A auto → B handheld** (more repetitions as needed), identical section, save, runtime except the flag, clocks, start-up and scene. Record actual mode replies, first `NVN_TEXTURE_REAL` dimensions, render-target/resolve graph, 1280×720 KMS frames, FPS (median/P95/P99), `NVN_REPLAY` times, Mali context commits, process PSS/SwapPSS, `MemAvailable` and `CmaFree`.
-- In addition to the street, validate menu/WANTED stencil portrait, map/guide title and marker positions, player silhouettes/sprite UV, saloon/basement and real combat. Repeat input, save/load and Spruce recovery; a different screen scaling mode can break coordinate calculations even if nominal output pixels are unchanged.
-- Fail/revert on black/misaligned layers, texture copy dimension mismatch, stencil/UV corruption, hangs, slower frame P95, extra memory pressure, or no actual change in internal-target dimensions. Do not automatically turn `handheld` into a launcher default if the visual/performance budget does not improve.
-
-**Success:** independently measured replacement of the relevant 1920×1080 guest internal targets with correctly coordinated 1280×720 targets and lower whole-frame cost and/or physical memory use, with correct gameplay. A changed mode getter alone is **not** success.
-
-### 13.6 Decision tree after device tracing
-
-| Observation | Decision |
+| Device evidence | Next step |
 | --- | --- |
-| Guest is already handheld and reports 720p default; camera RT remains 1080p | No mode patch. Find Unity fixed-resolution/quality logic or implement M7 coordinated internal target scaling |
-| Guest reports docked (1), and an observed getter controls target allocation | Opt-in `handheld` A/B before lower-level RT rewriting |
-| Guest reports handheld but default resolution getter claims 1080p | Version-correct resolution reply A/B, separately from mode |
-| No mode/default-resolution query in boot/scene trace | Document no evidence of mode selection; inspect game-side Unity config and render-target requests |
-| Mode override changes output/window only but camera RT remains 1080p | Reject mode override as FPS/RAM lever; proceed to guest `Screen.SetResolution`/Unity camera target investigation |
-| Camera RT becomes 720p but frame time does not improve or visuals regress | No default promotion; identify bottleneck/fix render graph separately |
-| Guest mode or performance profile changes also alter CPU/GPU frequency | Re-run under matching host clocks; do not attribute frequency differences to pixel reduction |
+| Runtime was already handheld and returning 1280×720 | Document verified existing handheld-only contract, add tests, **no unnecessary behavior patch**. 1080p targets must originate elsewhere |
+| Runtime reported docked or 1080p default on an observed AM/oe path | Implement **fixed handheld** responses; no switch. Retest Unity RT dimensions and full frames |
+| No mode/resolution service calls observed | Audit guest Unity/Nintendo SDK configuration and guest render-target constructor; report API as unused, do not create fake service replies |
+| Fixed handheld but internal 1920×1080 targets persist | Determine Unity render-scale/quality or explicit NVN target creation, then return to coordinated M7 720p target work; **do not** add TV mode |
+| Correct 720p targets, but frame time unchanged or regressions | Keep handheld contract and fix the independent render graph/texture-copy/sync issue rather than inventing a dock fallback |
 
-### 13.7 Priority relative to prior optimization work
-
-This narrow **operation-mode preflight belongs ahead of direct M7 texture-size surgery** because it may let original Unity create the right-sized buffers without host-side texture-size lies. It **does not supersede** confirmed texture-460 full re-upload costs, M5 Unity allocation ownership, post-copy ASTC studies or unresolved zero-swap/30+ FPS acceptance. Changing game internal RT dimensions may also change the source region or timing of the 1280×720 copy, so the upload and GPU finish costs must be re-profiled on the *new* graph.
-
-The 30+ FPS and zero-swap gates remain **unmet** until measured end-to-end on the real device.
+**Do not confuse aims:** fixed handheld mode is a deterministic functional requirement; FPS ≥30 and swap-free cold boot are separate unmet performance requirements. Mode work should precede unsafe manual downscaling, but does not supplant texture-460 full upload optimization or Unity heap allocation work.
 
