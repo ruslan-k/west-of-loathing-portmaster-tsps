@@ -1,0 +1,249 @@
+{
+  "schema": 1,
+  "scope": "read-only per-VMA Pss/SwapPss census at game-idle and precleanup; two same-ELF arms",
+  "runs": {
+    "vmaswap-b1": {
+      "arm": "uprender720",
+      "cleanup": true,
+      "warnings": [],
+      "checks": 87,
+      "totals_gid": {
+        "vmas": 433,
+        "rss_mib": 420.4,
+        "pss_mib": 419.4,
+        "swap_pss_mib": 509.1
+      },
+      "top_by_swap": [
+        {
+          "start": "0x1008c4a000",
+          "end": "0x106c58e000",
+          "size_mib": 1593.3,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 244.8,
+          "pss_mib": 244.8,
+          "swap_mib": 358.0
+        },
+        {
+          "start": "0x7f93800000",
+          "end": "0x7f98000000",
+          "size_mib": 72.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.0,
+          "pss_mib": 0.0,
+          "swap_mib": 64.1
+        },
+        {
+          "start": "0x1000f46000",
+          "end": "0x1008c48000",
+          "size_mib": 125.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 83.7,
+          "pss_mib": 83.7,
+          "swap_mib": 41.3
+        },
+        {
+          "start": "0x7f84000000",
+          "end": "0x7f857b4000",
+          "size_mib": 23.7,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 12.3,
+          "pss_mib": 12.3,
+          "swap_mib": 10.9
+        },
+        {
+          "start": "0x55619d0000",
+          "end": "0x5562a52000",
+          "size_mib": 16.5,
+          "perms": "rw-p",
+          "path": "[heap]",
+          "rss_mib": 1.1,
+          "pss_mib": 1.1,
+          "swap_mib": 6.9
+        },
+        {
+          "start": "0x1000000000",
+          "end": "0x1000c85000",
+          "size_mib": 12.5,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 4.9,
+          "pss_mib": 4.9,
+          "swap_mib": 6.5
+        },
+        {
+          "start": "0x5556986000",
+          "end": "0x55585c1000",
+          "size_mib": 28.2,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.1,
+          "pss_mib": 1.1,
+          "swap_mib": 4.4
+        },
+        {
+          "start": "0x9d4c000",
+          "end": "0xa0cf000",
+          "size_mib": 3.5,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.7,
+          "pss_mib": 1.7,
+          "swap_mib": 1.8
+        },
+        {
+          "start": "0x1077ee2000",
+          "end": "0x10781fd000",
+          "size_mib": 3.1,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.4,
+          "pss_mib": 1.4,
+          "swap_mib": 1.7
+        },
+        {
+          "start": "0x7fa2836000",
+          "end": "0x7fa2a06000",
+          "size_mib": 1.8,
+          "perms": "r--p",
+          "path": "/usr/lib/libmali.so.0.32.0",
+          "rss_mib": 0.3,
+          "pss_mib": 0.3,
+          "swap_mib": 1.5
+        }
+      ]
+    },
+    "vmaswap-a1": {
+      "arm": "control",
+      "cleanup": true,
+      "warnings": [],
+      "checks": 87,
+      "totals_gid": {
+        "vmas": 431,
+        "rss_mib": 392.3,
+        "pss_mib": 391.3,
+        "swap_pss_mib": 536.4
+      },
+      "top_by_swap": [
+        {
+          "start": "0x1000f46000",
+          "end": "0x1060408000",
+          "size_mib": 1524.8,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 291.9,
+          "pss_mib": 291.9,
+          "swap_mib": 366.8
+        },
+        {
+          "start": "0x7f86afe000",
+          "end": "0x7f8b2fe000",
+          "size_mib": 72.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.0,
+          "pss_mib": 0.0,
+          "swap_mib": 64.1
+        },
+        {
+          "start": "0x106040a000",
+          "end": "0x106c58e000",
+          "size_mib": 193.5,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 7.2,
+          "pss_mib": 7.2,
+          "swap_mib": 59.4
+        },
+        {
+          "start": "0x7f78000000",
+          "end": "0x7f79878000",
+          "size_mib": 24.5,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 13.2,
+          "pss_mib": 13.2,
+          "swap_mib": 10.4
+        },
+        {
+          "start": "0x1000000000",
+          "end": "0x1000c85000",
+          "size_mib": 12.5,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 4.4,
+          "pss_mib": 4.4,
+          "swap_mib": 7.0
+        },
+        {
+          "start": "0x55c6fdf000",
+          "end": "0x55c8061000",
+          "size_mib": 16.5,
+          "perms": "rw-p",
+          "path": "[heap]",
+          "rss_mib": 1.1,
+          "pss_mib": 1.1,
+          "swap_mib": 6.9
+        },
+        {
+          "start": "0x55896e6000",
+          "end": "0x558b321000",
+          "size_mib": 28.2,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.1,
+          "pss_mib": 1.1,
+          "swap_mib": 4.4
+        },
+        {
+          "start": "0x9d4c000",
+          "end": "0xa0cf000",
+          "size_mib": 3.5,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.7,
+          "pss_mib": 1.7,
+          "swap_mib": 1.8
+        },
+        {
+          "start": "0x1077ee2000",
+          "end": "0x10781fd000",
+          "size_mib": 3.1,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.4,
+          "pss_mib": 1.4,
+          "swap_mib": 1.7
+        },
+        {
+          "start": "0x7f965c8000",
+          "end": "0x7f96798000",
+          "size_mib": 1.8,
+          "perms": "r--p",
+          "path": "/usr/lib/libmali.so.0.32.0",
+          "rss_mib": 0.3,
+          "pss_mib": 0.3,
+          "swap_mib": 1.5
+        }
+      ]
+    }
+  },
+  "findings": [
+    "Guest-heap arenas dominate swap in BOTH arms: 358.0 MiB (candidate) / 366.8 MiB (control) inside the largest anon VMA, ~70% of all swapped pages.",
+    "A deterministic fully-cold 72.0 MiB anonymous mapping (0 MiB resident, 64.1 MiB swapped) appears in every collected run at a randomized host address.",
+    "Second guest arena holds 41.3 / 59.4 MiB swapped; all remaining VMAs are <11 MiB each.",
+    "The 720 arm keeps slightly lower total SwapPss at game-idle (509.1 vs 536.4 MiB) in this pair; sample size is two runs and phases are not identical."
+  ],
+  "next_steps": [
+    "Identify the owner of the 72 MiB cold mapping (maps-diff across startup/menu/game-idle snapshots or a bounded host-mmap logger); releasing a proven-cold 64 MiB would remove ~12% of swap.",
+    "Attribute the ~350-360 MiB of guest-heap swap with a lowered allocation-trace threshold (256 KiB) since >=4 MiB blocks are already proven sparse."
+  ],
+  "not_proven": [
+    "reclaim safety of the 72 MiB mapping",
+    "steady-state attribution of sub-4 MiB allocations",
+    "any swapoff or discard"
+  ]
+}

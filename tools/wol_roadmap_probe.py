@@ -56,6 +56,24 @@ def decode_pagemap(data):
     return dict(pages=len(data)//8,**counts)
 
 
+def parse_smaps(text):
+    rows=[];cur=None
+    for line in text.splitlines():
+        if re.match(r'^[0-9a-f]+-[0-9a-f]+ ',line):
+            parts=line.split(None,5)
+            fields=parts[0].split('-')
+            cur=dict(start=int(fields[0],16),end=int(fields[1],16),perms=parts[1],
+                     path=(parts[5] if len(parts)>5 else ''),
+                     size_kib=(int(fields[1],16)-int(fields[0],16))//1024,
+                     rss_kib=0,pss_kib=0,swap_kib=0)
+            rows.append(cur);continue
+        if cur is None:continue
+        if line.startswith('Rss:'):cur['rss_kib']=int(line.split()[1])
+        elif line.startswith('Pss:'):cur['pss_kib']=int(line.split()[1])
+        elif line.startswith('SwapPss:'):cur['swap_kib']=int(line.split()[1])
+    return rows
+
+
 def kms_rgb_signal(path):
     """Reject the transient all-black RGB8 scanout emitted during MainUI startup.
 
@@ -111,6 +129,7 @@ def main():
     ap.add_argument('--present-watchdog',type=float,default=0,help='opt-in 5..30s present-progress budget; requires MOMO_FRAME_CLOCK=1')
     ap.add_argument('--stall-gdb',action='store_true',help='on stall only: bounded backtrace of the exact owned PID, no memory dump')
     ap.add_argument('--block-pages',action='store_true',help='read-only pagemap residency of >=4MiB live WOL_ALLOC blocks at game-idle and before cleanup')
+    ap.add_argument('--vma-swap',action='store_true',help='read-only per-VMA Pss/SwapPss census at game-idle and before cleanup')
     a=ap.parse_args()
     if a.present_watchdog and (not 5<=a.present_watchdog<=30 or a.ordinary_title):
         ap.error('watchdog requires diagnostic mode and a finite 5..30 second budget')
@@ -225,6 +244,45 @@ def main():
         receipt.setdefault('block_samples',{})[tag]=dict(
             method='pagemap present/swapped bits per 4KiB page; requested bytes are allocator requests, not physical pages; no reclaim inferred',
             blocks=blocks)
+    def sample_vma(tag):
+        if not a.vma_swap or not owned:return
+        if stat_identity(Path('/proc')/str(owned[0]))['start_ticks']!=owned[1]:
+            receipt.setdefault('vma_samples',{})[tag]=dict(error='PID/start-time changed');return
+        try:text=(Path('/proc')/str(owned[0])/'smaps').read_text(errors='replace')
+        except OSError as e:
+            receipt.setdefault('vma_samples',{})[tag]=dict(error=str(e));return
+        rows=parse_smaps(text)
+        def label(r):
+            if r['path']:return r['path']
+            return '[anon %s]'%r['perms']
+        top=sorted(rows,key=lambda r:r['swap_kib'],reverse=True)[:20]
+        def peek(address,count=64):
+            try:
+                fd=os.open('/proc/%d/mem'%owned[0],os.O_RDONLY)
+                try:
+                    data=os.pread(fd,count,address)
+                finally:os.close(fd)
+            except OSError as e:
+                return dict(error=str(e))
+            if not data:return dict(error='empty read')
+            if all(b==0 for b in data):kind='all-zero'
+            elif len(set(data))<=2:kind='single-byte-repeat'
+            else:kind='mixed'
+            return dict(kind=kind,first16=data[:16].hex(),last16=data[-16:].hex())
+        for r in top:
+            if r['size_kib']>=32768 and r['swap_kib']>=8192:
+                r['sample_head']=peek(r['start'])
+                r['sample_tail']=peek(r['end']-64)
+                r['sampled_bytes']=128
+        receipt.setdefault('vma_samples',{})[tag]=dict(
+            method='per-VMA Pss/SwapPss from /proc/<pid>/smaps; overlaps and shared pages are not summed as physical totals',
+            totals=dict(vmas=len(rows),rss_mib=round(sum(r['rss_kib'] for r in rows)/1024,1),
+                        pss_mib=round(sum(r['pss_kib'] for r in rows)/1024,1),
+                        swap_pss_mib=round(sum(r['swap_kib'] for r in rows)/1024,1)),
+            top_by_swap=[dict(start=hex(r['start']),end=hex(r['end']),size_mib=round(r['size_kib']/1024,1),
+                              perms=r['perms'],path=label(r),rss_mib=round(r['rss_kib']/1024,1),
+                              pss_mib=round(r['pss_kib']/1024,1),swap_mib=round(r['swap_kib']/1024,1),
+                              **{k:r[k] for k in ('sample_head','sample_tail','sampled_bytes') if k in r}) for r in top])
     try:
         if a.control_save:
             for p in save.iterdir():
@@ -257,11 +315,14 @@ def main():
         if a.present_watchdog and b'MOMO_FRAME_CLOCK=1' not in raw:
             raise RuntimeError('watchdog cannot infer progress without enabled frame clock')
         (out/'effective-env.json').write_text(json.dumps({x.split(b'=',1)[0].decode():x.split(b'=',1)[1].decode(errors='replace') for x in raw if b'=' in x and x.split(b'=',1)[0].startswith((b'WOL_',b'COTM_',b'T2_',b'MOMO_'))},indent=2)+'\n')
+        sample_vma('startup')
         stage('menu');pause(20)
+        sample_vma('menu')
         if a.ordinary_title:return
         stage('continue-load');cmd('press','0x1','0','12','world','180')
         stage('game-idle');pause(30)
         sample_blocks('game-idle')
+        sample_vma('game-idle')
         if route is not None:
             receipt['route_sha256']=hashlib.sha256(a.route.read_bytes()).hexdigest()
             for action in route:
@@ -280,6 +341,10 @@ def main():
             sample_blocks('precleanup')
         except Exception as e:
             warnings.append('block sample: '+str(e))
+        try:
+            sample_vma('precleanup')
+        except Exception as e:
+            warnings.append('vma sample: '+str(e))
         try:
             if launch and launch.poll() is None:
                 launch.wait(timeout=150)

@@ -489,3 +489,13 @@ The same run provides the first live stall capture: the opt-in watchdog fired at
 - Because tracked present pages (362 MiB) nearly equal steady-state PSS, the ~550 MiB of swap must come from allocations **below the 4 MiB trace threshold**. The next memory instrument is a lowered allocation threshold (≤256 KiB) with caller aggregation - not another pool or page-discard experiment.
 
 `poolres-b1` also measured an **episodic 10.7 s gulch-entry stall** inside its window (9.86 presents/s, max gap 10.745 s) that stayed under the 20 s watchdog. Its FPS window is therefore invalid and excluded; this confirms both that the earlier 5 s budget cuts recoverable loads and that scene-entry stalls are real and intermittent. No reclaim, swapoff or page discard was attempted; the candidate remains default OFF.
+
+### 15.13 Where the swap lives: guest arenas plus a fully-cold 72 MiB mapping
+
+[Per-VMA swap census](../evidence/m5-swap-location/README.md) from two same-ELF arms (`vmaswap-b1` 720 / `vmaswap-a1` control, `--vma-swap`):
+
+- The **guest-heap arenas hold ~70% of all swapped pages**: 358.0 MiB (720) / 366.8 MiB (control) inside the largest anonymous VMA, plus 41.3 / 59.4 MiB in a second guest arena. Since the tracked ≥4 MiB blocks inside them are already proven sparse, that swap belongs to **sub-4 MiB allocations** - the next instrument is a lowered allocation-trace threshold (≤256 KiB) with caller aggregation.
+- Both arms also contain a **deterministic 72.0 MiB anonymous mapping with 0 MiB resident and 64.1 MiB swapped**, at a randomized host address. Something wrote ~64 MiB once and never touched it again; releasing a proven-cold block of that size would remove ~**12%** of the measured swap. Ownership is unresolved (not one of the port's direct mmap sites; no 72 MiB constant in the native tree); the next run adds startup/menu/game-idle maps timeline plus bounded 64-byte head/tail content samples for the largest cold VMAs.
+- Totals at game-idle: 720 **419.4 Pss + 509.1 SwapPss**; control **391.3 + 536.4**. The single-pair swap difference is not a promoted win.
+
+Nothing was reclaimed, discarded or swapped off; both arms remain the same default-OFF diagnostic ELF.
