@@ -1,13 +1,13 @@
 # West of Loathing / TrimUI Smart Pro S — FPS and zero-swap optimization roadmap
 
 **Status:** living technical plan; tested and rejected experiments are explicitly separated from proposed work.  
-**Reviewed:** 2026-10-16, `main` baseline `2f60f46992991f3bb47a96a1c13a12a7b7544e08` (before this documentation update).  
+**Reviewed:** 2026-10-19 against `main` `8ffa2f90b3106938c6c2323eeca1c90b207aeaa8`; sections 1–14 retain historical dated experiments, while [§15](#15-m7-after-handheld-preflight-unity-render-target-origin-and-720p-plan) is the current M7 execution plan.  
 **Platform:** owner-supplied Switch Unity 5.6.5p1 ARM64/IL2CPP, native Horizon adapter, SpruceOS, Mali-G57 GLES 3.2, approximately 963 MiB RAM. No Box64.  
 **Purpose:** identify *new* experiments after the first roadmap was executed. [Historical resource studies](resource-optimization.md) and [M1/M5 measurement contracts](memory-benchmark.md) remain authoritative for their own earlier checkpoints.
 
 > This is **not** a claim that either 30+ FPS or zero-swap has been attained. Device reports use varying saves/scenes and diagnostic builds. At the original review, `dtime8` (`414efb1f…`) instrumentation was not published. That gap is now closed by `a3793a1`: clean overlay application matches all 199 native source files of the measured build. Further execution results and still-open gates are recorded in §11; implementation of an opt-in mechanism is not release acceptance.
 
-**2026-10-18 review note (main at `6b55a2ad0e730367ee8ae9fbb3b5574e93189587`):** the device and final SDL/KMSDRM window already output 1280×720, but measured Unity camera/intermediate targets still include 1920×1080. Whether the inherited Horizon service layer actually reports Switch handheld (0) or docked/console (1) has **not been determined**; HID's `SetNpadHandheldActivationMode` is not the system operation mode. Before modifying render-target dimensions, see [§13 — handheld mode preflight](#13-m7-preflight-switch-handheld-operation-mode-and-720p).
+**2026-10-19 current decision (supersedes the 2026-10-18 question):** [the device's handheld preflight](../evidence/handheld-preflight/README.md) established that the inherited AM implementation **already answers Handheld (`0`)**; the observed WoL launch calls only AM commands 0/1/9/6, with **no observed operation-mode (5), default-resolution (60), or VI ListDisplays request**. Unity still allocates 1920×1080 internal render targets and the SDL/KMSDRM output is 1280×720. **Do not implement another handheld/TV switch or speculative AM command 60.** Locate the Unity/SDK origin of the render-target dimensions as [§15](#15-m7-after-handheld-preflight-unity-render-target-origin-and-720p-plan) describes. The content-aware texture-460 upload skip was also tested without a reproducible FPS win; it is not P0 anymore.
 
 ## 1. Current measurable baseline and open gates
 
@@ -222,6 +222,8 @@ Every new experiment must end in measured acceptance, explicit rejection or a co
 
 ## 13. M7: permanently handheld Horizon profile (no TV mode / no switch)
 
+**2026-10-19 execution result — CLOSED AS A RESOLUTION OPTIMIZATION.** The existing AM handler already returns `u8 Handheld=0` for command 5 and `u32 Normal=0` for performance mode command 6. In the actual game launch only AM commands 0/1/9/6 were observed; **no cmd 5, cmd 60 or VI ListDisplays query was observed**, and some internal textures remain 1920×1080. The static handheld-only helper and bounded `WOL_MODE_TRACE=1` are implemented and tested, **but forcing handheld is not a demonstrated way to get 720p internal render targets**. The original §§13.4–13.5 are the historical test design; do not repeat them absent newly observed guest service calls. Continue with [§15 Unity RT origin](#15-m7-after-handheld-preflight-unity-render-target-origin-and-720p-plan). Evidence: [handheld preflight](../evidence/handheld-preflight/README.md).
+
 **Requirement confirmed 2026-10-18:** **handheld is the only supported mode** of this WoL PortMaster runtime. There must be **no user-facing or diagnostic runtime option** for switching to TV/docked mode: no `WOL_SWITCH_MODE=auto|handheld|docked`, no `docked` branch in the runtime's own operation-mode policy and no dynamic mode-change notifications. Build-to-build historical controls may be used for A/B; they are not an operating-mode toggle. **Status:** emulator implementation surveyed, current game's guest-reported mode still unknown; no runtime modification or device A/B is claimed. See [cross-emulator code audit](handheld-mode-emulators.md).
 
 ### 13.1 What we know
@@ -279,6 +281,8 @@ A single uncompressed RGBA8 1920×1080 level is ~7.91 MiB compared with ~3.52 Mi
 **Do not confuse aims:** fixed handheld mode is a deterministic functional requirement; FPS ≥30 and swap-free cold boot are separate unmet performance requirements. Mode work should precede unsafe manual downscaling, but does not supplant texture-460 full upload optimization or Unity heap allocation work.
 
 ## 14. Cross-emulator optimization opportunities (Ryujinx / Skyline / ScarletNX)
+
+**2026-10-19 revision:** §14.2's exact content-aware destination upload skip was **implemented and compared** in [two alternating A/B pairs](../evidence/emucache-upload-ab/README.md). The repeated-snapshot census found 3,598 identical copies out of 3,600 observations, and one test skipped 3,478 uploads, but control 23.491/23.460 versus candidate 23.363/23.629 presents/s showed **no repeatable end-to-end gain**; default remains OFF. The previous P0 priority in the matrix below is historical. Use §15's new ordering instead. Likewise §13 handheld detection is complete and not a source of 720p scaling.
 
 **Reviewed 2026-10-18, `main` `7fa5fa5f3b4bbaedcc7a9fbe141d613faacaf016`. Status: engineering proposals, NOT implemented or device-verified by this review.** This section records candidates identified by a source audit of other open-source Switch emulators. It must be read alongside the *later* execution verdicts in §§11–12: in particular, the generic texture-460 **GPU source sample redirect has already been REJECTED** by [copy-time image mismatch evidence](../evidence/roadmap-v2-copy-audit/README.md), and the PBO/ring and immediate blit variants have already been evaluated. Do not use the older §3 wording as permission to re-enable them.
 
@@ -353,4 +357,85 @@ Before adopting Skyline/Ryujinx sharing:
 
 - **Latest execution checkpoint:** [handheld preflight](../evidence/handheld-preflight/README.md), [exact destination census](../evidence/emucache-texture460/README.md), [guarded upload skip A/B](../evidence/emucache-upload-ab/README.md) and [effective GPU clock experiment](../evidence/gpu-governor-ab/README.md) are now implemented/measured. Existing AM mode is already fixed handheld; only performance-mode queries were observed, and internal 1080p allocations persist. Exact destination repeats are real, but the default-off upload skip has no repeated whole-frame gain (gulch controls 23.491/23.460 vs candidate 23.363/23.629 presents/s). Two requested-governor arms were invalid because effective clocks returned to 150 MHz; a min-frequency arm actually sustained 600 MHz and observed 26.540 presents/s, P95 40.259 ms in the same gulch. That remains below target and is not a production clock change. SwapPSS remains >500 MiB; no swapoff or speculative page discard was attempted. All finite owned runs restore original saves and Spruce. The overlay build generator now includes new/deleted/nested source paths and verifies exact native-file parity before building.
 
-Continue §13 handheld-only service work and §§4–6 M5 allocator/M6 post-copy ASTC independently. **Neither 30+ FPS nor no-swap is achieved or claimed** by adding this section. Maintain fixed build SHA, identical owner save/section/environment, alternating trials, actual KMS frames, phase + Mali/VM samples, scene restoration, no stolen owner process and clear accepted/rejected result for every experiment.
+Treat §13 handheld-mode resolution discovery and §14.2 guarded texture-460 upload skipping as **executed and closed for performance** on current evidence; proceed to [§15 Unity RT origins and controlled 720p work](#15-m7-after-handheld-preflight-unity-render-target-origin-and-720p-plan), while §§4–6 M5 allocator/M6 post-copy ASTC remain independent. **Neither 30+ FPS nor no-swap is achieved or claimed** by the completed experiments. Maintain fixed build SHA, identical owner save/section/environment, alternating trials, actual KMS frames, phase + Mali/VM samples, scene restoration, no stolen owner process and clear accepted/rejected result for every experiment.
+
+## 15. M7 after handheld preflight: Unity render-target origin and 720p plan
+
+**Execution checkpoint: 2026-10-19; source baseline: `main` at `8ffa2f90b3106938c6c2323eeca1c90b207aeaa8`.** Current decision supersedes earlier *proposed* `13 handheld-mode overrides and `14.2 upload-skip experiments. This section contains **new, unimplemented next experiments**; nothing below claims that guest render targets have been switched to 720p, that FPS improved, or that no-swap works.
+
+### 15.1 What is proven, what is not
+
+| Proven in code or device logs | Interpretation and remaining unknown |
+| --- | --- |
+| Existing AM operation mode is `0`, handheld; performance mode is `0`, Normal | [Mode preflight](../evidence/handheld-preflight/README.md). Correct ABI widths tested; no docked mode or selector needed |
+| AM requests 0/1/9/6 observed, but **not** 5/60; no VI ListDisplays seen in measured window | No evidence the game asks a service to choose 720p versus 1080p in this run. Unobserved paths in later scenes remain possible, not a reason to invent a service |
+| Guest NVN color/camera targets still requested at **1920×1080**, including an earlier target=5, samples=2 path | Physical host KMS output is already **1280×720**; internal-size selection remains unexplained |
+| `WOL_DISPLAY_MAX`/`ListDisplays` experiment did not resize camera targets | Changing advertised display maximum or physical window alone is **not** a solution |
+| Exact texture-460 copies repeat (3,598/3,600 observations), but the guarded destination-host upload skip did not improve matched FPS | [Equality census](../evidence/emucache-texture460/README.md), [A/B](../evidence/emucache-upload-ab/README.md): controls 23.491/23.460, skip 23.363/23.629 presents/s; default OFF. Don't return to upload-skip as P0 |
+| Effective GPU frequency locked to **600 MHz** in one valid `gpumin600` device run | [DVFS report](../evidence/gpu-governor-ab/README.md): gulch 26.540 presents/s, P95 40.259 ms versus ordinary 150 MHz controls ~23.46–23.49 presents/s. Exploratory *one* valid high-clock arm, not a repeatable tuned profile |
+| Large measured swap remains | The high-frequency run's game SwapPSS median was ~537 MiB; no cold zero-swap acceptance. GPU frequency is **not** a memory fix |
+
+**Hard limitation:** the public repository contains an overlay patch and hashes for the reconstructed GPL runtime, not the complete original proprietary WoL Unity/IL2CPP binary or owner game payload. A call-site/Unity-target root cause cannot be identified from patch context alone. A proposed guest modification needs **local owner-only analysis** and a legally obtained source/runtime; do not commit proprietary binaries, game assets, shader dumps or save files.
+
+### 15.2 P0 — identify **who requested 1920×1080** before changing any image
+
+**Goal:** distinguish Unity display/quality policy, a `RenderTexture` constructor / `GetTemporary` call, explicitly serialized target settings, Nintendo SDK graphics initialization, and a native fixed-size allocation. All are hypotheses until identified in measured guest PC / code.
+
+1. Add a bounded **read-only** `WOL_RT_ORIGIN=1` trace at the *actual* NVN texture builder/texture initialize request boundary, not just `glTexImage2D`. Include create command identity, guest caller PC or return address, caller module and offset, thread, lifecycle/scene marker, guest texture object, GPU/guest backing pool and offset, `format`, `target`, requested `width×height`, `mip levels`, `samples`, texture usage/flags and first bind/draw/sample/copy.
+2. Capture the relevant **guest-side** call chain if safely obtainable from the restored executable/guest stack; attribute repeated 1920×1080 requests to specific owner Unity/IL2CPP or Nintendo SDK instructions/functions. A single adapter caller PC is *not necessarily* the game logic callsite. Prefer offline owner-only disassembly and exact PC->module offsets to speculative backtraces or runtime patching.
+3. Record a **render-target flow graph**: source size, logical guest size, actual GL storage size, viewport/scissor, attachment, depth/stencil, downsample/resolve, CPU/GPU copy regions and sampled UV. Separate color, depth, multisample and on-screen window textures; categorize fixed-size versus screen-derived resources, including 1280×720 surfaces.
+4. Use existing `NVN_TEXTURE_REAL` / `WOL_DOWNSAMPLE_BLIT` / `WOL_PRESENT_SOURCE` / texture-view logs as join points, and distinguish virtual guest target dimensions from actual host allocation bytes and driver memory. No changes to runtime content, filters or user saves at this stage.
+5. On the owner-only `StreamingAssets/core` and any supplied legitimate Unity configuration assets, inspect `QualitySettings`, `PlayerSettings`, boot/display settings and serialized `RenderTexture` references **read-only**. UnityPy can enumerate objects; it does not prove the compiled game references a particular 1080p constant. Map a discovered reference back to a measured target when possible.
+6. For matched cold launches, menu, moving street/gulch, saloon interior, map and real battle, record **how many** unique 1080p targets are created and peak simultaneously live/attached, not merely the number of constructors called. End with a table: `guest owner/callsite → creation size → consumers → safe override candidate`.
+
+**Deliverable:** `evidence/rt-origin/` with owner-excluded addresses/hashes, source/build/section receipts, requested-size histograms, GPU image lifetime graph, proof frames and a classification of each 1080p allocation. Leave ownership `unknown` where the available evidence cannot resolve it. A documented 1080p allocator callsite is the **go gate** for a patch; a random size grep or an inert AM override is not.
+
+### 15.3 P0/P1 — prefer *guest-native* 720p target selection when proven possible
+
+**Decision gate:** if the 1920×1080 dimensions arise from one or a few actual guest functions or serialized settings, test a narrowly scoped 1280×720 variant in the owner-only executable/configuration. Potential sources include `UnityEngine.Screen`, `QualitySettings`, `RenderTexture.GetTemporary` or explicit sizes; their presence is **not confirmed**. Altering `Screen.SetResolution` alone is insufficient when camera targets are explicitly 1920×1080.
+
+- Do not search/replace every occurrence of 1920/1080 in the executable or serialized assets. Prove the exact instruction/data consumer and version/ABI, preserve original binary with hash and revert path, and patch only a verified camera-target size decision.
+- Prefer letting Unity recalculate viewport, texel size, matrices, scale-dependent shader constants and related color+depth target sizes itself. Preserve logical/UI coordinates and Npad input behavior; keep **handheld-only**, with no TV fallback or mode-selection flag.
+- Start with one identified target family, not global texture rebinding. Record first target requests, subsequent downsample/copy region sizes and KMS output. If guest still creates 1080p despite a display setting, identify the explicit secondary `RenderTexture`/camera target owner before expanding scope.
+- Validate physical screenshots and gameplay UI against **the same save and known-good reference**: player outlines and skinned body, WANTED stencil/portrait, map title/markers, dialog/menus, moving camera, saloon, battle and save/load/restart. Historical repack changed map pixel-space semantics: do not accept a cosmetically sharper but wrongly positioned image.
+- **Promote only on** correct render graph plus lower actual GPU time and/or measured memory commitment, with no regressions. Reversion to the accepted 1080p path must remain possible during development, but **not** through a TV-mode option.
+
+**Estimated storage arithmetic, not an expected observed saving:** a single RGBA8 1920×1080 mip-0 image holds **7.91 MiB**, versus **3.52 MiB** at 1280×720: ~**4.39 MiB / 55.6% fewer pixels** for that *one eligible target*. Multiply only by independently identified, concurrently allocated instances; depth formats, tiling/alignment, MSAA, copy buffers and host-guest overlap affect real totals. There is no basis to claim a 2.25× game FPS improvement.
+
+### 15.4 P1 fallback — repurpose existing `host_scaled` only for safe render-target owners
+
+The runtime already uses `host_scaled` / `host_width` / `host_height` and `zero_render_scale.h` for *other* paths. This is infrastructure to inspect, **not evidence WoL supports host-scaled 1080p camera images today**. In particular, `nvn_render_sampler_prepare_mode` contains a fail-closed `NVN_LC2_SCALED_CPU_VIEW_REQUIRED` condition for CPU views. NVN texture creation also logs `NVN_LC2_SCALED_STORAGE` where relevant.
+
+1. Audit `zero_render_scale.h` and all `host_scaled` references, including the existing fail-closed CPU-view check, GL upload/readback, framebuffer attachments, depth/stencil resolves, texture views, window crops and synchronization across all EGL contexts. Do not silently bypass guards.
+2. Pick **one** trace-proven eligible color target with **no conflicting guest CPU-visible 1080p read/write**; bind a 720p host allocation behind a *default-off experimental flag*. Keep guest-facing metadata truthful; any cross-resolution readback/copy must materialize or reject rather than return improperly sized bytes.
+3. Transform viewport/scissor and host texel/UV coordinates consistently. Match **depth/stencil and multisample attachment dimensions**, FBO completeness, GL state restoration, downsample dimensions and all texture sampling; fail closed if an unsupported alias, partial update or texture format appears.
+4. Distinguish *resident GPU storage reduction* from guest NVN pool memory, which may remain 1080p-sized. Correct GLSL texture filtering, pixel-centre sampling, edge/stencil coverage and UI layout are acceptance gates.
+5. Compare A/B with one target family before attempting a graph-wide 720p scale; revert on `GL_INVALID_FRAMEBUFFER_OPERATION`, stale CPU/GPU mirrors, missing pixels, coordinate shifts, newly triggered `stop()` conditions or higher P95.
+
+**Choose this path only if guest-native selection fails or is unreasonably invasive.** A blanket dimension override in `glTexImage2D` / `NVN_TEXTURE_REAL` is explicitly prohibited by the documented guest layout, copy and asset-coordinate contracts.
+
+### 15.5 P1 independent experiment — GPU DVFS with **effective** clocks
+
+One [`gpumin600` device run](../evidence/gpu-governor-ab/README.md) **really** sustained 600 MHz and observed 26.540 runtime presents/s, P50 37.151 ms, P95 40.259 ms in gulch idle; same-scene ordinary controls were 23.491 and 23.460 presents/s. This is promising but not a repeated, tightly cache/VM-controlled A/B. Two other requested-governor arms are **invalid** as 600 MHz tests because Spruce put the effective clock back to 150 MHz.
+
+- Discover the **actual available OPP/frequency steps** from sysfs before proposing settings (300/400/500/600 MHz are example targets *only if supported*). In owned, recovery-safe tests, apply minimum frequency at the correct post-launch lifecycle phase and continuously **read back effective clock** during every measured window.
+- Compare ≥3 alternating valid arms at ordinary policy and chosen OPPs, *same* owner game build, section, save, scene, render flags, startup/warm state and measurement cadence. Include real combat/movement, not just a stationary gulch idle window.
+- Log GPU temperature/thermal throttling, power/battery if accessible, frame P50/P95/P99, dropped/late presents, CPU clocks, VM/page faults, Mali allocations and clean clock policy restoration. Do not treat a requested governor as proof of frequency.
+- If sustained high clocks deliver repeatable >noise gains without unacceptable thermals, consider an opt-in **device-level performance policy** with guaranteed restoration; this is **not** a TV mode, and not an unreviewed default. Do not create persistent global policy, blindly set `performance` governor or claim zero-swap improvements.
+
+**Go/no-go:** measurable performance improvement under confirmed actual clocks, with heat and battery cost documented; target still **30+ FPS and P95 ≤33.33 ms** in representative gameplay, not one favorable map window.
+
+### 15.6 Updated execution order and acceptance criteria
+
+| Priority | Next change (all currently proposed) | Output and stop condition |
+| --- | --- | --- |
+| **1 — P0** | Read-only NVN builder → guest Unity/SDK PC + RT lifetime/consumer mapping | Evidence of **actual 1080p allocator origin**, with versioned owner-only offset and impact graph; if none is attributable, report blocked |
+| **2 — P0/P1** | Narrow owner-side Unity/`RenderTexture` 720p size decision A/B **only when origin is identified** | Same-scene picture parity, correctly scaled color/depth/downsample, reduced real GPU workload or memory |
+| **3 — P1 fallback** | Existing `host_scaled` safety and compatibility audit, then one 720p host target | No CPU-view/alias contract violation, framebuffer/stencil regression or guest memory incoherence |
+| **4 — P1 parallel** | Valid effective-clock OPP sweep with thermal and battery trace | Repeated actual-GPU-frequency A/B; keep settings restored, no production clock policy without proof |
+| **5 — P1 RAM** | M5 inner Unity allocator/free-list ownership and retained core-read-lifetime; M6 post-copy ASTC expansion only with measured driver commit | Target reclaimable *live* bytes; no speculative `madvise` or global `swapoff` |
+| **6 — full acceptance** | Owner-demonstrated movement, guide, combat, transitions, save/load and cold recovery-safe swap-disabled launch | Stable **30+ FPS**, P95 ≤33.33 ms where applicable; **no swap configured before launch**, no OOM/CMA collapse, correct KMS/audio/input and Spruce recovery |
+
+**Closed/deprioritized as FPS levers after device A/B:** another Handheld/TV operation-mode override; `WOL_DISPLAY_MAX` layer-cap change; generic texture-460 producer sampling; repeated destination `WOL_UPLOAD_SKIP`; immediate `WOL_COPY_GPU`; bounded `WOL_PBO_UPLOAD`; `WOL_REFRESH_DIRECT`; simple VBO ring and resource-lookup cache. Keep `WOL_UNIFORM_CACHE` as a small separate A/B if requested; it is not an answer to M7's 1080p target selection.
+
+**Evidence and reproducibility:** preserve the exact pinned reconstructed GPL overlay, owner-only ELFs/data and save hashes, source offsets, test binary identity, cold/warm protocol, physical KMS frames and per-phase GPU/VM measurements. Do not treat runtime presents as independently measured panel FPS; separate pixel fill from frame intervals, and never sum overlapping `PSS + GPU commit` as independent RAM. Public artifacts must not include owner Switch binaries, proprietary Unity assets, extracted shader blobs or private saves.
