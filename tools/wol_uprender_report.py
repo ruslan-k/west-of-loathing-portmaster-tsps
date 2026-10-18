@@ -4,6 +4,7 @@ import argparse
 from collections import Counter
 import gzip
 import json
+import statistics
 from pathlib import Path
 from wol_roadmap_analyze import records, summarize
 
@@ -23,6 +24,29 @@ def compare_runs(runs):
     return dict(treatment='WOL_UPRENDER_720',arm_counts=dict(arms),matched_identity=len(identities)==1,
                 matched_other_env=len(environments)==1,full_acceptance=False,
                 caveat='Exploratory unless repeated, scene/graph verified, physical gates passed; swap remains separately measured.')
+
+
+def performance_summary(runs, phase='game-idle'):
+    valid=[];excluded=[];groups={}
+    for r in runs:
+        p=r.get('phases',{}).get(phase,{})
+        w=p.get('frame_window',{})
+        if not w.get('available') or w.get('seconds',0)<20:
+            excluded.append(dict(label=r['label'],reason='No valid >=20s consecutive-frame window; cleanup is not gameplay success.'))
+            continue
+        arm='uprender720' if r['effective_env']['WOL_UPRENDER_720']=='1' else 'control'
+        item: dict = dict(label=r['label'],arm=arm,presents_per_s=w['presents_per_s'],p95_ms=w['p95_ms'])
+        for key,scale in (('pss',1024),('swap_pss',1024),('mali_commit',1048576)):
+            value=p.get(key+('_bytes' if key=='mali_commit' else '_kib'),{}).get('median')
+            item[key+'_mib']=value/scale if value is not None else None
+        valid.append(item);groups.setdefault(arm,[]).append(item)
+    def aggregate(values):
+        a=[v for v in values if v is not None]
+        return dict(count=len(a),minimum=min(a),median=statistics.median(a),maximum=max(a)) if a else None
+    fields=('presents_per_s','p95_ms','pss_mib','swap_pss_mib','mali_commit_mib')
+    arms={arm:{k:aggregate(x[k] for x in rows) for k in fields} for arm,rows in groups.items()}
+    return dict(phase=phase,valid_arm_counts={k:len(v) for k,v in groups.items()},excluded=excluded,runs=valid,arms=arms,
+                caveat='Descriptive distribution of per-run metrics; missing windows are not zero FPS. Different scenes/trace profiles require separate comparisons.')
 
 
 def census(root):
@@ -47,7 +71,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('runs',type=Path,nargs='+');p.add_argument('--out-dir',type=Path,required=True)
     a=p.parse_args();runs=[summarize(r) for r in a.runs]
-    result=dict(runs=runs,comparison=compare_runs(runs))
+    result=dict(runs=runs,comparison=compare_runs(runs),performance=performance_summary(runs))
     a.out_dir.mkdir(parents=True,exist_ok=True)
     (a.out_dir/'summary.json').write_text(json.dumps(result,indent=2)+'\n')
     (a.out_dir/'target-census.json').write_text(json.dumps([census(r) for r in a.runs],indent=2)+'\n')

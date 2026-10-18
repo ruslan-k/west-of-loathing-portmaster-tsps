@@ -112,6 +112,37 @@ from live storage, and truncation from absence.
   battle/load scenes, physical controls/audio, complete consumer mapping and
   recovery-safe no-swap cold start remain open. Both new flags stay OFF.
 
+## Alternating repetition: three candidates, one failed control
+
+The complete A1/B1/A2/B2/A3/B3 attempt set is preserved, including its failure;
+see `repeat-verdict.json` and the report's `performance` section. Identity and
+non-treatment environment match across all six attempts, and every attempt's
+original save and visible Spruce recovery are verified. This does **not** make
+every gameplay attempt successful.
+
+- Valid 1080 controls A1/A3: **24.019 / 24.226 presents/s**, P95
+  **44.960 / 44.293 ms**.
+- 720 candidates B1/B2/B3: **32.638 / 33.348 / 33.878 presents/s**, P95
+  **33.438 / 32.157 / 31.904 ms**. The gain repeats in stationary gulch;
+  B1 still misses the 33.33-ms tail threshold.
+- **A2 is invalid for performance and route acceptance.** Frame progress stops
+  at 1481 before the idle window. World/right/left/map/return/pause/unpause
+  screenshots have the same SHA-256; the requested map never appears.
+  Audio/HID logging continues, so process liveness and clean final restoration
+  concealed a frozen render/gameplay path. No live stacks were captured and
+  root cause is unknown. Do not attribute it to the observer or count it as
+  successful just because this is the control arm.
+- Candidate game SwapPSS medians remain **532.668–551.668 MiB**. Lower Mali
+  commit is real but no no-swap/total-working-set acceptance follows.
+- `performance_summary` now explicitly excludes missing/short frame windows
+  without inventing zero FPS; regression coverage tests this distinction.
+
+Verdict: repeatable local FPS effect, **not** three complete valid pairs or a
+stable production profile. Before promotion, isolate the component-only Awake
+setting from the extended constructor/queue probes and run trace-off controls
+and candidates. Retain a progress watchdog/diagnostic capture on a new stall.
+Broader scene coverage and the independent memory-owner proof remain open.
+
 ## Reproduce the metadata join (owner-local inputs)
 
 ```sh

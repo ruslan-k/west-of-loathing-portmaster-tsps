@@ -1,0 +1,121 @@
+{
+  "scope": "Repeated same-ELF UpRender experiment, not full-game/no-swap acceptance",
+  "attempted_arms": {
+    "control": 3,
+    "uprender720": 3
+  },
+  "valid_game_idle_windows": {
+    "control": 2,
+    "uprender720": 3
+  },
+  "failed_control": {
+    "label": "upowner-a2",
+    "classification": "render/gameplay progress stopped; root cause unknown",
+    "last_frame": 1481,
+    "game_idle_frame_count": 0,
+    "identical_route_screenshot_hashes": {
+      "world": "0361cf6129c9195420a70396a85d8bd49aa2c8b62be2b610cc949cc9cd990d71",
+      "right": "0361cf6129c9195420a70396a85d8bd49aa2c8b62be2b610cc949cc9cd990d71",
+      "left": "0361cf6129c9195420a70396a85d8bd49aa2c8b62be2b610cc949cc9cd990d71",
+      "map": "0361cf6129c9195420a70396a85d8bd49aa2c8b62be2b610cc949cc9cd990d71",
+      "return": "0361cf6129c9195420a70396a85d8bd49aa2c8b62be2b610cc949cc9cd990d71",
+      "pause": "0361cf6129c9195420a70396a85d8bd49aa2c8b62be2b610cc949cc9cd990d71",
+      "unpause": "0361cf6129c9195420a70396a85d8bd49aa2c8b62be2b610cc949cc9cd990d71"
+    },
+    "audio_and_HID_activity_continued": true,
+    "cleanup_and_save_restoration_verified": true,
+    "performance_excluded": true,
+    "not_claimed": "No measured live stacks; neither tracing nor renderer is proven causal."
+  },
+  "observed_arms": {
+    "control": {
+      "presents_per_s": {
+        "count": 2,
+        "minimum": 24.019064348369955,
+        "median": 24.12265176047157,
+        "maximum": 24.22623917257318
+      },
+      "p95_ms": {
+        "count": 2,
+        "minimum": 44.2931647,
+        "median": 44.62647054999999,
+        "maximum": 44.959776399999996
+      },
+      "pss_mib": {
+        "count": 2,
+        "minimum": 371.03125,
+        "median": 380.5322265625,
+        "maximum": 390.033203125
+      },
+      "swap_pss_mib": {
+        "count": 2,
+        "minimum": 537.76953125,
+        "median": 548.447265625,
+        "maximum": 559.125
+      },
+      "mali_commit_mib": {
+        "count": 2,
+        "minimum": 253.34375,
+        "median": 253.515625,
+        "maximum": 253.6875
+      }
+    },
+    "uprender720": {
+      "presents_per_s": {
+        "count": 3,
+        "minimum": 32.63813773807908,
+        "median": 33.34807514034635,
+        "maximum": 33.87835099921172
+      },
+      "p95_ms": {
+        "count": 3,
+        "minimum": 31.9043174,
+        "median": 32.1571217,
+        "maximum": 33.4384394
+      },
+      "pss_mib": {
+        "count": 3,
+        "minimum": 379.4658203125,
+        "median": 391.734375,
+        "maximum": 393.5068359375
+      },
+      "swap_pss_mib": {
+        "count": 3,
+        "minimum": 532.66796875,
+        "median": 537.453125,
+        "maximum": 551.66796875
+      },
+      "mali_commit_mib": {
+        "count": 3,
+        "minimum": 221.5625,
+        "median": 222.2109375,
+        "maximum": 232.0234375
+      }
+    }
+  },
+  "matched_identity": true,
+  "matched_other_env": true,
+  "KMS_review": {
+    "world": "All six reach the same gulch composition with complete character; no obvious scale/crop defect in spot-checks.",
+    "map_visible": [
+      "upowner-a1",
+      "upowner-b1",
+      "upowner-b2",
+      "upowner-a3",
+      "upowner-b3"
+    ],
+    "map_not_visible": [
+      "upowner-a2"
+    ],
+    "Spruce_visible_after_all_six": true,
+    "not_proven": [
+      "byte-exact pixel parity",
+      "physical controls/audio",
+      "interior/battle/long-run stability"
+    ]
+  },
+  "no_swap_achieved": false,
+  "full_acceptance": false,
+  "production_promotion": false,
+  "next_gate": "Separate component-only startup hook from extended read-only observation; repeat stability under trace-off profile before promoting any setting."
+}
