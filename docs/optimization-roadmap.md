@@ -7,7 +7,7 @@
 
 > This is **not** a claim that either 30+ FPS or zero-swap has been attained. Device reports use varying saves/scenes and diagnostic builds. At the original review, `dtime8` (`414efb1f…`) instrumentation was not published. That gap is now closed by `a3793a1`: clean overlay application matches all 199 native source files of the measured build. Further execution results and still-open gates are recorded in §11; implementation of an opt-in mechanism is not release acceptance.
 
-**2026-10-18 review note (main at \`6b55a2ad0e730367ee8ae9fbb3b5574e93189587\`):** the device and final SDL/KMSDRM window already output 1280×720, but measured Unity camera/intermediate targets still include 1920×1080. Whether the inherited Horizon service layer actually reports Switch handheld (0) or docked/console (1) has **not been determined**; HID's \`SetNpadHandheldActivationMode\` is not the system operation mode. Before modifying render-target dimensions, see [§13 — handheld mode preflight](#13-m7-preflight-switch-handheld-operation-mode-and-720p).
+**2026-10-18 review note (main at `6b55a2ad0e730367ee8ae9fbb3b5574e93189587`):** the device and final SDL/KMSDRM window already output 1280×720, but measured Unity camera/intermediate targets still include 1920×1080. Whether the inherited Horizon service layer actually reports Switch handheld (0) or docked/console (1) has **not been determined**; HID's `SetNpadHandheldActivationMode` is not the system operation mode. Before modifying render-target dimensions, see [§13 — handheld mode preflight](#13-m7-preflight-switch-handheld-operation-mode-and-720p).
 
 ## 1. Current measurable baseline and open gates
 
