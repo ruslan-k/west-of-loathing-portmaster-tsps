@@ -278,3 +278,77 @@ A single uncompressed RGBA8 1920×1080 level is ~7.91 MiB compared with ~3.52 Mi
 
 **Do not confuse aims:** fixed handheld mode is a deterministic functional requirement; FPS ≥30 and swap-free cold boot are separate unmet performance requirements. Mode work should precede unsafe manual downscaling, but does not supplant texture-460 full upload optimization or Unity heap allocation work.
 
+## 14. Cross-emulator optimization opportunities (Ryujinx / Skyline / ScarletNX)
+
+**Reviewed 2026-10-18, `main` `7fa5fa5f3b4bbaedcc7a9fbe141d613faacaf016`. Status: engineering proposals, NOT implemented or device-verified by this review.** This section records candidates identified by a source audit of other open-source Switch emulators. It must be read alongside the *later* execution verdicts in §§11–12: in particular, the generic texture-460 **GPU source sample redirect has already been REJECTED** by [copy-time image mismatch evidence](../evidence/roadmap-v2-copy-audit/README.md), and the PBO/ring and immediate blit variants have already been evaluated. Do not use the older §3 wording as permission to re-enable them.
+
+Only adopt small algorithms relevant to the existing native ARM64 Horizon → GLES 3.2 path. Do not import full Maxwell emulation, Vulkan renderer, guest JIT, giant shader caches, or invasive full-guest page protection. **Handheld remains permanently the only operation mode**, per §13, with no TV/docked switch.
+
+### 14.1 Candidate matrix and measured constraints
+
+| Priority | External implementation / design | Current WoL situation | Proposed new mechanism / go-no-go |
+| --- | --- | --- | --- |
+| **P0** | [Ryujinx TextureGroup dirty ranges](https://github.com/kotx/Ryujinx/blob/534f92506bf8c6aba29bb86917bf10954a360d8e/src/Ryujinx.Graphics.Gpu/Image/TextureGroup.cs), [ScarletNX surface write generations](https://github.com/scarletnx/ScarletNX/blob/main/src/nx/gpu/vk/surface.c) | Every full 1280×720 copied texture-460 guest image is marked dirty and commonly re-uploaded; normal sampler time ~5.8 ms/frame in one run, but post-drain upload median ~1.97 ms | **Prove whether repeated CPU copy results are identical to the destination's *already uploaded* image**, then conditionally skip redundant host uploads. Do NOT sample the rendered producer instead of the zero-filled guest copy |
+| **P1** | [ScarletNX deferred releases](https://github.com/scarletnx/ScarletNX/blob/main/src/nx/gpu/vk/release.c), [Skyline fence-owned resource lifetimes](https://github.com/msummers10/skyline/blob/master/app/src/main/cpp/skyline/gpu/fence_cycle.h) | Replay/finish and a substantial pre-upload GPU backlog measured; old `T2_GPU_PIPELINE=1` produced `EGL_BAD_SURFACE` | Trace NVN-visible release and host waits; experiment with fenced, correctly ordered deferred retirement **inside a valid EGL context**, not blanket async |
+| **P1** | [ScarletNX render-pass attachment retention](https://github.com/scarletnx/ScarletNX/blob/main/src/nx/gpu/vk/render.c) | GLES FBO switching/resolve costs not separately attributed; immediate GPU blit increased finish time | Count redundant framebuffer binds/attachment reconfigurations, tile load/store and resolve dependencies; reduce only proven redundant transitions |
+| **P1 (RAM)** | [Skyline compatible guest-mapping views](https://github.com/msummers10/skyline/blob/master/app/src/main/cpp/skyline/gpu/texture_manager.cpp), [Ryujinx TextureCache overlap checks](https://github.com/kotx/Ryujinx/blob/534f92506bf8c6aba29bb86917bf10954a360d8e/src/Ryujinx.Graphics.Gpu/Image/TextureCache.cs) | `zero_texture_storage_state()` already joins **some** host views. Read-only inventory reports ~7.1 MiB safely reconstructible static images, so blanket eviction is not justified | Inventory remaining compatible GPU-storage duplicates by *physical guest mapping + layout + generation + writer*. Share only precisely equivalent live storage, not merely same pixel hashes |
+| **P1 quick A/B** | [Ryujinx cached shader/resource state](https://github.com/kotx/Ryujinx/blob/534f92506bf8c6aba29bb86917bf10954a360d8e/src/Ryujinx.Graphics.Gpu/Shader/ShaderCache.cs) | `WOL_UNIFORM_CACHE=1` is **already implemented**, default OFF; census reports 45.8% identical uploads, only ~8.9 KB redundant/frame, no matched FPS proof | Isolated on/off A/B with complete image and driver-error parity. Do not implement another identical uniform cache |
+| **P2** | [Ryujinx shader disk cache](https://github.com/kotx/Ryujinx/blob/534f92506bf8c6aba29bb86917bf10954a360d8e/src/Ryujinx.Graphics.Gpu/Shader/DiskCache/ParallelDiskCacheLoader.cs) | Fixed catalogue GLSL programs already link and cache in the title runtime; first-link stalls not proven | First measure per-program compile/link time in cold scenes; if material, test GLES program binaries keyed by GLSL source, driver/renderer and GL version. Avoid eight compilation threads / large prewarm memory on 1 GiB |
+| **P2** | [Ryujinx GPU-modified buffer range list](https://github.com/kotx/Ryujinx/blob/534f92506bf8c6aba29bb86917bf10954a360d8e/src/Ryujinx.Graphics.Gpu/Memory/BufferModifiedRangeList.cs) | `WOL_PAIR_RING` already reuses VBO objects without FPS win; read-only *stationary* census finds unchanged sampled vertex bytes (~29 KB/frame) | Only if moving/battle traces show sufficiently large unchanged streams: content generation + precise invalidation to skip `glBufferData`; otherwise close, not a P0 item |
+
+**Hard measured context:** real battle last 200 frames have median ~40.74 ms, P95 ~45.25 ms, about 24.5 presents/s ([owner battle](../evidence/roadmap-v2-owner-battle/README.md)). The 30 FPS median budget requires ~7.4 ms improvement; the current P95 target needs ~12 ms improvement. No single cache is assumed to deliver that. End-to-end GPU completion, actual screenshots, CPU/GPU clocks, RAM/CMA and swap must be measured in matched scenes, not estimated from bytes skipped.
+
+### 14.2 P0 — full-image **content-preserving** upload skip: a new hypothesis
+
+This is **not** the abandoned §3 same-frame source-GPU redirection. Its prerequisite was disproved: the real producer GL render-target pixels differ from the destination guest memory copy, while the destination GPU image matches the guest CPU copy. The new hypothesis instead compares **two successive destination CPU snapshots**, or verifies an exact generation identity, and only avoids uploading destination bytes that are **already authoritative in its own host GPU image**.
+
+**Read-only preflight before optimizing:**
+
+1. In the real `wol_color_texture_copy()` path, identify each destination by NVN object **and storage generation**, guest pool physical address/offset, GL storage generation and EGL context; account for view aliases and resource recreation. Distinguish first copy, subsequent identical copies, changed copies and GPU/CPU side effects. Avoid hardcoding texture ID 460 as a universal lifetime identity.
+2. At a bounded diagnostic cadence, compare **actual bytes copied into the destination** with its immediately previous complete destination snapshot (or a collision-safe check plus exact byte verification). A zero/nonzero census can be reported first. Record `copy_equal`, `copy_changed`, `upload_needed`, `host_valid`, `bytes_avoidable`. The existing source→destination `memcpy` stays as-is in the initial experiment.
+3. Prove that the destination's GL storage still contains the same copy-time bytes: track guest write generations, `zero_cpu_dirty`, complete/partial uploads, render-target GPU writes, sampler bindings, context switches, texture reallocation, post-copy ASTC conversion/fallback and any write through overlapping NVN views. An unchanged CPU copy **alone** does not permit an upload skip.
+4. Use exact byte equivalence for acceptance (hash-only collisions cannot silently corrupt the game). A full 3.6864 MB per-frame compare may itself cost enough to erase the win; profile the comparison, and where safe replace it with precise write-generation tracking / zero-image sentinel established once. Do **not** indiscriminately hash every RT on every draw: ScarletNX limits costly hashes after measuring them.
+5. Only if a significant amount of *valid* repeated destination host content exists, add a **default-off** guarded skip and a fail-closed fallback to the existing `glTexSubImage2D`. Never redirect to the differently rendered producer. Record actual upload count, skipped bytes, GPU finish, P50/P95/P99, Mali commit, image parity and fallback reasons.
+
+**Decision:** if the destination bytes vary, the GPU storage loses validity each frame, or comparison overhead neutralizes the saved upload, mark this mechanism REJECTED. Positive acceptance means a repeatable *whole-frame* improvement (not merely reduced sampler CPU time) without graphics/input/save regressions. Since a forced queue drain measured ~11.4 ms backlog before an ~1.97 ms upload, the older 5.8 ms sampler zone is **not** guaranteed transferable savings.
+
+### 14.3 P1 — GPU release/retirement and EGL-safe FBO scheduling
+
+ScarletNX queues CPU-visible sync releases behind the GPU submit that owns them rather than blindly finishing at each release; Skyline attaches resource lifetimes to fence completion. Our GLES adapter can borrow their **dependency accounting**, not Vulkan primitives.
+
+1. Instrument real NVN QueueSubmitCommands, fence/syncpoint, CPU-visible release, implicit glFinish, frame finalization and `eglSwapBuffers`. Enumerate all cases where guest CPU must observe completed contents **synchronously**. Classify CPU submission time, GPU elapsed and queue backlog separately; they are not additive without proving serial dependence.
+2. Prototype a bounded, single-context `glFenceSync`/zero-time `glClientWaitSync` tracker with correct GL ES 3.x semantics, ownership of in-flight textures/VBOs/FBOs, resource retirement and guest-wait fulfillment. Never destroy/recycle a resource or acknowledge guest-visible completion prematurely.
+3. Respect the prior `EGL_BAD_SURFACE` fault: no unchecked `T2_GPU_PIPELINE=1`, background EGL context or blindly concurrent renderer.
+4. For framebuffer transitions, first record actual FBO IDs, attachments, load/store needs, target-switch calls, full-screen resolves and whether tile contents are read later. Test suppression of redundant binds and validated `glInvalidateFramebuffer` only for provably dead attachments; never invalidate the texture-460 source/destination or frame-history content by guesswork.
+5. Compare A/B/A/B under battle as well as street and map. Require P50/P95 full-frame improvement and exact visual/CPU coherency, no new GPU stalls or GL errors. Reset all scoped states on EGL context generation change.
+
+### 14.4 P1 RAM — guest physical alias / compatible host texture-view census
+
+Before adopting Skyline/Ryujinx sharing:
+
+- Inventory live unique host storage vs guest NVN objects and views, with **actual backing ranges/aliases**, format, dimensions, mip chain, row pitch/tile layout, GL storage generation, current GPU writer, guest dirty status and pending fences. Current `zero_texture_storage_state()` already handles some shared storage: report **incremental** missed sharing opportunities.
+- Do not join unrelated render-target results merely because they share an old guest mapping, nor merge textures based only on matching CPU bytes. Distinct GPU-authoritative pixels require distinct physical storage until a proven content merge/copy contract exists.
+- For compatible read-only views, benchmark one owner/view group behind a default-off flag. Validate alpha, swizzle, mip, stencil and ownership on save/reload and scene transitions; measure real Mali context commit (not only level-0 calculated MiB).
+- If few duplicates exist, close this candidate rather than creating a large manager on 963 MiB RAM. Existing GPU eviction census had only ~7 MiB safely reconstructible, so generic age-based eviction is **not** the solution.
+
+### 14.5 P1 quick experiment — existing uniform cache; P2 shader and vertex caches
+
+**Uniform cache:** `WOL_UNIFORM_CACHE` and `WOL_UNIFORM_CENSUS` already exist in `runtime/wol-adapter.patch`. [Census](../evidence/gfx266-uniform-census/README.md): 191,838 uploads, 87,943 byte-identical repeats (45.8%), with `skipped=0` because it was census-only. The reported 33.8 MB redundant total is ~8.9 KB/frame; it is not proof of a useful driver-time win. Run a production-equivalent on/off A/B, confirming catalogue-program + uniform-location + byte equality, invalidation on context/GL error/any program relink, and pixel parity; retain default OFF unless full-frame improvements exceed noise.
+
+**Shader cache:** first measure cold first-link stalls and their frequency. If they matter, query GLES `GL_NUM_PROGRAM_BINARY_FORMATS`, test `glGetProgramBinary`/`glProgramBinary` and validate each recovered program before replacing source link. Key to exact GLSL source and Mali driver/renderer/version. Use a small bounded disk cache (or skip entirely if links do not account for stutter). Do not transplant Ryujinx's host-size or parallel thread policy.
+
+**Vertex/index cache:** extend [stationary vertex census](../evidence/gpu-texture-residency/README.md) to independently verified **moving and battle** scenes, and count index data too. Only if changed-byte and `glBufferData` cost justify it, track content/owner generations on all guest writes and skip identical uploads without reintroducing stale skinned geometry; no second VBO ring rewrite.
+
+### 14.6 First practical sequence and experiment artifacts
+
+| Order | New evidence / implementation | Stop or promote criterion |
+| --- | --- | --- |
+| **1** | `evidence/emucache-texture460/`: read-only destination-copy equality + own-host-validity generations, upload and GPU-queue timings | If copies aren't identical *and* host content isn't valid, **stop**; don't optimize the rejected source alias |
+| **2** | If 1 passes, guarded upload skip A/B on identical destination bytes only | Real frame P50/P95/presents improvement plus KMS and CPU/GPU coherency |
+| **3** | `WOL_UNIFORM_CACHE=1` matched multi-scene A/B and source/cache invalidation tests | Promote only if >noise, not because census found 45.8% |
+| **4** | Read-only GPU release/fence + FBO transition timing and dependency graph | Quantify a safe serialization bottleneck, including combat |
+| **5** | Bounded GLES sync and/or redundant-FBO avoidance behind experimental gate | Pass full battle/street/map pixel parity, P95 and memory-pressure checks |
+| **6** | Host texture view-compatibility census; if positive, one sharing A/B | Measurable incremental Mali commit saving beyond existing joined views |
+| **7** | Cold shader-link and moving/battle immutable-stream profile | Implement bounded caches only if measurements justify their costs |
+
+Continue §13 handheld-only service work and §§4–6 M5 allocator/M6 post-copy ASTC independently. **Neither 30+ FPS nor no-swap is achieved or claimed** by adding this section. Maintain fixed build SHA, identical owner save/section/environment, alternating trials, actual KMS frames, phase + Mali/VM samples, scene restoration, no stolen owner process and clear accepted/rejected result for every experiment.
