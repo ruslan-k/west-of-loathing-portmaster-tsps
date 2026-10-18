@@ -17,3 +17,7 @@ Full game-idle window: **23.907 presents/s**, P50 **41.088 ms**, P95 **45.258 ms
 Independent OpenCode review was attempted with available Zen/Go routes, but each returned **expired API key**; no independent approval is claimed. Synthetic/runtime tests are not a replacement for that review. The code stays diagnostic/default-off, not release accepted.
 
 Next memory work must identify actual post-load anonymous owners/free-list semantics; do not rerun this generic read-buffer mapping expecting the arena to stay immutable.
+
+## CI portability follow-up
+
+The first push failed Ubuntu 24.04 GCC 13's fortified `pread` range analysis on the inner partial-read accumulator (host GCC 16 and the ARM64 GCC 10 build had passed). The helper now uses explicitly bounded single-block I/O with EINTR retry; a short block read/write is a pre-commit refusal and falls back to the ordinary read, leaving output unchanged. No warning was suppressed. The compiled fixture now also injects short block reads/writes and verifies unchanged output plus sidecar cleanup. The plain helper compiles/runs under actual Ubuntu GCC 13.3 with `_FORTIFY_SOURCE=3`; the updated ARM64 fixture passes on the real SD/VFAT filesystem (`ROMFS_COW_OK`). The full rebuilt runtime `ab89d72920e7136be4553d6c50086c484019d78da5f8ab73f1b7e822cd891c2a` passes 207-file source parity but **was not deployed**: the last game-tested `rtorigin1` ELF `5bb707bb…` remains installed, with COW default OFF. Historical measured overlays above remain immutable.

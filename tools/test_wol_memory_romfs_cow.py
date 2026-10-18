@@ -112,9 +112,44 @@ int main(int argc,char **argv) {
             Path(os.environ['WOL_COW_FIXTURE_OUT']).write_text(code)
         with tempfile.TemporaryDirectory() as d:
             p=Path(d);(p/'test.c').write_text(code)
-            subprocess.run(['cc','-std=gnu11','-O2','-Wall','-Wextra','-Werror',str(p/'test.c'),'-o',str(p/'test')],check=True)
+            subprocess.run(['cc','-std=gnu11','-O2','-D_FORTIFY_SOURCE=2','-Wall','-Wextra','-Werror',str(p/'test.c'),'-o',str(p/'test')],check=True)
             r=subprocess.run([str(p/'test'),str(p)],check=True,capture_output=True,text=True)
             self.assertIn('ROMFS_COW_OK',r.stdout)
             self.assertEqual(set(x.name for x in p.iterdir()),{'test.c','test'})
+            # A short block I/O must discard the pre-commit sidecar and leave
+            # the caller's entire output untouched. The ordinary path can retry.
+            wrappers=r'''
+static int fault_mode;
+static ssize_t fault_pread(int fd,void *b,size_t n,off_t off) {
+    return pread(fd,b,(fault_mode==1 && n>8192)?n-1:n,off);
+}
+static ssize_t fault_pwrite(int fd,const void *b,size_t n,off_t off) {
+    return pwrite(fd,b,(fault_mode==2 && n>8192)?n-1:n,off);
+}
+#define pread fault_pread
+#define pwrite fault_pwrite
+'''
+            main=r'''
+#undef pread
+#undef pwrite
+int main(int argc,char **argv) {
+    assert(argc==2);char path[512];assert(snprintf(path,sizeof path,"%s/source",argv[1])>0);
+    int fd=open(path,O_CREAT|O_EXCL|O_RDWR,0600);assert(fd>=0);
+    uint8_t original[45056];memset(original,0x7a,sizeof original);assert(write(fd,original,sizeof original)==sizeof original);
+    uint8_t *base=mmap(NULL,sizeof original,3,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);assert(base!=MAP_FAILED);
+    for(int mode=1;mode<=2;mode++) {
+        fault_mode=mode;memset(base,0xa5,sizeof original);struct wol_romfs_cow_result result={0};
+        assert(!wol_romfs_cow_read(fd,208,base+32,19000,argv[1],&result));
+        for(unsigned i=0;i<sizeof original;i++)assert(base[i]==0xa5);
+    }
+    assert(!munmap(base,sizeof original));close(fd);unlink(path);puts("COW_SHORT_IO_OK");
+}
+'''
+            fault_code=code.split(header,1)[0]+wrappers+header+main
+            (p/'short.c').write_text(fault_code);(p/'short-data').mkdir()
+            subprocess.run(['cc','-std=gnu11','-O2','-D_FORTIFY_SOURCE=2','-Wall','-Wextra','-Werror',str(p/'short.c'),'-o',str(p/'short')],check=True)
+            result=subprocess.run([str(p/'short'),str(p/'short-data')],check=True,capture_output=True,text=True)
+            self.assertIn('COW_SHORT_IO_OK',result.stdout)
+            self.assertEqual(list((p/'short-data').iterdir()),[])
 
 if __name__=='__main__':unittest.main()

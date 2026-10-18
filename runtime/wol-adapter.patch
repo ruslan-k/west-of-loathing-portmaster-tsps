@@ -6351,7 +6351,7 @@
 +}
 --- /dev/null
 +++ b/native/wol_romfs_cow.h
-@@ -0,0 +1,87 @@
+@@ -0,0 +1,82 @@
 +/* Byte-exact synchronous read using private disk-backed interior pages.
 + * Caller proves exclusive unpinned output pages and serializes VM changes.
 + * Return 1 mapped, 0 no VM change (use pread), -1 failed destructive commit
@@ -6382,7 +6382,7 @@
 +        while(done<edge_size[i]) {
 +            ssize_t n=pread(source,edges+i*4096+done,edge_size[i]-done,(off_t)(edge_off[i]+done));
 +            if(n<0 && errno==EINTR)continue;
-+            if(n<=0)return 0;
++            if(n<=0 || (size_t)n>edge_size[i]-done)return 0;
 +            done+=(size_t)n;
 +        }
 +    }
@@ -6396,20 +6396,15 @@
 +    /* tmpfs cannot provide reclaimable disk-backed clean pages. */
 +    if(fstatfs(writer,&fs) || (unsigned long)fs.f_type==0x01021994UL || ftruncate(writer,(off_t)span))goto done;
 +    for(uint64_t at=0;at<span;) {
-+        size_t chunk=span-at>sizeof block?sizeof block:(size_t)(span-at),got=0;
-+        while(got<chunk) {
-+            ssize_t n=pread(source,block+got,chunk-got,(off_t)(offset+prefix+at+got));
-+            if(n<0 && errno==EINTR)continue;
-+            if(n<=0)goto done;
-+            got+=(size_t)n;
-+        }
-+        size_t written=0;
-+        while(written<chunk) {
-+            ssize_t n=pwrite(writer,block+written,chunk-written,(off_t)(at+written));
-+            if(n<0 && errno==EINTR)continue;
-+            if(n<=0)goto done;
-+            written+=(size_t)n;
-+        }
++        size_t chunk=span-at>sizeof block?sizeof block:(size_t)(span-at);
++        ssize_t got;
++        do {got=pread(source,block,chunk,(off_t)(offset+prefix+at));}while(got<0 && errno==EINTR);
++        /* This is still pre-commit. A short regular-file read safely discards
++         * the sidecar and lets the ordinary exact-read path fill the output. */
++        if(got<0 || (size_t)got!=chunk)goto done;
++        ssize_t written;
++        do {written=pwrite(writer,block,chunk,(off_t)at);}while(written<0 && errno==EINTR);
++        if(written<0 || (size_t)written!=chunk)goto done;
 +        at+=chunk;
 +    }
 +    if(fsync(writer))goto done;
