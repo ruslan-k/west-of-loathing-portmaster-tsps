@@ -238,12 +238,151 @@
     "The 720 arm keeps slightly lower total SwapPss at game-idle (509.1 vs 536.4 MiB) in this pair; sample size is two runs and phases are not identical."
   ],
   "next_steps": [
-    "Identify the owner of the 72 MiB cold mapping (maps-diff across startup/menu/game-idle snapshots or a bounded host-mmap logger); releasing a proven-cold 64 MiB would remove ~12% of swap.",
-    "Attribute the ~350-360 MiB of guest-heap swap with a lowered allocation-trace threshold (256 KiB) since >=4 MiB blocks are already proven sparse."
+    "Add a bounded host mmap logger (LD_PRELOAD shim or loader interposer logging size+caller for host mappings >=32 MiB, default OFF) to name the owner of the 72 MiB zero-filled mapping.",
+    "Then evaluate a guarded, proven-cold release (no discard on current evidence).",
+    "Lower the guest allocation-trace threshold to <=256 KiB for the ~350-390 MiB of guest-arena swap."
   ],
   "not_proven": [
     "reclaim safety of the 72 MiB mapping",
     "steady-state attribution of sub-4 MiB allocations",
     "any swapoff or discard"
-  ]
+  ],
+  "timeline_b2": {
+    "cleanup": true,
+    "warnings": [],
+    "checks": 87,
+    "phases": {
+      "startup": {
+        "totals": {
+          "vmas": 432,
+          "rss_mib": 275.1,
+          "pss_mib": 274.2,
+          "swap_pss_mib": 623.8
+        },
+        "cold72": [
+          {
+            "start": "0x7f9f800000",
+            "end": "0x7fa4000000",
+            "size_mib": 72.0,
+            "perms": "rw-p",
+            "path": "[anon rw-p]",
+            "rss_mib": 0.2,
+            "pss_mib": 0.2,
+            "swap_mib": 63.9,
+            "sample_head": {
+              "kind": "all-zero",
+              "first16": "00000000000000000000000000000000",
+              "last16": "00000000000000000000000000000000"
+            },
+            "sample_tail": {
+              "kind": "all-zero",
+              "first16": "00000000000000000000000000000000",
+              "last16": "00000000000000000000000000000000"
+            },
+            "sampled_bytes": 128
+          }
+        ]
+      },
+      "menu": {
+        "totals": {
+          "vmas": 436,
+          "rss_mib": 280.1,
+          "pss_mib": 279.1,
+          "swap_pss_mib": 619.8
+        },
+        "cold72": [
+          {
+            "start": "0x7f9f800000",
+            "end": "0x7fa4000000",
+            "size_mib": 72.0,
+            "perms": "rw-p",
+            "path": "[anon rw-p]",
+            "rss_mib": 0.2,
+            "pss_mib": 0.2,
+            "swap_mib": 63.9,
+            "sample_head": {
+              "kind": "all-zero",
+              "first16": "00000000000000000000000000000000",
+              "last16": "00000000000000000000000000000000"
+            },
+            "sample_tail": {
+              "kind": "all-zero",
+              "first16": "00000000000000000000000000000000",
+              "last16": "00000000000000000000000000000000"
+            },
+            "sampled_bytes": 128
+          }
+        ]
+      },
+      "game-idle": {
+        "totals": {
+          "vmas": 449,
+          "rss_mib": 374.5,
+          "pss_mib": 373.5,
+          "swap_pss_mib": 556.0
+        },
+        "cold72": [
+          {
+            "start": "0x7f9f800000",
+            "end": "0x7fa4000000",
+            "size_mib": 72.0,
+            "perms": "rw-p",
+            "path": "[anon rw-p]",
+            "rss_mib": 0.2,
+            "pss_mib": 0.2,
+            "swap_mib": 63.9,
+            "sample_head": {
+              "kind": "all-zero",
+              "first16": "00000000000000000000000000000000",
+              "last16": "00000000000000000000000000000000"
+            },
+            "sample_tail": {
+              "kind": "all-zero",
+              "first16": "00000000000000000000000000000000",
+              "last16": "00000000000000000000000000000000"
+            },
+            "sampled_bytes": 128
+          }
+        ]
+      },
+      "precleanup": {
+        "totals": {
+          "vmas": 459,
+          "rss_mib": 434.5,
+          "pss_mib": 433.5,
+          "swap_pss_mib": 508.2
+        },
+        "cold72": [
+          {
+            "start": "0x7f9f800000",
+            "end": "0x7fa4000000",
+            "size_mib": 72.0,
+            "perms": "rw-p",
+            "path": "[anon rw-p]",
+            "rss_mib": 0.2,
+            "pss_mib": 0.2,
+            "swap_mib": 63.9,
+            "sample_head": {
+              "kind": "all-zero",
+              "first16": "00000000000000000000000000000000",
+              "last16": "00000000000000000000000000000000"
+            },
+            "sample_tail": {
+              "kind": "all-zero",
+              "first16": "00000000000000000000000000000000",
+              "last16": "00000000000000000000000000000000"
+            },
+            "sampled_bytes": 128
+          }
+        ]
+      }
+    },
+    "observations": [
+      "The 72.0 MiB mapping exists already at the startup sample (before CONTINUE) in every phase: 0.2 MiB resident, 63.9 MiB swapped, unchanged start to precleanup.",
+      "Its first and last 64 bytes both read all-zero, consistent with a zero-filled buffer written once during the initial load and never touched again.",
+      "SwapPss totals by phase: startup 623.8 -> menu 619.8 -> game-idle 556.0 -> precleanup 508.2 MiB: the initial load itself parks ~620 MiB in swap before gameplay.",
+      "The 193.5 MiB texture-pool VMA keeps 63.6/59.6/45.9 MiB swapped across phases with head bytes 0xFF-filled.",
+      "Bounded 128-byte content samples faulted in at most 4 pages per large VMA and are read-only."
+    ]
+  }
 }

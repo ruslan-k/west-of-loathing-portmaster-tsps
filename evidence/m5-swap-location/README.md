@@ -33,6 +33,29 @@ Totals: candidate 419.4 Pss + 509.1 SwapPss; control 391.3 + 536.4 MiB.
   is the single most concrete no-swap lead this census produced. Nothing is
   freed or discarded on this evidence.
 
+## Phase timeline (vmaswap-b2, 720 arm)
+
+| phase | total SwapPss | 72 MiB cold mapping |
+| --- | --- | --- |
+| startup (pre-CONTINUE) | 623.8 MiB | 63.9 MiB swapped, 0.2 resident |
+| menu | 619.8 MiB | unchanged |
+| game-idle | 556.0 MiB | unchanged |
+| precleanup | 508.2 MiB | unchanged |
+
+- The 72 MiB zero-filled mapping is present from the initial load onward and is
+  never touched again; its first/last 64 bytes both read all-zero.
+- **The initial load itself parks ~620 MiB in swap before gameplay starts** -
+  more than the steady-state value, which then decreases as pages fault back.
+- The 193.5 MiB texture-pool VMA carries 63.6 -> 45.9 MiB of swap and its head
+  bytes are 0xFF-filled.
+- Two runs of the 720 arm and one control arm all show the same cold 72 MiB
+  mapping: deterministic content and residency, randomized address.
+
+Next instrument: a bounded host-side mmap logger (LD_PRELOAD shim or a loader
+interposer) that records size and caller for host mappings >=32 MiB while
+staying read-only and default OFF - that names the owner before any release is
+contemplated.
+
 ## Limits
 
 Per-VMA Pss/SwapPss overlap for shared pages; totals are not physical sums.

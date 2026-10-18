@@ -499,3 +499,5 @@ The same run provides the first live stall capture: the opt-in watchdog fired at
 - Totals at game-idle: 720 **419.4 Pss + 509.1 SwapPss**; control **391.3 + 536.4**. The single-pair swap difference is not a promoted win.
 
 Nothing was reclaimed, discarded or swapped off; both arms remain the same default-OFF diagnostic ELF.
+
+**Phase timeline (`vmaswap-b2`):** the 72 MiB zero-filled mapping exists already at the startup sample (before CONTINUE) and is byte-identical in character through precleanup: 0.2 MiB resident, 63.9 MiB swapped, first/last 64 bytes all-zero - something zero-filled it once during the initial load and never touched it again. SwapPss by phase: **startup 623.8 → menu 619.8 → game-idle 556.0 → precleanup 508.2 MiB**, i.e. the initial load itself parks more in swap than steady gameplay. The 193.5 MiB texture-pool VMA carries 63.6 → 45.9 MiB of swap with 0xFF-filled head bytes. Next instrument: a bounded host-side mmap logger (default OFF) that records size+caller for host mappings ≥32 MiB, then a guarded release only for a proven-cold owner; nothing is discarded on the current evidence.
