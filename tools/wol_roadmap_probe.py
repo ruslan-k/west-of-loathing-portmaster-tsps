@@ -13,6 +13,7 @@ import subprocess
 import sys
 from wol_memory_benchmark import stop_owned
 from wol_memory_profile import stat_identity
+from wol_present_watchdog import PresentationStall, require_progress
 import time
 import struct
 import zlib
@@ -70,7 +71,11 @@ def main():
     ap.add_argument('--ordinary-title',action='store_true',help='unaltered launcher environment; title-only, no injected input')
     ap.add_argument('--guest-pages',action='store_true',help='heavy diagnostic pagemap snapshots; not an FPS benchmark')
     ap.add_argument('--draw-trace',action='store_true',help='per-draw tracing for one short screen (heavy log, not an FPS arm)')
+    ap.add_argument('--present-watchdog',type=float,default=0,help='opt-in 5..30s present-progress budget; requires MOMO_FRAME_CLOCK=1')
+    ap.add_argument('--stall-gdb',action='store_true',help='on stall only: bounded backtrace of the exact owned PID, no memory dump')
     a=ap.parse_args()
+    if a.present_watchdog and (not 5<=a.present_watchdog<=30 or a.ordinary_title):
+        ap.error('watchdog requires diagnostic mode and a finite 5..30 second budget')
     route=json.loads(a.route.read_text()) if a.route else None
     if route is not None:
         if not isinstance(route,list) or not 1<=len(route)<=24:ap.error('route must have 1..24 actions')
@@ -88,7 +93,7 @@ def main():
     save=root/'save-laboratory'
     backup=out/'owner-save'
     shutil.copytree(save,backup)
-    receipt=dict(label=a.label,owner_save_hashes=hashes(backup),stages=[],cleanup_verified=False,
+    receipt: dict = dict(label=a.label,owner_save_hashes=hashes(backup),stages=[],cleanup_verified=False,
                  probe_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                  session_sha256=hashlib.sha256(Path('/mnt/UDISK/session.py').read_bytes()).hexdigest(),
                  launcher_sha256=hashlib.sha256((root.parent/'West of Loathing Switch.sh').read_bytes()).hexdigest(),
@@ -97,6 +102,8 @@ def main():
                  draw_trace=a.draw_trace,
                  phase_labels_are_requests_not_scene_classifications=True,
                  heavy_guest_page_sampling=a.guest_pages)
+    receipt['present_watchdog_s']=a.present_watchdog
+    receipt['progress_checks']=0
     ledger=None
     launch=None
     owned=None
@@ -106,6 +113,53 @@ def main():
         (out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
     def cmd(*args):
         subprocess.run([sys.executable,'/mnt/UDISK/session.py',*args],check=True)
+        check_progress()
+    def stall_diagnostics(error):
+        receipt['failure']=dict(kind='presentation-stall',observation=error.observation)
+        dest=out/'stall';dest.mkdir(exist_ok=True)
+        if not owned:return
+        proc=Path('/proc')/str(owned[0])
+        if stat_identity(proc)['start_ticks']!=owned[1]:
+            receipt['failure']['diagnostics_refused']='PID/start-time changed';return
+        for name in ('maps','status','smaps_rollup'):
+            try:(dest/name).write_text((proc/name).read_text())
+            except OSError as e:(dest/(name+'-error')).write_text(str(e))
+        tasks=[]
+        for task in sorted((proc/'task').iterdir(),key=lambda p:int(p.name))[:512]:
+            row: dict = {'tid':int(task.name)}
+            for name in ('comm','wchan','stack','syscall'):
+                try:row[name]=(task/name).read_text()[:16384]
+                except OSError as e:row[name]={'unavailable':str(e)}
+            tasks.append(row)
+        (dest/'tasks.json').write_text(json.dumps(tasks,indent=2)+'\n')
+        gdb=shutil.which('gdb')
+        if a.stall_gdb and gdb:
+            try:
+                with (dest/'gdb.txt').open('w') as f:
+                    r=subprocess.run([gdb,'-nx','-batch','-p',str(owned[0]),'-ex','set pagination off',
+                        '-ex','set print frame-arguments none','-ex','info threads',
+                        '-ex','thread apply all bt 12','-ex','detach'],stdout=f,stderr=subprocess.STDOUT,timeout=20)
+                receipt['failure']['gdb_exit']=r.returncode
+            except subprocess.TimeoutExpired:receipt['failure']['gdb_timeout']=True
+        receipt['failure']['diagnostic_dir']=str(dest)
+    def check_progress():
+        if not a.present_watchdog or not owned:return
+        log=root/'logs/latest.log'
+        with log.open('rb') as f:
+            f.seek(0,2);f.seek(max(0,f.tell()-262144));tail=f.read(262144).decode(errors='replace')
+        try:
+            receipt['last_progress_observation']=require_progress(tail,time.monotonic_ns(),a.present_watchdog)
+            receipt['progress_checks']+=1
+        except PresentationStall as e:
+            try:stall_diagnostics(e)
+            except Exception as diagnostic_error:
+                receipt['failure']=dict(kind='presentation-stall',observation=e.observation,diagnostic_error=str(diagnostic_error))
+            raise
+    def pause(seconds):
+        if not a.present_watchdog:time.sleep(seconds);return
+        deadline=time.monotonic()+seconds
+        while time.monotonic()<deadline:
+            check_progress();time.sleep(min(1,max(0,deadline-time.monotonic())))
     try:
         if a.control_save:
             for p in save.iterdir():
@@ -135,11 +189,13 @@ def main():
         receipt['runtime_sha256']=hashlib.sha256((root/'wol-horizon').read_bytes()).hexdigest()
         receipt['section_sha256']=hashlib.sha256((root/'wol-romfs.section').read_bytes()).hexdigest()
         raw=(Path('/proc')/str(ps[0])/'environ').read_bytes().split(b'\0')
+        if a.present_watchdog and b'MOMO_FRAME_CLOCK=1' not in raw:
+            raise RuntimeError('watchdog cannot infer progress without enabled frame clock')
         (out/'effective-env.json').write_text(json.dumps({x.split(b'=',1)[0].decode():x.split(b'=',1)[1].decode(errors='replace') for x in raw if b'=' in x and x.split(b'=',1)[0].startswith((b'WOL_',b'COTM_',b'T2_',b'MOMO_'))},indent=2)+'\n')
-        stage('menu');time.sleep(20)
+        stage('menu');pause(20)
         if a.ordinary_title:return
         stage('continue-load');cmd('press','0x1','0','12','world','180')
-        stage('game-idle');time.sleep(30)
+        stage('game-idle');pause(30)
         if route is not None:
             receipt['route_sha256']=hashlib.sha256(a.route.read_bytes()).hexdigest()
             for action in route:
@@ -148,10 +204,10 @@ def main():
         else:
             stage('move-right');cmd('press','0x4000','0','4','right','1500')
             stage('move-left');cmd('press','0x1000','0','4','left','1500')
-            stage('map');cmd('press','0x100','0','4','map','180');time.sleep(10)
-            stage('map-return');cmd('press','0x100','0','4','return','180');time.sleep(10)
+            stage('map');cmd('press','0x100','0','4','map','180');pause(10)
+            stage('map-return');cmd('press','0x100','0','4','return','180');pause(10)
             stage('pause');cmd('press','0x400','0','4','pause','180')
-            stage('pause-return');cmd('press','0x400','0','4','unpause','180');time.sleep(10)
+            stage('pause-return');cmd('press','0x400','0','4','unpause','180');pause(10)
     finally:
         warnings=[]
         try:

@@ -724,8 +724,8 @@
 +}
 +static void wol_up_configure(void) {
 +    const char *t=getenv("WOL_UPRENDER_TRACE"),*p=getenv("WOL_UPRENDER_720"),*g=getenv("WOL_GUEST_RT720");
-+    wol_up_patch=p&&!strcmp(p,"1");wol_up_trace=wol_up_patch || (t&&!strcmp(t,"1"));
-+    if(!wol_up_trace)return;
++    wol_up_patch=p&&!strcmp(p,"1");wol_up_trace=t&&!strcmp(t,"1");
++    if(!wol_up_trace && !wol_up_patch)return;
 +    if(g&&!strcmp(g,"1"))stop("WOL_UP_CONFLICTING_SIZE_EXPERIMENT",0,0,24);
 +    const struct image_segment *s=NULL;
 +    for(size_t i=0;i<sizeof(images)/sizeof(images[0]);i++)if(!strcmp(images[i].name,"main.text.seg"))s=&images[i];
@@ -735,7 +735,7 @@
 +    if(strcmp(hex,WOL_RT720_MAIN_SHA256))stop("WOL_UP_IMAGE_IDENTITY",0,0,24);
 +    wol_up_mem=open("/proc/self/mem",O_RDONLY|O_CLOEXEC);
 +    if(wol_up_mem<0)stop("WOL_UP_OBSERVER_UNAVAILABLE",0,errno,21);
-+    printf("WOL_UPRENDER_CONFIG trace=1 component-settings-720=%u image=exact-metadata23-main source-files-unchanged=1\n",wol_up_patch);
++    printf("WOL_UPRENDER_CONFIG trace=%u component-settings-720=%u hooks=%u image=exact-metadata23-main source-files-unchanged=1\n",wol_up_trace,wol_up_patch,wol_up_trace?5:1);
 +}
  int main(int argc,char **argv) {
      (void)argv;if(argc!=1){fprintf(stderr,"Run from the verified native image directory, without arguments.\n");return 1;}
@@ -6560,7 +6560,7 @@
 +};
 +static unsigned wol_up_site(uint64_t pc,uint32_t op) {
 +    if(!wol_up_trace && !wol_up_patch)return 0;
-+    for(unsigned i=0;i<5;i++)if(pc==LC2_MAIN_BASE+wol_up_sites[i].offset) {
++    for(unsigned i=0;i<5;i++)if((!i || wol_up_trace) && pc==LC2_MAIN_BASE+wol_up_sites[i].offset) {
 +        if(op!=wol_up_sites[i].opcode)stop("WOL_UP_CODE_IDENTITY",pc,op,24);
 +        return i+1;
 +    }

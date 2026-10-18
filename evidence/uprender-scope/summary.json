@@ -1,0 +1,1846 @@
+{
+  "runs": [
+    {
+      "label": "upscope-a1",
+      "runtime_sha256": "273b4638cae6dd4d0cbe7d1b4a91eac9e3f68c6b758fb7ef2729a2c28e31af13",
+      "section_sha256": "49bd16718ed0dc46f16599255791c7603e8aa2b5f04898784a39d6cacb9d0722",
+      "control_save_hashes": {
+        "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+        "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"
+      },
+      "cleanup_verified": true,
+      "cleanup_warnings": [],
+      "effective_env": {
+        "WOL_PACKED4444": "1",
+        "WOL_TOP_RAWID": "none",
+        "COTM_GAME_PBUFFER": "1",
+        "T2_READBACK_OFF": "0",
+        "WOL_GUEST_RT720": "0",
+        "T2_MEMORY_FLOOR_MIB": "20",
+        "WOL_CPU_OFFSET": "4",
+        "COTM_RUN_ID": "1792365497",
+        "WOL_RGBA8_COPY": "1",
+        "T2_GZRAM_TARGET_MIB": "400",
+        "T2_LAZY_MESH": "0",
+        "COTM_INPUT_DIAGNOSTIC": "1",
+        "WOL_TOP_UV": "raw",
+        "WOL_ROMFS_COW": "0",
+        "WOL_PAIR_CHECK": "1",
+        "WOL_F191_UV": "none",
+        "T2_GZRAM_STATS_MS": "1000",
+        "WOL_UPRENDER_720": "0",
+        "COTM_PRESENT_READBACK_60": "1",
+        "WOL_GPU_RESIDENCY": "1",
+        "T2_SAVE_DIR": "/mnt/SDCARD/Roms/PORTS/wol-switch/save-laboratory",
+        "WOL_RECT_TRACE_LIMIT": "90000",
+        "WOL_COPY_AUDIT": "0",
+        "COTM_BLACK_LIMIT": "4000",
+        "WOL_QUIET": "1",
+        "WOL_RECT_TRACE": "off",
+        "WOL_PAIR_STENCIL": "1",
+        "WOL_RT_ORIGIN": "0",
+        "WOL_DRAW_TRACE": "0",
+        "MOMO_FRAME_CLOCK": "1",
+        "T2_GPU_PIPELINE": "0",
+        "WOL_UNIFORM_CACHE": "0",
+        "COTM_SINGLE_CONTEXT": "0",
+        "WOL_PROBE_SECONDS": "900",
+        "WOL_TOP_SMART": "0",
+        "WOL_COPY_EQUAL": "0",
+        "WOL_UPRENDER_TRACE": "0",
+        "WOL_F191_NOFOLDID": "none",
+        "T2_GUEST_ZRAM": "0",
+        "COTM_READBACK_PERIOD": "120",
+        "WOL_UPLOAD_SKIP": "0",
+        "T2_IMAGE_FILE_MAP": "1",
+        "WOL_GPU_TIMELINE": "0",
+        "T2_GZRAM_POOLS": "0"
+      },
+      "phases": {
+        "startup": {
+          "samples": 37,
+          "requested_phase": "startup",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14313655614841,
+          "window_end_ns": 14398180943102,
+          "pss_kib": {
+            "available": true,
+            "count": 37,
+            "minimum": 41720,
+            "median": 516209,
+            "p95": 587554.4,
+            "maximum": 632608
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 37,
+            "minimum": 0,
+            "median": 334144,
+            "p95": 481438.39999999985,
+            "maximum": 645388
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 37,
+            "minimum": 0,
+            "median": 334060,
+            "p95": 482234.39999999985,
+            "maximum": 646024
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 37,
+            "minimum": 30292,
+            "median": 62952,
+            "p95": 389883.199999999,
+            "maximum": 709716
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 37,
+            "minimum": 0,
+            "median": 1476,
+            "p95": 36461.599999999926,
+            "maximum": 50284
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 36,
+            "minimum": 40341504,
+            "median": 217776128.0,
+            "p95": 260994048.0,
+            "maximum": 263036928
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 37,
+            "minimum": 14.646268,
+            "median": 54.438651,
+            "p95": 137.0760275999994,
+            "maximum": 396.38273
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 1,
+            "last_frame": 751,
+            "intervals": 750,
+            "seconds": 78.238440867,
+            "presents_per_s": 9.586080597834876,
+            "p50_ms": 38.22434,
+            "p95_ms": 126.8716965499995,
+            "p99_ms": 1456.9792760799946,
+            "max_ms": 13550.625603,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 12446,
+          "swapin_pages_delta": 55886,
+          "swapout_pages_delta": 213403
+        },
+        "menu": {
+          "samples": 10,
+          "requested_phase": "menu",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14398180943102,
+          "window_end_ns": 14418193449917,
+          "pss_kib": {
+            "available": true,
+            "count": 10,
+            "minimum": 276321,
+            "median": 278590.5,
+            "p95": 279750.6,
+            "maximum": 279846
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 10,
+            "minimum": 641636,
+            "median": 642722.0,
+            "p95": 644357.6,
+            "maximum": 644552
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 10,
+            "minimum": 642364,
+            "median": 643554.0,
+            "p95": 645128.2,
+            "maximum": 645328
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 10,
+            "minimum": 267772,
+            "median": 268940.0,
+            "p95": 270875.8,
+            "maximum": 271036
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 10,
+            "minimum": 1604,
+            "median": 1614.0,
+            "p95": 1620.0,
+            "maximum": 1620
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 10,
+            "minimum": 251219968,
+            "median": 251351040.0,
+            "p95": 251351040.0,
+            "maximum": 251351040
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 10,
+            "minimum": 39.712344,
+            "median": 47.099081999999996,
+            "p95": 52.250189049999996,
+            "maximum": 52.717402
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 802,
+            "last_frame": 1264,
+            "intervals": 462,
+            "seconds": 17.968989008,
+            "presents_per_s": 25.710962358222396,
+            "p50_ms": 38.1559875,
+            "p95_ms": 42.9099185,
+            "p99_ms": 48.39928014999998,
+            "max_ms": 105.76993,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 570,
+          "swapin_pages_delta": 687,
+          "swapout_pages_delta": 0
+        },
+        "continue-load": {
+          "samples": 6,
+          "requested_phase": "continue-load",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14418193449917,
+          "window_end_ns": 14430862430939,
+          "pss_kib": {
+            "available": true,
+            "count": 6,
+            "minimum": 291447,
+            "median": 385936.0,
+            "p95": 386046.25,
+            "maximum": 386064
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 6,
+            "minimum": 564508,
+            "median": 564698.0,
+            "p95": 623844.0,
+            "maximum": 636532
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 6,
+            "minimum": 565108,
+            "median": 565356.0,
+            "p95": 624846.0,
+            "maximum": 637496
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 6,
+            "minimum": 158288,
+            "median": 160346.0,
+            "p95": 236820.0,
+            "maximum": 255192
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 6,
+            "minimum": 1620,
+            "median": 2226.0,
+            "p95": 2231.0,
+            "maximum": 2232
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 6,
+            "minimum": 250814464,
+            "median": 274370560.0,
+            "p95": 281473024.0,
+            "maximum": 283840512
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 6,
+            "minimum": 42.057847,
+            "median": 55.814344500000004,
+            "p95": 66.1289,
+            "maximum": 67.206714
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 1287,
+            "last_frame": 1470,
+            "intervals": 183,
+            "seconds": 8.843375655,
+            "presents_per_s": 20.69345543367625,
+            "p50_ms": 41.541347,
+            "p95_ms": 45.6399779,
+            "p99_ms": 57.01752282000003,
+            "max_ms": 1170.614876,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 9187,
+          "swapin_pages_delta": 16515,
+          "swapout_pages_delta": 0
+        },
+        "game-idle": {
+          "samples": 15,
+          "requested_phase": "game-idle",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14430862430939,
+          "window_end_ns": 14460866620172,
+          "pss_kib": {
+            "available": true,
+            "count": 15,
+            "minimum": 386278,
+            "median": 386913,
+            "p95": 387372.6,
+            "maximum": 387388
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 15,
+            "minimum": 563416,
+            "median": 564008,
+            "p95": 564406.4,
+            "maximum": 564412
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 15,
+            "minimum": 563924,
+            "median": 564644,
+            "p95": 565105.2,
+            "maximum": 565108
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 15,
+            "minimum": 164156,
+            "median": 164912,
+            "p95": 165185.2,
+            "maximum": 165244
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 15,
+            "minimum": 1028,
+            "median": 2236,
+            "p95": 2240.0,
+            "maximum": 2240
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 15,
+            "minimum": 274370560,
+            "median": 274370560,
+            "p95": 274370560.0,
+            "maximum": 274370560
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 15,
+            "minimum": 46.664979,
+            "median": 50.671234,
+            "p95": 55.253882399999995,
+            "maximum": 59.618913
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 1519,
+            "last_frame": 2178,
+            "intervals": 659,
+            "seconds": 27.984431049,
+            "presents_per_s": 23.548808222904672,
+            "p50_ms": 41.725724,
+            "p95_ms": 45.7977703,
+            "p99_ms": 53.06702077999995,
+            "max_ms": 116.812615,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 41,
+          "swapin_pages_delta": 243,
+          "swapout_pages_delta": 0
+        },
+        "move-right": {
+          "samples": 2,
+          "requested_phase": "move-right",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14460866620172,
+          "window_end_ns": 14465427835927,
+          "pss_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 387559,
+            "median": 393875.5,
+            "p95": 399560.35,
+            "maximum": 400192
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 551008,
+            "median": 557058.0,
+            "p95": 562503.0,
+            "maximum": 563108
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 551608,
+            "median": 557686.0,
+            "p95": 563156.2,
+            "maximum": 563764
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 146916,
+            "median": 152658.0,
+            "p95": 157825.8,
+            "maximum": 158400
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 1028,
+            "median": 1028.0,
+            "p95": 1028.0,
+            "maximum": 1028
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 2,
+            "minimum": 270692352,
+            "median": 272531456.0,
+            "p95": 274186649.6,
+            "maximum": 274370560
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 2,
+            "minimum": 48.637232,
+            "median": 51.5127365,
+            "p95": 54.10069055,
+            "maximum": 54.388241
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 2209,
+            "last_frame": 2265,
+            "intervals": 56,
+            "seconds": 2.411371413,
+            "presents_per_s": 23.223299280275576,
+            "p50_ms": 42.72897450000001,
+            "p95_ms": 45.773281250000004,
+            "p99_ms": 48.007975800000004,
+            "max_ms": 48.73015,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 683,
+          "swapin_pages_delta": 3046,
+          "swapout_pages_delta": 0
+        },
+        "move-left": {
+          "samples": 3,
+          "requested_phase": "move-left",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14465427835927,
+          "window_end_ns": 14469994252377,
+          "pss_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 400083,
+            "median": 400179,
+            "p95": 400258.2,
+            "maximum": 400267
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 550792,
+            "median": 550792,
+            "p95": 550907.2,
+            "maximum": 550920
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 551376,
+            "median": 551376,
+            "p95": 551584.8,
+            "maximum": 551608
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 142856,
+            "median": 145040,
+            "p95": 145720.4,
+            "maximum": 145796
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 1028,
+            "median": 1028,
+            "p95": 1028.0,
+            "maximum": 1028
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 3,
+            "minimum": 270692352,
+            "median": 270692352,
+            "p95": 270692352.0,
+            "maximum": 270692352
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 3,
+            "minimum": 50.973528,
+            "median": 70.45543,
+            "p95": 72.91948330000001,
+            "maximum": 73.193267
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 2312,
+            "last_frame": 2371,
+            "intervals": 59,
+            "seconds": 2.515762733,
+            "presents_per_s": 23.452132121236886,
+            "p50_ms": 42.110975,
+            "p95_ms": 46.6763016,
+            "p99_ms": 48.23097226,
+            "max_ms": 49.229734,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 10,
+          "swapin_pages_delta": 36,
+          "swapout_pages_delta": 0
+        },
+        "map": {
+          "samples": 7,
+          "requested_phase": "map",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14469994252377,
+          "window_end_ns": 14484671318713,
+          "pss_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 421103,
+            "median": 421714,
+            "p95": 422725.1,
+            "maximum": 422801
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 540512,
+            "median": 540792,
+            "p95": 541360.0,
+            "maximum": 541444
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 541220,
+            "median": 541424,
+            "p95": 541915.6,
+            "maximum": 542044
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 84692,
+            "median": 101200,
+            "p95": 102191.6,
+            "maximum": 102308
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 1316,
+            "median": 1316,
+            "p95": 3186.0,
+            "maximum": 3192
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 7,
+            "minimum": 307666944,
+            "median": 307666944,
+            "p95": 309134950.4,
+            "maximum": 309764096
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 7,
+            "minimum": 51.581613,
+            "median": 53.827657,
+            "p95": 58.4687643,
+            "maximum": 59.573541
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 2401,
+            "last_frame": 2762,
+            "intervals": 361,
+            "seconds": 12.616155345,
+            "presents_per_s": 28.61410549633653,
+            "p50_ms": 34.007589,
+            "p95_ms": 38.003636,
+            "p99_ms": 47.03155679999999,
+            "max_ms": 103.263975,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 155,
+          "swapin_pages_delta": 249,
+          "swapout_pages_delta": 94
+        },
+        "map-return": {
+          "samples": 7,
+          "requested_phase": "map-return",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14484671318713,
+          "window_end_ns": 14499269791036,
+          "pss_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 415751,
+            "median": 416484,
+            "p95": 416952.0,
+            "maximum": 417000
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 543628,
+            "median": 544156,
+            "p95": 544696.0,
+            "maximum": 544744
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 544204,
+            "median": 544844,
+            "p95": 545419.6,
+            "maximum": 545476
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 92440,
+            "median": 95476,
+            "p95": 96951.6,
+            "maximum": 97308
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 1340,
+            "median": 1496,
+            "p95": 1496.0,
+            "maximum": 1496
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 7,
+            "minimum": 305975296,
+            "median": 305975296,
+            "p95": 305975296.0,
+            "maximum": 305975296
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 7,
+            "minimum": 45.60323,
+            "median": 49.175943,
+            "p95": 55.460180799999996,
+            "maximum": 56.85187
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 2811,
+            "last_frame": 3103,
+            "intervals": 292,
+            "seconds": 12.544655727,
+            "presents_per_s": 23.27684444711585,
+            "p50_ms": 42.4411425,
+            "p95_ms": 46.701186199999995,
+            "p99_ms": 50.562113119999836,
+            "max_ms": 59.191332,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 176,
+          "swapin_pages_delta": 262,
+          "swapout_pages_delta": 0
+        },
+        "pause": {
+          "samples": 3,
+          "requested_phase": "pause",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14499269791036,
+          "window_end_ns": 14503827221926,
+          "pss_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 420188,
+            "median": 434992,
+            "p95": 435060.4,
+            "maximum": 435068
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 524536,
+            "median": 524948,
+            "p95": 538998.8,
+            "maximum": 540560
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 525232,
+            "median": 525816,
+            "p95": 539812.8,
+            "maximum": 541368
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 85452,
+            "median": 87868,
+            "p95": 89542.0,
+            "maximum": 89728
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 12,
+            "median": 16,
+            "p95": 685.5999999999999,
+            "maximum": 760
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 3,
+            "minimum": 291024896,
+            "median": 295219200,
+            "p95": 304899686.4,
+            "maximum": 305975296
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 3,
+            "minimum": 44.302645,
+            "median": 45.233897,
+            "p95": 70.0703321,
+            "maximum": 72.829936
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 3111,
+            "last_frame": 3159,
+            "intervals": 48,
+            "seconds": 2.425701611,
+            "presents_per_s": 19.788089261404213,
+            "p50_ms": 41.093516,
+            "p95_ms": 67.61714099999998,
+            "p99_ms": 233.6879660700003,
+            "max_ms": 362.733384,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 1578,
+          "swapin_pages_delta": 6053,
+          "swapout_pages_delta": 1257
+        },
+        "pause-return": {
+          "samples": 7,
+          "requested_phase": "pause-return",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14503827221926,
+          "window_end_ns": 14517801757524,
+          "pss_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 431535,
+            "median": 432023,
+            "p95": 433430.8,
+            "maximum": 433480
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 524288,
+            "median": 525024,
+            "p95": 525613.6,
+            "maximum": 525688
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 524844,
+            "median": 525732,
+            "p95": 526326.8,
+            "maximum": 526400
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 83492,
+            "median": 95008,
+            "p95": 95647.6,
+            "maximum": 95860
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 32,
+            "median": 32,
+            "p95": 56.0,
+            "maximum": 56
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 7,
+            "minimum": 291295232,
+            "median": 291295232,
+            "p95": 297586688.0,
+            "maximum": 297586688
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 7,
+            "minimum": 48.55111,
+            "median": 50.83803,
+            "p95": 62.12035039999999,
+            "maximum": 64.984217
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 3206,
+            "last_frame": 3483,
+            "intervals": 277,
+            "seconds": 11.933668563,
+            "presents_per_s": 23.211638444428615,
+            "p50_ms": 42.54556,
+            "p95_ms": 47.136466999999996,
+            "p99_ms": 54.74754180000002,
+            "max_ms": 60.196669,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 219,
+          "swapin_pages_delta": 280,
+          "swapout_pages_delta": 368
+        }
+      },
+      "pbo_stats": [],
+      "upload_timing_diagnostics": [],
+      "astc_postcopy_hits": [],
+      "astc_fallbacks": [],
+      "bc_write_census": {
+        "total": 0,
+        "full": 0,
+        "by_path": {},
+        "by_id": {}
+      },
+      "copy_audits": [],
+      "gl_errors": [],
+      "stop_records": [],
+      "caveats": [
+        "PSS, SwapPSS, NVN pools, Mali commit and CMA overlap: no physical total is computed.",
+        "Lightweight sampler runs are memory/performance observations, not sampler-off FPS controls.",
+        "Runtime presents are not independent panel refresh measurements.",
+        "No no-swap or battle/transition coverage is inferred from action labels."
+      ]
+    },
+    {
+      "label": "upscope-b1",
+      "runtime_sha256": "273b4638cae6dd4d0cbe7d1b4a91eac9e3f68c6b758fb7ef2729a2c28e31af13",
+      "section_sha256": "49bd16718ed0dc46f16599255791c7603e8aa2b5f04898784a39d6cacb9d0722",
+      "control_save_hashes": {
+        "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+        "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"
+      },
+      "cleanup_verified": true,
+      "cleanup_warnings": [],
+      "effective_env": {
+        "WOL_PACKED4444": "1",
+        "WOL_TOP_RAWID": "none",
+        "COTM_GAME_PBUFFER": "1",
+        "T2_READBACK_OFF": "0",
+        "WOL_GUEST_RT720": "0",
+        "T2_MEMORY_FLOOR_MIB": "20",
+        "WOL_CPU_OFFSET": "4",
+        "COTM_RUN_ID": "1792365713",
+        "WOL_RGBA8_COPY": "1",
+        "T2_GZRAM_TARGET_MIB": "400",
+        "T2_LAZY_MESH": "0",
+        "COTM_INPUT_DIAGNOSTIC": "1",
+        "WOL_TOP_UV": "raw",
+        "WOL_ROMFS_COW": "0",
+        "WOL_PAIR_CHECK": "1",
+        "WOL_F191_UV": "none",
+        "T2_GZRAM_STATS_MS": "1000",
+        "WOL_UPRENDER_720": "1",
+        "COTM_PRESENT_READBACK_60": "1",
+        "WOL_GPU_RESIDENCY": "1",
+        "T2_SAVE_DIR": "/mnt/SDCARD/Roms/PORTS/wol-switch/save-laboratory",
+        "WOL_RECT_TRACE_LIMIT": "90000",
+        "WOL_COPY_AUDIT": "0",
+        "COTM_BLACK_LIMIT": "4000",
+        "WOL_QUIET": "1",
+        "WOL_RECT_TRACE": "off",
+        "WOL_PAIR_STENCIL": "1",
+        "WOL_RT_ORIGIN": "0",
+        "WOL_DRAW_TRACE": "0",
+        "MOMO_FRAME_CLOCK": "1",
+        "T2_GPU_PIPELINE": "0",
+        "WOL_UNIFORM_CACHE": "0",
+        "COTM_SINGLE_CONTEXT": "0",
+        "WOL_PROBE_SECONDS": "900",
+        "WOL_TOP_SMART": "0",
+        "WOL_COPY_EQUAL": "0",
+        "WOL_UPRENDER_TRACE": "0",
+        "WOL_F191_NOFOLDID": "none",
+        "T2_GUEST_ZRAM": "0",
+        "COTM_READBACK_PERIOD": "120",
+        "WOL_UPLOAD_SKIP": "0",
+        "T2_IMAGE_FILE_MAP": "1",
+        "WOL_GPU_TIMELINE": "0",
+        "T2_GZRAM_POOLS": "0"
+      },
+      "phases": {
+        "startup": {
+          "samples": 38,
+          "requested_phase": "startup",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14529470629851,
+          "window_end_ns": 14611770235763,
+          "pss_kib": {
+            "available": true,
+            "count": 38,
+            "minimum": 33853,
+            "median": 536095.0,
+            "p95": 656029.8,
+            "maximum": 662834
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 38,
+            "minimum": 0,
+            "median": 325908.0,
+            "p95": 497556.39999999985,
+            "maximum": 582740
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 38,
+            "minimum": 0,
+            "median": 326514.0,
+            "p95": 498108.39999999985,
+            "maximum": 583224
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 38,
+            "minimum": 30512,
+            "median": 55978.0,
+            "p95": 418896.5999999997,
+            "maximum": 718036
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 38,
+            "minimum": 0,
+            "median": 556.0,
+            "p95": 62494.599999999904,
+            "maximum": 121956
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 37,
+            "minimum": 50089984,
+            "median": 192004096,
+            "p95": 218128384.0,
+            "maximum": 218128384
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 38,
+            "minimum": 13.805436,
+            "median": 51.596470999999994,
+            "p95": 143.93143174999997,
+            "maximum": 207.867146
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 1,
+            "last_frame": 993,
+            "intervals": 992,
+            "seconds": 76.020743413,
+            "presents_per_s": 13.049069970425494,
+            "p50_ms": 30.997046,
+            "p95_ms": 63.67882479999981,
+            "p99_ms": 596.7957936200014,
+            "max_ms": 13830.129474,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 11896,
+          "swapin_pages_delta": 54059,
+          "swapout_pages_delta": 198318
+        },
+        "menu": {
+          "samples": 10,
+          "requested_phase": "menu",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14611770235763,
+          "window_end_ns": 14631793826605,
+          "pss_kib": {
+            "available": true,
+            "count": 10,
+            "minimum": 336599,
+            "median": 338030.0,
+            "p95": 339074.6,
+            "maximum": 339161
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 10,
+            "minimum": 580188,
+            "median": 581274.0,
+            "p95": 582420.4,
+            "maximum": 582568
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 10,
+            "minimum": 581020,
+            "median": 581978.0,
+            "p95": 582997.2,
+            "maximum": 583116
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 10,
+            "minimum": 246416,
+            "median": 247768.0,
+            "p95": 250037.6,
+            "maximum": 250988
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 10,
+            "minimum": 440,
+            "median": 458.0,
+            "p95": 468.0,
+            "maximum": 468
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 10,
+            "minimum": 211611648,
+            "median": 213708800.0,
+            "p95": 213708800.0,
+            "maximum": 213708800
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 10,
+            "minimum": 46.742488,
+            "median": 48.1614275,
+            "p95": 52.4793354,
+            "maximum": 54.386457
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 1053,
+            "last_frame": 1620,
+            "intervals": 567,
+            "seconds": 17.994849071,
+            "presents_per_s": 31.509016705995133,
+            "p50_ms": 31.140255,
+            "p95_ms": 34.1223646,
+            "p99_ms": 42.23208806000002,
+            "max_ms": 94.208893,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 450,
+          "swapin_pages_delta": 530,
+          "swapout_pages_delta": 0
+        },
+        "continue-load": {
+          "samples": 6,
+          "requested_phase": "continue-load",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14631793826605,
+          "window_end_ns": 14644474534908,
+          "pss_kib": {
+            "available": true,
+            "count": 6,
+            "minimum": 349946,
+            "median": 400299.0,
+            "p95": 400572.25,
+            "maximum": 400593
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 6,
+            "minimum": 551328,
+            "median": 551476.0,
+            "p95": 570215.0,
+            "maximum": 576320
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 6,
+            "minimum": 551976,
+            "median": 552256.0,
+            "p95": 570875.0,
+            "maximum": 577024
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 6,
+            "minimum": 192996,
+            "median": 193382.0,
+            "p95": 225325.0,
+            "maximum": 235444
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 6,
+            "minimum": 256,
+            "median": 256.0,
+            "p95": 415.0,
+            "maximum": 468
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 6,
+            "minimum": 212905984,
+            "median": 229048320.0,
+            "p95": 232194048.0,
+            "maximum": 232194048
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 6,
+            "minimum": 43.5664,
+            "median": 48.614304000000004,
+            "p95": 59.598935,
+            "maximum": 62.971638
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 1648,
+            "last_frame": 1958,
+            "intervals": 310,
+            "seconds": 9.916284913,
+            "presents_per_s": 31.26170765763273,
+            "p50_ms": 29.0852945,
+            "p95_ms": 32.632329350000006,
+            "p99_ms": 53.241835830000326,
+            "max_ms": 664.535892,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 3819,
+          "swapin_pages_delta": 5703,
+          "swapout_pages_delta": 0
+        },
+        "game-idle": {
+          "samples": 15,
+          "requested_phase": "game-idle",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14644474534908,
+          "window_end_ns": 14674478202731,
+          "pss_kib": {
+            "available": true,
+            "count": 15,
+            "minimum": 400918,
+            "median": 401611,
+            "p95": 402140.1,
+            "maximum": 402306
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 15,
+            "minimum": 550288,
+            "median": 550760,
+            "p95": 551221.2,
+            "maximum": 551224
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 15,
+            "minimum": 550948,
+            "median": 551400,
+            "p95": 551897.6,
+            "maximum": 551976
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 15,
+            "minimum": 197784,
+            "median": 198376,
+            "p95": 198718.4,
+            "maximum": 198780
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 15,
+            "minimum": 260,
+            "median": 268,
+            "p95": 268.0,
+            "maximum": 268
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 15,
+            "minimum": 232194048,
+            "median": 232329216,
+            "p95": 232329216.0,
+            "maximum": 232329216
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 15,
+            "minimum": 46.028029,
+            "median": 47.43774,
+            "p95": 49.387422799999996,
+            "maximum": 49.900786
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 2027,
+            "last_frame": 2966,
+            "intervals": 939,
+            "seconds": 27.97614887,
+            "presents_per_s": 33.56430523598368,
+            "p50_ms": 29.329171,
+            "p95_ms": 32.424596199999996,
+            "p99_ms": 39.06915564000001,
+            "max_ms": 96.942692,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 40,
+          "swapin_pages_delta": 236,
+          "swapout_pages_delta": 0
+        },
+        "move-right": {
+          "samples": 2,
+          "requested_phase": "move-right",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14674478202731,
+          "window_end_ns": 14679049076555,
+          "pss_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 402120,
+            "median": 409318.0,
+            "p95": 415796.2,
+            "maximum": 416516
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 538112,
+            "median": 544120.0,
+            "p95": 549527.2,
+            "maximum": 550128
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 538856,
+            "median": 544790.0,
+            "p95": 550130.6,
+            "maximum": 550724
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 177848,
+            "median": 184724.0,
+            "p95": 190912.4,
+            "maximum": 191600
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 2,
+            "minimum": 260,
+            "median": 260.0,
+            "p95": 260.0,
+            "maximum": 260
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 2,
+            "minimum": 229965824,
+            "median": 231147520.0,
+            "p95": 232211046.4,
+            "maximum": 232329216
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 2,
+            "minimum": 45.183446,
+            "median": 46.3995935,
+            "p95": 47.49412625,
+            "maximum": 47.615741
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 3015,
+            "last_frame": 3097,
+            "intervals": 82,
+            "seconds": 2.522640369,
+            "presents_per_s": 32.50562426879168,
+            "p50_ms": 30.544632,
+            "p95_ms": 32.75909925,
+            "p99_ms": 34.84135909999999,
+            "max_ms": 38.886977,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 504,
+          "swapin_pages_delta": 3026,
+          "swapout_pages_delta": 0
+        },
+        "move-left": {
+          "samples": 3,
+          "requested_phase": "move-left",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14679049076555,
+          "window_end_ns": 14683622131359,
+          "pss_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 416367,
+            "median": 416771,
+            "p95": 417005.0,
+            "maximum": 417031
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 537564,
+            "median": 537720,
+            "p95": 538069.2,
+            "maximum": 538108
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 538324,
+            "median": 538324,
+            "p95": 538802.8,
+            "maximum": 538856
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 174044,
+            "median": 177072,
+            "p95": 177572.4,
+            "maximum": 177628
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 260,
+            "median": 260,
+            "p95": 263.6,
+            "maximum": 264
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 3,
+            "minimum": 229965824,
+            "median": 229965824,
+            "p95": 229965824.0,
+            "maximum": 229965824
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 3,
+            "minimum": 47.338532,
+            "median": 47.522033,
+            "p95": 48.4184717,
+            "maximum": 48.518076
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 3163,
+            "last_frame": 3245,
+            "intervals": 82,
+            "seconds": 2.537257652,
+            "presents_per_s": 32.31835755243985,
+            "p50_ms": 30.531381,
+            "p95_ms": 34.30686825,
+            "p99_ms": 42.41701861999999,
+            "max_ms": 45.20528,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 43,
+          "swapin_pages_delta": 149,
+          "swapout_pages_delta": 0
+        },
+        "map": {
+          "samples": 7,
+          "requested_phase": "map",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14683622131359,
+          "window_end_ns": 14698259508456,
+          "pss_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 443334,
+            "median": 444304,
+            "p95": 445016.2,
+            "maximum": 445072
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 528644,
+            "median": 529464,
+            "p95": 530210.0,
+            "maximum": 530276
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 529308,
+            "median": 530300,
+            "p95": 530928.0,
+            "maximum": 530928
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 110228,
+            "median": 114092,
+            "p95": 114266.4,
+            "maximum": 114288
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 268,
+            "median": 268,
+            "p95": 268.0,
+            "maximum": 268
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 7,
+            "minimum": 265244672,
+            "median": 267476992,
+            "p95": 267476992.0,
+            "maximum": 267476992
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 7,
+            "minimum": 52.82675,
+            "median": 54.365711,
+            "p95": 60.748158399999994,
+            "maximum": 62.717974
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 3291,
+            "last_frame": 3755,
+            "intervals": 464,
+            "seconds": 12.599847101,
+            "presents_per_s": 36.825843701164764,
+            "p50_ms": 26.3633125,
+            "p95_ms": 29.999843449999997,
+            "p99_ms": 35.549952250000025,
+            "max_ms": 80.461419,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 299,
+          "swapin_pages_delta": 345,
+          "swapout_pages_delta": 0
+        },
+        "map-return": {
+          "samples": 7,
+          "requested_phase": "map-return",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14698259508456,
+          "window_end_ns": 14712861893718,
+          "pss_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 445589,
+            "median": 446424,
+            "p95": 446968.8,
+            "maximum": 447012
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 526720,
+            "median": 527332,
+            "p95": 527955.6,
+            "maximum": 528048
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 527300,
+            "median": 528036,
+            "p95": 528736.0,
+            "maximum": 528820
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 106856,
+            "median": 109424,
+            "p95": 116466.0,
+            "maximum": 116544
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 268,
+            "median": 276,
+            "p95": 276.0,
+            "maximum": 276
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 7,
+            "minimum": 271941632,
+            "median": 271941632,
+            "p95": 274038784.0,
+            "maximum": 274038784
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 7,
+            "minimum": 47.677201,
+            "median": 49.044661,
+            "p95": 51.4909823,
+            "maximum": 51.872708
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 3822,
+            "last_frame": 4238,
+            "intervals": 416,
+            "seconds": 12.552844805,
+            "presents_per_s": 33.139898283001195,
+            "p50_ms": 29.836214,
+            "p95_ms": 32.743583,
+            "p99_ms": 35.34932295000001,
+            "max_ms": 46.254032,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 279,
+          "swapin_pages_delta": 320,
+          "swapout_pages_delta": 0
+        },
+        "pause": {
+          "samples": 3,
+          "requested_phase": "pause",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14712861893718,
+          "window_end_ns": 14717441762954,
+          "pss_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 449378,
+            "median": 459922,
+            "p95": 461178.4,
+            "maximum": 461318
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 511284,
+            "median": 511424,
+            "p95": 522321.2,
+            "maximum": 523532
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 511932,
+            "median": 512180,
+            "p95": 523116.8,
+            "maximum": 524332
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 102268,
+            "median": 104436,
+            "p95": 109177.2,
+            "maximum": 109704
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 3,
+            "minimum": 400,
+            "median": 504,
+            "p95": 702.0,
+            "maximum": 724
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 3,
+            "minimum": 250884096,
+            "median": 252981248,
+            "p95": 268158156.8,
+            "maximum": 269844480
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 3,
+            "minimum": 42.605818,
+            "median": 53.808211,
+            "p95": 54.8966881,
+            "maximum": 55.01763
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 4266,
+            "last_frame": 4347,
+            "intervals": 81,
+            "seconds": 2.546180405,
+            "presents_per_s": 31.81235698811373,
+            "p50_ms": 30.670965,
+            "p95_ms": 33.42022,
+            "p99_ms": 47.27352560000007,
+            "max_ms": 65.401188,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 1014,
+          "swapin_pages_delta": 3272,
+          "swapout_pages_delta": 0
+        },
+        "pause-return": {
+          "samples": 7,
+          "requested_phase": "pause-return",
+          "scene_independently_verified": false,
+          "window_begin_ns": 14717441762954,
+          "window_end_ns": 14731400659952,
+          "pss_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 460420,
+            "median": 461250,
+            "p95": 461930.6,
+            "maximum": 462038
+          },
+          "swap_pss_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 509380,
+            "median": 510140,
+            "p95": 510803.2,
+            "maximum": 510856
+          },
+          "vm_swap_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 510084,
+            "median": 510812,
+            "p95": 511418.0,
+            "maximum": 511484
+          },
+          "mem_available_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 103408,
+            "median": 107512,
+            "p95": 108196.0,
+            "maximum": 108268
+          },
+          "cma_free_kib": {
+            "available": true,
+            "count": 7,
+            "minimum": 892,
+            "median": 892,
+            "p95": 892.0,
+            "maximum": 892
+          },
+          "mali_commit_bytes": {
+            "available": true,
+            "count": 7,
+            "minimum": 259543040,
+            "median": 259543040,
+            "p95": 259543040.0,
+            "maximum": 259543040
+          },
+          "sampler_ms": {
+            "available": true,
+            "count": 7,
+            "minimum": 46.737825,
+            "median": 49.951664,
+            "p95": 52.1320463,
+            "maximum": 52.86296
+          },
+          "frame_window": {
+            "available": true,
+            "first_frame": 4413,
+            "last_frame": 4807,
+            "intervals": 394,
+            "seconds": 11.948226237,
+            "presents_per_s": 32.97560593386678,
+            "p50_ms": 29.847089500000003,
+            "p95_ms": 32.810271199999995,
+            "p99_ms": 41.70570832,
+            "max_ms": 56.345507,
+            "caveat": "Runtime presents, not independent physical panel FPS."
+          },
+          "major_fault_delta": 206,
+          "swapin_pages_delta": 331,
+          "swapout_pages_delta": 0
+        }
+      },
+      "pbo_stats": [],
+      "upload_timing_diagnostics": [],
+      "astc_postcopy_hits": [],
+      "astc_fallbacks": [],
+      "bc_write_census": {
+        "total": 0,
+        "full": 0,
+        "by_path": {},
+        "by_id": {}
+      },
+      "copy_audits": [],
+      "gl_errors": [],
+      "stop_records": [],
+      "caveats": [
+        "PSS, SwapPSS, NVN pools, Mali commit and CMA overlap: no physical total is computed.",
+        "Lightweight sampler runs are memory/performance observations, not sampler-off FPS controls.",
+        "Runtime presents are not independent panel refresh measurements.",
+        "No no-swap or battle/transition coverage is inferred from action labels."
+      ]
+    }
+  ],
+  "comparison": {
+    "treatment": "WOL_UPRENDER_720",
+    "arm_counts": {
+      "control": 1,
+      "uprender720": 1
+    },
+    "matched_identity": true,
+    "matched_other_env": true,
+    "full_acceptance": false,
+    "caveat": "Exploratory unless repeated, scene/graph verified, physical gates passed; swap remains separately measured."
+  },
+  "performance": {
+    "phase": "game-idle",
+    "valid_arm_counts": {
+      "control": 1,
+      "uprender720": 1
+    },
+    "excluded": [],
+    "runs": [
+      {
+        "label": "upscope-a1",
+        "arm": "control",
+        "presents_per_s": 23.548808222904672,
+        "p95_ms": 45.7977703,
+        "pss_mib": 377.8447265625,
+        "swap_pss_mib": 550.7890625,
+        "mali_commit_mib": 261.66015625
+      },
+      {
+        "label": "upscope-b1",
+        "arm": "uprender720",
+        "presents_per_s": 33.56430523598368,
+        "p95_ms": 32.424596199999996,
+        "pss_mib": 392.1982421875,
+        "swap_pss_mib": 537.8515625,
+        "mali_commit_mib": 221.56640625
+      }
+    ],
+    "arms": {
+      "control": {
+        "presents_per_s": {
+          "count": 1,
+          "minimum": 23.548808222904672,
+          "median": 23.548808222904672,
+          "maximum": 23.548808222904672
+        },
+        "p95_ms": {
+          "count": 1,
+          "minimum": 45.7977703,
+          "median": 45.7977703,
+          "maximum": 45.7977703
+        },
+        "pss_mib": {
+          "count": 1,
+          "minimum": 377.8447265625,
+          "median": 377.8447265625,
+          "maximum": 377.8447265625
+        },
+        "swap_pss_mib": {
+          "count": 1,
+          "minimum": 550.7890625,
+          "median": 550.7890625,
+          "maximum": 550.7890625
+        },
+        "mali_commit_mib": {
+          "count": 1,
+          "minimum": 261.66015625,
+          "median": 261.66015625,
+          "maximum": 261.66015625
+        }
+      },
+      "uprender720": {
+        "presents_per_s": {
+          "count": 1,
+          "minimum": 33.56430523598368,
+          "median": 33.56430523598368,
+          "maximum": 33.56430523598368
+        },
+        "p95_ms": {
+          "count": 1,
+          "minimum": 32.424596199999996,
+          "median": 32.424596199999996,
+          "maximum": 32.424596199999996
+        },
+        "pss_mib": {
+          "count": 1,
+          "minimum": 392.1982421875,
+          "median": 392.1982421875,
+          "maximum": 392.1982421875
+        },
+        "swap_pss_mib": {
+          "count": 1,
+          "minimum": 537.8515625,
+          "median": 537.8515625,
+          "maximum": 537.8515625
+        },
+        "mali_commit_mib": {
+          "count": 1,
+          "minimum": 221.56640625,
+          "median": 221.56640625,
+          "maximum": 221.56640625
+        }
+      }
+    },
+    "caveat": "Descriptive distribution of per-run metrics; missing windows are not zero FPS. Different scenes/trace profiles require separate comparisons."
+  }
+}

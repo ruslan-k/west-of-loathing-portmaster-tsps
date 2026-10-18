@@ -1,0 +1,28 @@
+STARTED upscope-a1 17016
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/upscope-a1-title.png (FB ID: 161, 1280x720)
+ALIVE 17016 ONLINE 4-7
+
+SENT 17016 /tmp/cotm-input-qgFITj/buttons.sock 1 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/upscope-a1-world.png (FB ID: 160, 1280x720)
+ALIVE 17016
+SENT 17016 /tmp/cotm-input-qgFITj/buttons.sock 16384 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/upscope-a1-right.png (FB ID: 160, 1280x720)
+ALIVE 17016
+SENT 17016 /tmp/cotm-input-qgFITj/buttons.sock 4096 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/upscope-a1-left.png (FB ID: 161, 1280x720)
+ALIVE 17016
+SENT 17016 /tmp/cotm-input-qgFITj/buttons.sock 256 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/upscope-a1-map.png (FB ID: 161, 1280x720)
+ALIVE 17016
+SENT 17016 /tmp/cotm-input-qgFITj/buttons.sock 256 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/upscope-a1-return.png (FB ID: 160, 1280x720)
+ALIVE 17016
+SENT 17016 /tmp/cotm-input-qgFITj/buttons.sock 1024 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/upscope-a1-pause.png (FB ID: 161, 1280x720)
+ALIVE 17016
+SENT 17016 /tmp/cotm-input-qgFITj/buttons.sock 1024 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/upscope-a1-unpause.png (FB ID: 163, 1280x720)
+ALIVE 17016
+LEDGER_DONE 97 /mnt/UDISK/roadmap-v2-upscope-a1/ledger.jsonl
+Screenshot saved to /mnt/UDISK/roadmap-v2-upscope-a1/restored-menu.png (FB ID: 160, 1280x720)
+FINAL {"label": "upscope-a1", "owner_save_hashes": {"permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2", "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"}, "stages": [{"name": "startup", "t_ns": 14313655614841}, {"name": "menu", "t_ns": 14398180943102}, {"name": "continue-load", "t_ns": 14418193449917}, {"name": "game-idle", "t_ns": 14430862430939}, {"name": "move-right", "t_ns": 14460866620172}, {"name": "move-left", "t_ns": 14465427835927}, {"name": "map", "t_ns": 14469994252377}, {"name": "map-return", "t_ns": 14484671318713}, {"name": "pause", "t_ns": 14499269791036}, {"name": "pause-return", "t_ns": 14503827221926}], "cleanup_verified": true, "probe_sha256": "d4b20eacd0fbed611aa64d1d18afadbf37fa39f92589de259f6717c20ed7be67", "session_sha256": "6da1c13dd34a93c5933de70e5db54af449a0e85b6ebb52659eee88911ebc61bd", "launcher_sha256": "fa30af838b22e01b7a5eeeb7c4f34c4b5eaf3f67c7a984eee0ba87ba90581f3a", "layout_sha256": "ccca10790d36fdea55a4080fe3023e28d998b6f7d6e24de5b99b45f60555e587", "ordinary_title_only": false, "draw_trace": false, "phase_labels_are_requests_not_scene_classifications": true, "heavy_guest_page_sampling": false, "present_watchdog_s": 5.0, "progress_checks": 87, "control_save_hashes": {"permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2", "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"}, "runtime_sha256": "273b4638cae6dd4d0cbe7d1b4a91eac9e3f68c6b758fb7ef2729a2c28e31af13", "section_sha256": "49bd16718ed0dc46f16599255791c7603e8aa2b5f04898784a39d6cacb9d0722", "last_progress_observation": {"frame": 3476, "ns": 14517447097479, "age_s": 0.030668418}, "ledger_exit": 0, "restored_save_hashes": {"permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2", "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"}, "menu_rgb_signal_verified": true, "cleanup_warnings": [], "menu_pids": [17747]}

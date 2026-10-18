@@ -74,7 +74,11 @@ int main(void){
  assert(wol_up_handle(LC2_MAIN_BASE+0x513df8,0xa9be4ff4U,&c));
  memcpy(dims,object+32,8);assert(dims[0]==1280&&dims[1]==720);
  assert(!memcmp(object,before,32)&&!memcmp(object+40,before+40,48));
- wol_up_patch=0;wol_up_trace=0;
+ wol_up_trace=0;wol_up_patch=1;
+ assert(wol_up_site(LC2_MAIN_BASE+0x513df8,0xa9be4ff4U)==1);
+ assert(!wol_up_site(LC2_MAIN_BASE+0x513eb4,0xd10203ffU));
+ assert(!wol_up_site(LC2_MAIN_BASE+0xc8b570,0xd63f0100U));
+ wol_up_patch=0;
  assert(!wol_up_handle(LC2_MAIN_BASE+0x513df8,0xa9be4ff4U,&c));
 }
 '''
