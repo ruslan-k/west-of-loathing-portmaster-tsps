@@ -216,7 +216,7 @@ def main():
     receipt: dict = dict(label=a.label,owner_save_hashes=hashes(backup),stages=[],cleanup_verified=False,
                  probe_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                  session_sha256=hashlib.sha256(Path('/mnt/UDISK/session.py').read_bytes()).hexdigest(),
-                 launcher_sha256=hashlib.sha256((root.parent/'West of Loathing Switch.sh').read_bytes()).hexdigest(),
+                 launcher_sha256=hashlib.sha256((root.parent/'West of Loathing.sh').read_bytes()).hexdigest(),
                  layout_sha256=hashlib.sha256(a.layout.read_bytes()).hexdigest(),
                  ordinary_title_only=a.ordinary_title,
                  draw_trace=a.draw_trace,

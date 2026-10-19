@@ -45,8 +45,8 @@ ssh -o BatchMode=yes -o ControlMaster=no -o ControlPath=none root@192.168.50.135
 # 3b. Keep the device launcher byte-identical to the repository copy (single source of truth;
 #     the harness passes the diagnostic floor explicitly, the launcher default is conservative).
 ssh -o BatchMode=yes -o ControlMaster=no -o ControlPath=none root@192.168.50.135 \
-  "cat > '/mnt/SDCARD/Roms/PORTS/West of Loathing Switch.sh' && chmod a+x '/mnt/SDCARD/Roms/PORTS/West of Loathing Switch.sh' && sha256sum '/mnt/SDCARD/Roms/PORTS/West of Loathing Switch.sh'" \
-  < "$REPO/West of Loathing Switch.sh"
+  "cat > '/mnt/SDCARD/Roms/PORTS/West of Loathing.sh' && chmod a+x '/mnt/SDCARD/Roms/PORTS/West of Loathing.sh' && sha256sum '/mnt/SDCARD/Roms/PORTS/West of Loathing.sh'" \
+  < "$REPO/West of Loathing.sh"
 
 # 4. Bounded device run through the real Spruce principal flow.
 ssh -o BatchMode=yes -o ControlMaster=no -o ControlPath=none root@192.168.50.135 \

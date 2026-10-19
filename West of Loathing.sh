@@ -65,9 +65,18 @@ export MEGAMAN_PROBE_SECONDS="${WOL_PROBE_SECONDS:-0}"
 # is the runtime's speed path ("removes the per-draw texture content probing from the hot path");
 # the shader substitution, banks and counters stay intact. Diagnostics pass WOL_QUIET=0 explicitly.
 export WOL_QUIET="${WOL_QUIET:-1}"
-# Keep genuine startup proof and periodic/dark video checks; 1/2 disable them.
-export T2_READBACK_OFF="${T2_READBACK_OFF:-0}"
-export COTM_PRESENT_READBACK_60="${COTM_PRESENT_READBACK_60:-1}"
+# 2026-10-19 (owner request): ordinary play runs the QUIET release profile. AW_RELEASE=1 turns off the
+# runtime's diagnostic receipts and the remaining per-frame diagnostic prints (sprite scan, upload
+# attribution), and disables automatic video-frame dumps to the port directory. It does NOT touch
+# rendering, the shader substitution, memory behaviour or any fail-closed guard.
+# Video sampling stays "until the first image proof, then explicit captures only" (T2_READBACK_OFF=2):
+# that keeps the startup black-screen proof while removing the periodic readback that cost
+# 150-220 ms per second during play. Diagnostics override these explicitly:
+#   WOL_QUIET=0 T2_READBACK_OFF=0 COTM_PRESENT_READBACK_60=1 WOL_PROBE_SECONDS=<s> WOL_DUMP=1
+export WOL_QUIET="${WOL_QUIET:-1}"
+export AW_RELEASE="${AW_RELEASE:-1}"
+export T2_READBACK_OFF="${T2_READBACK_OFF:-2}"
+export COTM_PRESENT_READBACK_60="${COTM_PRESENT_READBACK_60:-0}"
 export COTM_READBACK_PERIOD="${COTM_READBACK_PERIOD:-120}"
 # Device-tested native precision, not reduced image dimensions or new clocks.
 export WOL_PACKED4444="${WOL_PACKED4444:-1}"
@@ -82,7 +91,8 @@ export WOL_RGBA8_COPY="${WOL_RGBA8_COPY:-1}"
 # above 20 but below 32; 20 is the only demonstrated-survivable value on this device.
 export T2_MEMORY_FLOOR_MIB="${WOL_MEMORY_FLOOR_MIB:-20}"
 export COTM_BLACK_LIMIT="${WOL_BLACK_LIMIT:-4000}"
-export WOL_PAIR_CHECK="${WOL_PAIR_CHECK:-1}"
+# One-time GLSL compile check of the hand-translated first pair. Diagnostic only: off in ordinary play.
+export WOL_PAIR_CHECK="${WOL_PAIR_CHECK:-0}"
 # 2026-10-19 (roadmap 18.2-4): the owner-accepted 720 UpRender size-only profile is the normal
 # handheld default. It rewrites only the Unity UpRender component's size fields before RenderTexture
 # creation - no docked/TV mode, no guest resolution patch, no KMS resolution change. Set

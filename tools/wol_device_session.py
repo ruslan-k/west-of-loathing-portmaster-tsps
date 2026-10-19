@@ -34,7 +34,7 @@ if mode=='start':
         shutil.copyfile(log, out/(label+'-previous.log'))
     cmd=Path('/tmp/cmd_to_run.sh')
     if cmd.exists():
-        old=cmd.read_text();assert 'West of Loathing Switch.sh' in old,('foreign handoff',old)
+        old=cmd.read_text();assert 'West of Loathing.sh' in old,('foreign handoff',old)
         (out/(label+'-previous-handoff.txt')).write_text(old);cmd.unlink()
     assert sys.argv[3] in ('0','1','normal')
     env=dict(WOL_PROBE_SECONDS='900',COTM_INPUT_DIAGNOSTIC='1',WOL_RECT_TRACE='off',MOMO_FRAME_CLOCK='1',WOL_DRAW_TRACE=sys.argv[3])
@@ -90,7 +90,7 @@ if mode=='start':
         if os.environ.get('WOL_RECT_TRACE_LIMIT'):env['WOL_RECT_TRACE_LIMIT']=os.environ['WOL_RECT_TRACE_LIMIT']
     if sys.argv[3]=='normal':env={}
     standard='/mnt/SDCARD/Emu/PORTS/../../spruce/scripts/emu/standard_launch.sh'
-    launch='/mnt/SDCARD/Roms/PORTS/West of Loathing Switch.sh'
+    launch='/mnt/SDCARD/Roms/PORTS/West of Loathing.sh'
     line='env '+' '.join(shlex.quote(k+'='+v) for k,v in env.items())+' '+shlex.quote(standard)+' '+shlex.quote(launch)+'\n'
     cmd.write_text(line);cmd.chmod(0o755);subprocess.run(['sh','-n',str(cmd)],check=True)
     os.kill(pids('MainUI')[0],signal.SIGTERM)

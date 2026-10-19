@@ -4,7 +4,7 @@ label='userflow-04'
 logs=port/'logs'/label
 assert not logs.exists(), 'label exists'
 logs.mkdir()
-launch='/mnt/SDCARD/Roms/PORTS/West of Loathing Switch.sh'
+launch='/mnt/SDCARD/Roms/PORTS/West of Loathing.sh'
 standard='/mnt/SDCARD/Emu/PORTS/../../spruce/scripts/emu/standard_launch.sh'
 cmd=pathlib.Path('/tmp/cmd_to_run.sh')
 def pids(name):

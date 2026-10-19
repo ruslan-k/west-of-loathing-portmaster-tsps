@@ -17,7 +17,7 @@ port=pathlib.Path('/mnt/SDCARD/Roms/PORTS/wol-switch')
 label=sys.argv[1]; seconds=int(sys.argv[2]); options=json.loads(sys.argv[3])
 assert label.replace('-','').isalnum() and 20<=seconds<=900
 logs=port/'logs'/label; logs.mkdir(exist_ok=False)
-launch='/mnt/SDCARD/Roms/PORTS/West of Loathing Switch.sh'
+launch='/mnt/SDCARD/Roms/PORTS/West of Loathing.sh'
 standard='/mnt/SDCARD/Emu/PORTS/../../spruce/scripts/emu/standard_launch.sh'
 cmd=pathlib.Path('/tmp/cmd_to_run.sh')
 def pids(name):

@@ -1,7 +1,7 @@
 # Device-side principal-flow diagnostic. Run via ssh python3 - < this file.
 import pathlib,os,signal,time,subprocess
 port=pathlib.Path('/mnt/SDCARD/Roms/PORTS/wol-switch')
-launch=pathlib.Path('/mnt/SDCARD/Roms/PORTS/West of Loathing Switch.sh')
+launch=pathlib.Path('/mnt/SDCARD/Roms/PORTS/West of Loathing.sh')
 cmd=pathlib.Path('/tmp/cmd_to_run.sh')
 def pids(name):
     found=[]

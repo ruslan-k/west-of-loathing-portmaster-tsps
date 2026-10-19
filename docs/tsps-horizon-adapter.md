@@ -78,7 +78,7 @@ docker run --rm --security-opt label=disable \
 
 Require a previously absent output directory. The final executable is `horizon-build-new/wol-horizon`. Exact bytes depend on compiler/source paths; the installed hash above is a deployment receipt, not a promised portable reproducible hash.
 
-`West of Loathing Switch.sh` is a **35-second diagnostic launcher**, not a playable release. It enables the cluster needed by the recovered runtime and leaves Spruce to restore its normal mask on return. It writes `wol-switch/logs/latest.log`, uses a separate laboratory save directory and exits nonzero on the unsupported shader. Test it only with authorization through the Spruce principal flow while the device is in the menu; never launch alongside another game.
+`West of Loathing.sh` is a **35-second diagnostic launcher**, not a playable release. It enables the cluster needed by the recovered runtime and leaves Spruce to restore its normal mask on return. It writes `wol-switch/logs/latest.log`, uses a separate laboratory save directory and exits nonzero on the unsupported shader. Test it only with authorization through the Spruce principal flow while the device is in the menu; never launch alongside another game.
 
 ## Remaining acceptance gates
 
