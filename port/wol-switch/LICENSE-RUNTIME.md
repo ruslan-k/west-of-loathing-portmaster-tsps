@@ -15,6 +15,6 @@ This binary contains **no game data**: no NSO segments, NPDM, RomFS content, tex
 saves or keys. At runtime it reads the owner's own `*.seg` files and `wol-romfs.section` from the
 game directory. The string constants it embeds are diagnostic names and SHA-256 identity pins.
 
-Deployed build: `ab132760de594598efe86fe08d2ac376da9f15d7c18a0e51ec230173cba23176`
-(1,978,960 bytes). The previously accepted build `b60057ea…` differs only by the release-profile
+Deployed build: `fef4f7831407e21459c51cce17e19a8474de014d2e737f695117b5f02e5525b9`
+(1,966,864 bytes). The previously accepted build `b60057ea…` differs only by the release-profile
 logging gates documented in [`../../evidence/quiet-build/README.md`](../../evidence/quiet-build/README.md).

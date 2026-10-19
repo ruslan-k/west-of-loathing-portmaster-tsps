@@ -56,10 +56,7 @@ textures, shaders or anything else extracted from the game. They are the owner's
 - 720 UpRender size-only profile by default (`WOL_UPRENDER_720=1`): measured **+9.04 / +9.99 / +6.19
   presents/s** in paired moving-world A/B runs, P95 improved 9.9–13.8 ms, process SwapPSS 35.6–45.2 MiB
   lower. Owner-accepted in real battle/cave play (32.1/31.7 fps vs 28.3/28.1 on the old profile).
-- Quiet release profile: removes the historical high-volume ~1.5 KB/frame trace in the
-  intended defaults, but **final quiet ELF ab132760… still has bounded diagnostic GL readbacks**
-  (up to 12 full-target sprite scans plus 24 multi-pixel checks). Its actual log rate and
-  gameplay behavior need device re-verification; see `evidence/quiet-build/README.md` and roadmap §19.
+- Quiet release profile: no per-frame trace, no dumps beside the game. Measured on hardware: **49 KB per session, ~1.5 KB/min** of steady play, against ~2.7 MB/min for the accepted diagnostic build (≈1800× less). Bounded GL-readback/error coupling remains unqualified; see roadmap §19.
 - Saves live in `save-laboratory/` beside the game, not in the runtime's memory.
 
 ## Known limits (honest list)
