@@ -83,6 +83,12 @@ export WOL_RGBA8_COPY="${WOL_RGBA8_COPY:-1}"
 export T2_MEMORY_FLOOR_MIB="${WOL_MEMORY_FLOOR_MIB:-20}"
 export COTM_BLACK_LIMIT="${WOL_BLACK_LIMIT:-4000}"
 export WOL_PAIR_CHECK="${WOL_PAIR_CHECK:-1}"
+# 2026-10-19 (roadmap 18.2-4): the owner-accepted 720 UpRender size-only profile is the normal
+# handheld default. It rewrites only the Unity UpRender component's size fields before RenderTexture
+# creation - no docked/TV mode, no guest resolution patch, no KMS resolution change. Set
+# WOL_UPRENDER_720=0 for a session to fall back to the previous 1080-class profile.
+# Acceptance evidence: evidence/release-720/README.md.
+export WOL_UPRENDER_720="${WOL_UPRENDER_720:-1}"
 
 # Run 43 measured the guest compactor at zero benefit for this title (compressions=0, saved=0.0,
 # scope=alias_physical only), so it stays OFF by default: the periodic scans and page-fault hooks are
