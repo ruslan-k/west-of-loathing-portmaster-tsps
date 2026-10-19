@@ -40,3 +40,7 @@ evidence/**/white-wol-gln-*.png
 
 # built fixture artifacts (source is tools/fixtures/t2_sparse_copy_fixture.c)
 *.aarch64
+
+# The distributed port ships our own GPL-3.0 runtime build (port/README.md).
+# Game-derived binaries remain ignored by the rules above.
+!port/wol-switch/wol-horizon
