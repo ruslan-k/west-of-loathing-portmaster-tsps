@@ -11,6 +11,8 @@
 
 **Latest §15 execution:** [native UpRender producer and repeated component-settings A/B](../evidence/uprender-owner/README.md) identifies the Switch IL2CPP consumer. Three 720 candidates observe **32.638 / 33.348 / 33.878 runtime presents/s** in gulch versus valid controls **24.019 / 24.226**. One attempted 1080 control freezes and is excluded, not concealed by successful cleanup. SwapPSS remains **533–552 MiB**; there is no full-game/no-swap acceptance or default promotion. See §§15.8–15.9; the original handheld and upload-skip decisions stand.
 
+**Latest §15 memory execution:** [the lowered-threshold allocator census](../evidence/alloc-min/README.md) (§15.15) closes "the arena swap hides in known ≥64 KiB SDK allocations" as **measured false** — tracked blocks hold only 38.9–83.6 MiB of a 411.6–454.6 MiB SwapPss; ~371–373 MiB lies outside every tracked block and the 1524.7 MiB arena's ~263–275 MiB unattributed share is the standing no-swap target. Nothing reclaimed; no swap/DVFS/default change.
+
 ## 1. Current measurable baseline and open gates
 
 | Measurement | Observed | Interpretation / limit |
