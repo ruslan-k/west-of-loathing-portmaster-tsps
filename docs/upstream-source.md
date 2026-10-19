@@ -16,7 +16,7 @@ Relevant native source boundaries:
 - `filesystem.h`, `save.h`, logging/audio/HID/service helpers.
 - NVN replay/texture/shader/queue headers and host NXGL integration.
 
-Our minimal CMIF SM Initialize implementation was checked against the wire layout and validation rules in `native/ipc.h` (GPL-3.0). It is deliberately narrower: unsupported services stop explicitly. None of upstream's game-specific NVN optimizations, shader catalogue or fixed game addresses has been adopted as a validated WoL implementation.
+Our minimal CMIF SM Initialize implementation was checked against the wire layout and validation rules in `native/ipc.h` (GPL-3.0). It is deliberately narrower: unsupported services stop explicitly. None of the upstream game's NVN optimizations, shader catalogue or fixed game addresses has been adopted as a validated WoL implementation.
 
 The source includes a 1536 MiB game memory budget and large address-space conventions. These are not suitable defaults to copy blindly to a 963 MiB handheld. Host/system state and guest ABI declarations must be distinguished from measured resident memory.
 

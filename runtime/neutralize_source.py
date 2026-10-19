@@ -26,6 +26,10 @@ for path in ROOT.rglob('*'):
         continue
     normalized = TITLE.sub(b'legacy_runtime', data)
     normalized = PROJECT_PATH.sub(b'upstream-source', normalized)
+    # Legacy title also occurs by itself in a few comments.  Do not change
+    # lowercase C variables naming ordinary NUL terminators.
+    normalized = re.sub(rb'\b(?:' + PREFIX.encode().upper() + rb'|' +
+                        PREFIX.capitalize().encode() + rb')\b', b'upstream', normalized)
     if normalized != data:
         path.write_bytes(normalized)
         changed += 1
