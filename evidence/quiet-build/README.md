@@ -4,6 +4,16 @@ Ordinary play must not write diagnostic volumes. The accepted `b60057ea…` runt
 per-frame line, a per-syscall trace line and a per-upload receipt; on a full SD card that is a
 real hazard (~1.5 KB/frame, ~2.7 MB/min — see `../log-volume/README.md`).
 
+**HEAD correction (f4c9b23, 2026-10-19):** the final published/deployed quiet overlay intentionally
+**restores** the bounded `WOL_SPRITE_SCAN` path (up to twelve full-target `glReadPixels` operations)
+because the diagnostic path currently consumes a pending `glGetError()`; removing the scan
+exposed a subsequent fail-closed error in `zero_texture_refresh`. The bounded
+`WOL_PAIR_PIXELS` readbacks also remain in the overlay. The paragraphs below describing
+scan suppression refer to the initial, superseded quiet-build candidate, **not** to the final
+`ab132760…` runtime. This is a GL error-ownership/correctness issue, not a measured
+steady-state FPS opportunity; see roadmap §19.2 Q2 / §19.3 P0-3. No gameplay smoke run of the
+final quiet build has been recorded here.
+
 ## What changed
 
 **Launcher `West of Loathing.sh`** (renamed from `West of Loathing Switch.sh`):
@@ -19,10 +29,11 @@ real hazard (~1.5 KB/frame, ~2.7 MB/min — see `../log-volume/README.md`).
 Every value keeps its `:-` override, so diagnostics still run with
 `AW_RELEASE=0 T2_READBACK_OFF=0 COTM_PRESENT_READBACK_60=1 WOL_PAIR_CHECK=1 WOL_DUMP=1`.
 
-**Runtime source** (published in `runtime/wol-adapter.patch`): the remaining hot-path prints are
-gated on `aw_release_mode()` — per-syscall `SVC` trace (`emit_svc`), `NVN_CALL` trace, the
-`WOL_SPRITE_SCAN` readback (a full `glReadPixels` of the target on sprite draws) and the
-`ZERO_TEXTURE_FLUSH_UPLOADED` / `ZERO_REFRESH_STATS` receipts. Fail-closed `stop()` receipts, the
+**Runtime source** (published in `runtime/wol-adapter.patch`): the main hot-path prints are
+gated on `aw_release_mode()` — per-syscall `SVC` trace (`emit_svc`), `NVN_CALL` trace and
+`ZERO_TEXTURE_FLUSH_UPLOADED` / `ZERO_REFRESH_STATS` receipts. In the final f4c9b23 overlay,
+`WOL_SPRITE_SCAN` is **not** gated: the bounded diagnostic readback currently affects GL error
+handling and must not be disabled without an independently tested error-ownership fix. Fail-closed `stop()` receipts, the
 black-screen guard, memory floor and every functional path are untouched; the game's own
 debug-string echo (svc `0x27`) still passes through.
 
