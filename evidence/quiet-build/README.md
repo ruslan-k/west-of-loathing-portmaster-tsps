@@ -30,7 +30,7 @@ debug-string echo (svc `0x27`) still passes through.
 
 - Build: `build_horizon.sh` from the manifest-pinned baseline + the regenerated overlay, in
   `pmjs-arm64-spruce-local:20261002-gcc10`; 435/435 manifest OK, patch applies cleanly.
-- New ELF **`072d07691ffe0b236d0d7243b12ec03fa2bb96dca4c933d551d3cedcd74e0bde`** (1,974,840 B).
+- New ELF **`ab132760de594598efe86fe08d2ac376da9f15d7c18a0e51ec230173cba23176`** (1,978,960 B).
 - Deployed to `/mnt/SDCARD/Roms/ports/wol-switch/wol-horizon`; the accepted `b60057ea…` ELF is
   preserved at `backups/wol-horizon.b60057ea-accepted.bak` for an immediate rollback.
 - All accepted feature markers are present in the new ELF and in `b60057ea…`
