@@ -1,7 +1,7 @@
 # West of Loathing / TrimUI Smart Pro S — FPS and zero-swap optimization roadmap
 
 **Status:** living technical plan; tested and rejected experiments are explicitly separated from proposed work.  
-**Reviewed:** 2026-10-19 against `main` `9d125e06cbdc37ffbaa4e8e9f218b66bec683353`; §§1–15 preserve the full history, but **[§16 — current resource-optimization decision](#16-resource-optimization-decision-after-the-720p-and-arena-swap-results)** supersedes historical priorities and defines detailed work/stop criteria.  
+**Reviewed:** 2026-10-19 against `main` `4e44d7c4a0d33753bdd50754d0f78781979269d7` (pre-review). **Current resource decision: [§17](#17-october-19-technical-re-evaluation-resource-roi-and-stop-rules).** §§1–15 are historical and §16 includes measured execution; §17 supersedes older ordering/priority tables on conflict. No Box64; handheld only.
 **Platform:** owner-supplied Switch Unity 5.6.5p1 ARM64/IL2CPP, native Horizon adapter, SpruceOS, Mali-G57 GLES 3.2, approximately 963 MiB RAM. No Box64.  
 **Purpose:** identify *new* experiments after the first roadmap was executed. [Historical resource studies](resource-optimization.md) and [M1/M5 measurement contracts](memory-benchmark.md) remain authoritative for their own earlier checkpoints.
 
@@ -14,6 +14,8 @@
 **Correction to latest memory interpretation:** the [readiness/lifetime audit](../evidence/allocator-history/README.md) found that the old `allocmin` phases were still splash/title, not gameplay, and that nested `Reallocate(NULL,n)` could duplicate the tracer's live pointer. §15.15's original counters are retained as historical observations, but its **complete gameplay census / decisive owner exclusion is withdrawn**. The replacement uses actual KMS title/HUD gates, unique live pointers, page unions including allocation history, and a read-only SDK span-table census. No validated no-swap acceptance exists.
 
 **2026-10-19 decision:** [§16](#16-resource-optimization-decision-after-the-720p-and-arena-swap-results) is now authoritative for *next* work. The real Unity `UpRender` 720p component change repeatedly improves measured gulch performance to ~33–34 runtime presents/s; the remaining high-value work is **stability and real-game acceptance**, not another display/NVN override. A guarded 64 MiB zero `TransferMemory` sparse copy measurably reduces swap, but hundreds of MiB remain in unattributed Unity guest arenas; speculative pool caps/page discard/VM tuning are not justified. Experimental optimizations remain default OFF pending broader acceptance.
+
+**2026-10-19 decision update:** existing `UpRender` 720p is the first repeatable whole-frame FPS improvement (+6.2 to +10.0 presents/s moving), while `T2_TRANSFER_SPARSE_COPY` is a separately repeated limited swap-pressure improvement (−44 to −75 MiB SwapPSS). The inner Unity/SDK owner census established no safe page reclaim, so **stop open-ended zero-swap research**. Prioritize full gameplay correctness/acceptance, a rare NVN command-buffer guard, then qualified 720p/sparse defaults. See [§17](#17-october-19-technical-re-evaluation-resource-roi-and-stop-rules).
 
 ## 1. Current measurable baseline and open gates
 
@@ -673,7 +675,7 @@ The large SDK blocks and Unity pool caps have already been measured. Two 192 MiB
 
 **Final recommendation:** the profitable next step is **not another broad cache, mode, or memory-limit rewrite**. It is to turn the *already measured* 720p UpRender improvement into a stable, complete gameplay build. After that, only a narrowly verified sparse TransferMemory copy and one allocator-owner investigation remain cost-justified. If no reclaimable Unity arena pages are identified, stop resource research, document that zero-swap is unmet, and prioritize correctness/port completion over progressively riskier paging hacks.
 
-### 16.10 Status log — 2026-10-20
+### 16.10 Status log — 2026-10-19 (device reports committed on October 19)
 
 **A (720p acceptance).** First full alternating series executed (six trials, frozen ELF `b60057ea…`, A-B/B-A/A-B, all clean; saves restored, Spruce recovered). Clean-window moving: **+9.04 / +9.99 / +6.19 fps** (720−1080), p95 **−9.9…−13.8 ms**, process SwapPSS **−35…−45 MiB**. World movement independently verified by phase correlation: **86/86 strong segments scroll with the pressed dpad direction**. One trial (`accept-b2`) crossed a scripted fade → guide-reveal state; its non-world windows are excluded from the moving figures (raw pool kept). **Promotion gate NOT met**: moving p95 34.4–37.9 ms (limit 33.33) and one arm at 29.02 fps; defaults unchanged. Evidence: `evidence/accept-720/`. Guide-map travel attempts (five owned runs) reached the Boring Springs approach and town center — Horsery, BAR, TRADE, HOTEL, ALICE M.D., player movement confirmed, and one sign/dialogue text box captured — but no interior/battle entry succeeded; an owner-supplied known save/route is requested for those scenes (`evidence/scene-coverage/`).
 **B (stalls).** Four >1 s gaps appeared in the acceptance series — all with major-fault bursts and MemAvailable minima of 54.7–85.4 MiB (memory-pressure page-in); none triggered the adaptive watchdog (5 s settled / 30 s transitions) and none was a deadlock. The sparse series that followed had zero gaps. No live thread/GPU snapshot exists for a sub-watchdog gap; a bounded gap-snapshot mode is the next step if gaps recur under the accepted profile. Separately, one scene-coverage run (`nav5`) ended in a **fail-closed runtime guard stop** — `STOP status=NVN_COMMAND_RECORD_SIZE … detail=0x0` (a command record whose size prefix read as zero), `WOL_RUNTIME_EXIT status=24` — about **0.9 s after entering gameplay** with normal 28–29 ms frame gaps, no memory stress at the moment (Pss 492 MB / SwapPss 445 MB / MemAvail 73 MB / flat major faults) and the full thread census plus `NVN_COMMANDS_RECORDED` state preserved in the log. The 5 s settled watchdog reported the stall 5.1 s later with the process already exited (its proc diagnostics correctly recorded the dead PID). This exact guard appears nowhere else in the collected history (17th run of the frozen ELF); the identical repeat `nav5b` was clean — **not reproduced (1/18)**, and if it recurs the first falsification A/B is `T2_LIST_RANGES=verify` against the active ranges fast-path. Evidence: `evidence/scene-coverage/`.
@@ -681,3 +683,150 @@ The large SDK blocks and Unity pool caps have already been measured. Two 192 MiB
 **D (arena owners).** Go/no-go published (`evidence/unity-arena-owners/`): no safe reclaimable owner behind the remaining swap; **zero-swap parked** per the §16.6 stop rule.
 **E.** Not triggered: no new reproducibly slow 720 scene beyond the documented stall windows.
 **F (release).** The swap-enabled qualified build remains the deliverable path; zero-swap stays **NOT ACHIEVED** and is not claimed.
+
+## 17. October 19 technical re-evaluation: resource ROI and stop rules
+
+**Reference baseline:** `main` `4e44d7c4a0d33753bdd50754d0f78781979269d7` on 2026-10-19. **Status: documentation assessment only; no new device run or runtime default enabled in this review.** This section is the current decision/implementation contract. Prior sections retain historical experiments and may describe goals now disproven. Private owner Switch game binary, IL2CPP metadata, assets and saves must never be published. No Box64, no TV/docked mode; only fixed handheld.
+
+### 17.1 The verdict — distinguish three different goals
+
+| Goal | Verified evidence | Cost-benefit conclusion |
+| --- | --- | --- |
+| **Stable playable handheld WoL in 720p** | Exact `UpRender.Awake` owner proven; three valid 720p/1080p moving pairs gain **+6.19…+9.99 runtime presents/s**, and P95 improves **9.9…13.8 ms**; one isolated A/B lowered Mali context commit **261.660→221.566 MiB** | **YES, keep working**, but on validation/stability and scene-specific tails; highest return on effort |
+| **Reduce memory pressure without disabling swap** | `T2_TRANSFER_SPARSE_COPY` eliminates one **64 MiB** truly-zero eager copy; three repeated A/B pairs show **−44…−75 MiB net SwapPSS**, moving performance within ±0.4/s | **YES, complete a finite correctness gate** and consider promotion only after real battle/interior/save-load coverage |
+| **Run all WoL scenes with swap OFF on ~963 MiB usable RAM** | ~400–500 MiB SwapPSS remains in normal runs; SDK/Unity arena census finds **no proven safely reclaimable owner** | **NO** to more deep speculative RAM archaeology. **PARK ZERO-SWAP**, do not perform unsafe swapoff, force GC/free pages or page decommit |
+
+**Release stance:** target a reliable **swap-enabled, 720p, fixed-handheld experimental port**. If quality/scene acceptance and real-world performance pass, promote it; otherwise keep an honestly qualified experimental label with exact untested scenes and tail-rate exceptions. Do not call runtime presents independently measured physical panel FPS. Do not claim `−75 MiB SwapPSS` equals `−75 MiB physical resident RAM`, or add process PSS to GPU commitment as disjoint physical totals. If the user requires strict zero-swap, the present hardware/resource contract is **BLOCKED**, not solved.
+
+### 17.2 Actual evidence at this HEAD, before deciding what to build
+
+**720p FPS and moving scene** — [accept-720](../evidence/accept-720/README.md). Frozen ELF `b60057ea…`, corrected map owner section `49bd1671…`, same save and stock effective GPU clocks. Three alternating A/B pairs differ only by `WOL_UPRENDER_720`. Verified directional scrolling: **86/86** sufficiently strong left/right hold segments move correctly. A scripted fade/guide state in B2 was excluded from real-world moving windows, not treated as movement.
+
+| Pair (720 − 1080) | Control moving presents/s | 720 moving presents/s | 720 P95 | Reproducible benefit |
+| --- | ---: | ---: | ---: | --- |
+| A1/B1 | 22.53 | 31.57 | **34.4 ms** | **+9.04/s**, P95 −13.8 ms |
+| B2/A2 | 22.97 | 32.97 | **35.7 ms** | **+9.99/s**, P95 −11.7 ms |
+| A3/B3 | 22.83 | 29.02 | **37.9 ms** | **+6.19/s**, P95 −9.9 ms |
+
+Idle, movement, guide, map/return and real KMS Spruce recovery were confirmed. Process SwapPSS fell **35.6–45.2 MiB** in paired idle windows. **Strict promotion failed:** all three moving P95 values are greater than 33.33 ms, B3 moving rate is less than 30/s, and verified actual interior/combat/save-load/physical-input/audio remain missing from this batch. The original `upowner-a2` frozen control is **invalid** for performance and has no proved cause; subsequent accepted six-arm runs did not reproduce it, but do not prove it fixed. [Native owner details](../evidence/uprender-owner/README.md), [component-only hook and watchdog](../evidence/uprender-scope/README.md).
+
+**Mechanism:** pinned native Unity IL2CPP `UpRender.Awake` `main+0x513df8`; instance fields `forceWidth+32` and `forceHeight+36` are verified 1920/1080 and rewritten to 1280/720 before normal `RenderTexture` creation. Nine *creation events*, not nine live allocations, move from 1080p to 720p. Initial three window color images and a depth buffer remain 1080p. No AMD/NVN-wide dimension lie, guest TV mode, shader patch or GL storage replacement is required.
+
+**Sparse memory** — [transfer-sparse-repeat](../evidence/transfer-sparse-repeat/README.md). The `memory.h transfer_create_locked` source supplies a wholly zero 64 MiB page-aligned buffer. Eager creation copied 64 MiB into a new anonymous VMA that later occupied ~64.1 MiB SwapPSS. Page-wise sparse copying avoids committing those pages; real 64 MiB ARM64 fixture confirms **0 KiB RSS delta for zero**, **64 KiB for 16 nonzero pages**, **64 MiB for dense**. Host source/copyback/reuse fixtures passed. In three alternating whole-route pairs the original VMA swap disappeared, net SwapPSS reduced **44–75 MiB** with no movement regression, no >1 s stalls in six runs and KMS equality at reviewed scale. **Default still OFF**: no verified actual battle/interior/save-load/long-lifetime contract.
+
+**Remaining swap and RAM stop rule** — [unity-arena-owners](../evidence/unity-arena-owners/README.md), [allocator-history](../evidence/allocator-history/README.md). SDK allocated state-1 spans have **~280/295 MiB swapped** (game-idle/precleanup). SDK nominally free state-2 spans have **~97/101 MiB swapped**, plus **~41/32 MiB resident**, but the adapter has no allocator lock, free-list metadata/alias/pointer-lifetime proof, or safe decommit ABI. Internal Unity/GC object liveness remains unknown. Historical old request census was misclassified splash/title, not gameplay; corrected 16 KiB requests hit a hard **8192-event cap**. A further lower threshold or raw VMA zeros do **not** prove reclaimable pages. Zero-swap stops under `16.6, do not reopen by default.
+
+**Reliability, not just resource rates** — [scene-coverage](../evidence/scene-coverage/README.md). User input reached Boring Springs approach and town center, visible HORSERY/BAR/TRADE/HOTEL/ALICE M.D., and one true interaction/dialogue; **no interior or battle in this route**. One `nav5` trial (1 observed in 18 relevant frozen-ELF runs, not an inferred population crash rate) exited with fail-closed `NVN_COMMAND_RECORD_SIZE`: record-size prefix zero, guest caller `main.text.seg+0xaf2c0c`, exit 24, ~0.9 s after game entry. At that moment frames were ~28–29 ms apart, major faults flat, process PSS ~492 MiB, SwapPSS ~445 MiB and MemAvailable ~73 MiB: **do not label this OOM or paging-stall without evidence**. Identical route `nav5b` finished cleanly. Separately, four >1 s gaps in the moving A/B coincided with major-fault bursts and MemAvailable minima of ~55–85 MiB; **these are a different, likely page-in-related mechanism**. Sparse six-arm repeat had zero such gaps, which is promising but not causal proof.
+
+### 17.3 Resource work decision matrix: expected value versus risk
+
+| Rank | Work | Evidence-based potential | Cost/risk and decisive stop |
+| --- | --- | --- | --- |
+| **P0 A** | Freeze/qualify **current UpRender 720p**, no further RT scaling | **Real repeatable +6…10 presents/s moving**, smaller measured GPU commitment in isolated pair | Moderate quality/lifetime risk; **GO now** until scene correctness, P95/stability are known |
+| **P0 B** | Reproduce **interior, real combat, save/load, input/audio** with owner-known route/save; investigate NVN record stop only as appropriate | Resolves the real release blocker | Correctness highest priority; **GO now**, stop blind input scripts |
+| **P1 C** | Complete **existing sparse TransferMemory** full-lifetime qualification | **Net −44…−75 MiB SwapPSS** in 3 pairs, no measured FPS cost | Low/medium memory-contract risk; **GO finite**, then promote or leave OFF |
+| **P1 D** | Trace **new/repeated >1 s frame gaps** and page faults in actual 720p; targeted long-tail fix | Real user-visible stutter | **Conditional** on recurrence; targeted cause only, no generic major memory rewrite |
+| **P1 E** | Targeted *720p-scene* GPU pass/CPU bottleneck if moving P95 really unacceptable | May recover remaining 1–5 ms P95, **unproven** | Moderate and uncertain; **defer until all real-scene tests** |
+| **P2** | Real OPP/DVFS sweep | One 1080 run at 600 MHz 26.54/s vs 150 MHz ~23.5/s | Battery/heat unknown; 720p already near 30; **defer, no forced clocks** |
+| **P2** | Post-copy ASTC for proved immutable groups | Only ~2.5–4.9 MiB lower idle Mali commitment in 3 previous paired groups | Small gain/quality risk; **not general RAM solution** |
+| **NO-GO** | Guest SDK/free-span decommit, anonymous page release, GC arena discard, launch Byte[] free | No safe owner, weak physical benefit, high corruption risk | **STOP**; owner-approved real free contract required to reopen |
+| **NO-GO** | Another generic render state/cache/PBO/VBO/upload/alias rewrite | Tested no whole-frame benefit, or producer/destination pixels provably differ | **STOP** until an entirely new 720-scene bottleneck is identified |
+| **NO-GO** | TV mode, `WOL_DISPLAY_MAX` as a resolution fix, or unconditional NVN 1080→720 patch | Runtime already handheld, UpRender is actual dynamic-size owner | **CLOSED**, no display-mode selector |
+
+### 17.4 P0 A — exact 720p release-engineering work breakdown
+
+**Current status:** the size-only native hook is implemented, measured, default OFF. **Not yet accepted as the release default**.
+
+1. **Pin build and private owner identity.** Re-verify full `main.text` SHA, IL2CPP metadata-v23 join, `UpRender.Awake` at `main+0x513df8`, `UpdateTexture` at `main+0x513eb4`, instance fields +32/+36, and exact old values 1920/1080. The only enabled native instrumentation in trace-off 720 arms must be the intended Awake hook. Unknown game version, wrong method bytes, bad object/field or conflicting `WOL_GUEST_RT720=1` must **fail closed**, never perform partial writes or modify other Unity components. Maintain original ELF/section/save backup + rollback.
+2. **Freeze a stable benchmark binary.** Same complete game/owner section/save/launcher, all resource/cache clocks equal. Compare `WOL_UPRENDER_720=0` vs `1` with `WOL_UPRENDER_TRACE=0`, `WOL_RT_ORIGIN=0`, `WOL_GPU_TIMELINE=0`, `WOL_UPLOAD_SKIP=0`, sparse OFF, normal CPU/GPU policy. Attach every **effective environment** and actual clocks. Use verified scene readiness, not fixed delays that previously labeled splash/title as gameplay.
+3. **Build *real-scene* fixtures.** Preserve original owner saves; request cloned known-good interior and pre-battle saves or an owner-demonstrated deterministic route. Existing guided town door attempts did **not** enter interiors. Accept only screenshots plus real content/scene IDs and player motion as proof, not a sent A/ZL action label. Make a route corpus for: fresh/CONTINUE, moving Gulch, map with five places + NEW tags, town dialogue, actual interior, real combat, inventory/character creation if available, pause, save/load/restart and repeated world↔interior.
+4. **Validate picture and game semantics.** Compare same-save KMS frames to control/reference; verify PC/Cactus Bill skinned sprites and alpha, WANTED stencil, map paper, all markers/text/NEW tags, world depth and outlines, UV scaling, dialog, inventory and combat HUD. Historical texture repack **broke actual map pixel-space coordinates** until repaired, so a complete but shifted screen is a functional regression. Animation can differ between arms; use semantic/region comparisons and known input transitions instead of demanding byte-identical whole frames.
+5. **Audit whole render-target lifecycle.** Distinguish creation count vs **simultaneously live** images, actual GL allocation vs requested NVN dimensions; check camera color/depth/MSAA, remaining initial 1080 window+depth objects, FBO completeness, downsample/copy regions, shader texel-size inputs, viewport/scissor, CPU view reads and context switching. **Never globally force remaining 1080 target metadata to 720** without a proven consumer path and exact pixel/layout contract.
+6. **Valid repeated performance.** Existing moving A/B already proves a real win. Repeat across **new verified interior/battle** scenarios (at least 3 alternating valid pairs for any new causal improvement claim), P50/P95/P99, presents/s, gaps >100 ms and >1 s, VM major faults/swap I/O and actual clock + thermal profile. **Strict goal:** ≥30/s and P95 ≤33.33 ms in each designated representative gameplay scene. Missing windows, scripted map state and dead render thread must be marked failed/unknown, never silently omitted from acceptance.
+7. **Long-game/owner acceptance.** Test real buttons/dpad/sticks, sound playback, physical SAVE→QUIT→LOAD, return to Spruce MainUI and at least one extended mixed-scene route. PID liveness/audio/HID logs alone do not establish progressing frames. Keep adaptive watchdog **5 s settled gameplay / 30 s transitions**, exact owned PID/start-tick and bounded recovery receipts.
+8. **Promote or explicitly qualify.** If visual/lifecycle/scene acceptance passes and strict FPS target repeats, enable 720 size-only default in normal handheld launcher. If quality is good but moving P95 remains ~34–38 ms or a scene is 29/s, prefer an **honest experimental label with scene exceptions** over unsafe further downscaling or GPU overclocking. If a concrete scene breaks, freeze FPS work until its specific producer/texture-lifetime bug is fixed.
+
+**Deliverable:** `evidence/release-720/README.md` containing exact build and private-hash references, per-scene pass/fail matrix, same-save KMS captures, P50/P95/P99, long gaps, physical input/audio/save receipt, regressions vs 1080 and explicit *default OFF/ON* decision. Do not claim this artifact exists yet.
+
+### 17.5 P0 B — rare NVN command-record stop: investigate by evidence, not disabling guards
+
+**Known event:** `nav5` ended on a zero-size record-prefix guard `NVN_COMMAND_RECORD_SIZE`, exit 24; identical `nav5b` finished. This was **not** accompanied by a page-fault burst or growing frame times. One isolated event does not prove a race, but an invalid command prefix can signify buffer lifetime/order corruption and is more critical than a marginal performance optimization.
+
+1. Preserve a minimal metadata-only failure receipt: pinned command buffer handle/**generation**, writer/replayer thread identity, arena address range (redacted or offset-only), producer/replay cursors and last accepted record offsets/sizes, ordered timestamps, FBO/EGL context and `NVN_COMMANDS_RECORDED` counts. Do not publish proprietary command records or owner guest bytes.
+2. Distinguish plausible causes: uninitialised prefix, producer publication before payload, premature reuse, concurrent write, incorrect mapped-region fast path, record overwrite or wrong arena bounds. **Do not assert any as root cause until a before/after invariant fails**.
+3. Run a **finite** exact-build, exact-save `nav5` reproduction set, keeping clean and failed receipts and requiring actual scene readiness. Never turn fatal guard into a warning, never synthesize a record size or let replay run past a zero prefix.
+4. If reproduced, first run the targeted `T2_LIST_RANGES=verify` A/B against active `ranges` mode, checking per-read pointer bounds, page/span lookups and release/reuse. If no mismatch, add bounded producer-publication ordering/generation checks at the actual failure owner. No blanket locking of all command recording without measured need.
+5. If clean finite repeats do not reproduce, keep it documented as **rare, unconfirmed** and monitor owner-visible runs; do not launch indefinite stress work. Escalate immediately for a reproducible crash, scene-specific trigger, save corruption or multiple independent occurrences.
+6. Mandatory recovery: exact owner PID/start-time checked before intervention, maintain save hashes, capture true STOP vs watchdog-detected dead PID, restore visible Spruce. A process exit is **not** a GPU hang.
+
+### 17.6 P1 C — sparse TransferMemory: final compatibility and promotion gate
+
+**Current candidate:** `T2_TRANSFER_SPARSE_COPY=1`, opt-in/default OFF. It is a correct-copy optimization for a particular fully zero **TransferMemory input at creation**, **not** decommit or global guest-memory deduplication.
+
+1. Recheck pinned source `native/memory.h` and serialized owner version: source bytes at transfer creation, alignment/page size, fresh zero-filled private destination, map failure fallback, handoff/protection, concurrent CPU writes, aliasing, second creation and full `transfer_release_locked` copyback semantics. Existing host/device tests cover all-zero, 16-page sparse, dense, read/write, double creation and copyback; don't replace byte-exact comparison with hashes.
+2. Before timing, add only light bounded counters of transfer identity, pages scanned/copied/skipped, later write/dirty pages, copyback count and eventual resource destruction. Do **not** print data or perform heavy `smaps` during 720p FPS arms. Verify the expected 64 MiB input was zero **at that exact handoff** in each candidate.
+3. Repeat OFF/ON with **720p fixed ON** in real battle, interior, save/load, restart and extended travel; at least one owner-known route, not the previous town entrance guesswork. Ensure scene progress, controller/audio/save correctness and GL error/stop absence, not only same final KMS map.
+4. Collect separate per-VMA and net **process SwapPSS**, PSS and resident peak, global MemAvailable/CmaFree, swapin/out, major faults and time-to-first-responsive-gameplay. A lower SwapPSS is useful but does not automatically imply fewer peak physical bytes; interpret resource-accounting overlap explicitly.
+5. **Promote only** with correct bytes, lifetime and true route parity and a repeated lower peak-memory-pressure or swap-cost signal with no frame-tail/load regression. If any alias/mapping/release case fails, retain original eager copy as reliable fallback and leave default OFF.
+6. **Stop there.** Do not generalise to all buffers, whole-guest sparse page protection, glibc allocator replacement or ad hoc mmap decommit without a distinct observed bottleneck and new owner/lifetime proof.
+
+### 17.7 P1 D/E — target the actual remaining jitter only after scene acceptance
+
+First 720 acceptance saw **four >1 s gaps** with major-fault spikes and ~55–85 MiB MemAvailable. Sparse repeats saw **none**, but six runs are insufficient to claim eliminated stutters. A different `nav5` command guard with flat major faults must be separately classified.
+
+- **Trigger-only lightweight diagnostics:** when a verified gaming frame gap exceeds ~1 s, record monotonic frame/input/asset-load phase, delta process major faults and global swap I/O, MemAvailable/CmaFree, actual CPU/GPU clocks, recent EGL/GL submission completion and threads' current waits. Keep reader overhead quantified; do not use destructive `glFinish` or page-by-page scans in ordinary speed arms.
+- **Separate five cases:** expected load/transition, swap/page-in pressure, renderer/GPU wait, input routed to an already-open map/guide, and process exit on STOP. Actual current 720 P95 of 34.4–37.9 ms is a **different scale** from 1–3 s page-in stalls; optimize both only when each has a causal trace.
+- **If CPU/VM faults dominate:** investigate one live identified asset-read/scene-switch owner; bounded prefetch might shift cost earlier without reducing memory use. No `mlock`, global `vm.swappiness` or speculative pinned page sets. Record peak CMA and major faults before accepting any prefetch.
+- **If GPU dominates:** the existing [`EXT_disjoint_timer_query` pass profiler](../evidence/gpu-pass-timeline/README.md) samples only ordinals 0–7 of roughly 24 switches; a ~10 ms zero-draw pass is not proof of removable work. Expand with nonblocking, disjoint-aware measurements **only for that measured slow 720p scene**, then audit load/store/clears/texture copies before any GLES FBO change.
+- **If CPU draw path dominates:** sample the bounded `a2c1` sampler, shader/constant and VBO path under the *720p profile*. Old 1080p bottlenecks need not survive. `WOL_UNIFORM_CACHE` has a census (45.8% repeated), not a proven frame gain; allow one quick existing on/off test only if uniform upload cost is still material.
+- **Stop criterion:** no reproducibly slow user-visible scene or measured >noise P50/P95 improvement => **no new renderer subsystem**. If one critical scene is slow, implement the smallest safeguarded correction and run at least 3 matched A/B pairs with pixel, timing and memory parity.
+
+### 17.8 Explicit memory NO-GO: why further deep allocation research is poor ROI
+
+| Idea | Measured reason for closure | Reopen only with |
+| --- | --- | --- |
+| `madvise(MADV_DONTNEED)` over SDK free-span pages | ~32–41 MiB *resident* in sampled state-2 free spans; no allocator lock/free-list/alias contract; losing metadata can corrupt allocator | Proven allocator-mediated whole-page free, unobservable to owners/GPU and recoverable on next allocation |
+| Discard state-1 allocated pages | ~280–295 MiB swapped in allocated spans; they remain owned | A real free/lifetime event, not idle age or swapped-out status |
+| Drop 144 MB Unity launch `Byte[]` | GC later recycles/reuses its segment; original content address re-used | Owner-level GC and last-access evidence of a truly detached segment |
+| Shrink two 192 MiB BufferPool/TexturePool caps | Huge virtual reservations but only much smaller resident footprints | Demonstrated resident pressure in the pool, not virtual size |
+| `WOL_ROMFS_COW` or arbitrary file-mapped asset copy | Unity dirties most pages; previous swap remained large | New source owner with truly immutable mapped content |
+| More atlas/mip promotion | M4 cut broke map pixel-space until repaired; some UI/combat sprites have sensitive logical pixel dimensions | Owner-approved measured OOM + safe exact Sprite/text/camera parity |
+| GPU texture eviction/sharing | ~7.1 MiB safely rebuildable at one measured game point; no remaining exact compatible host-name view alias groups in observed census | Proven safe recovery source and significant active committed memory |
+| New ASTC post-copy expansion | ~2.5–4.9 MiB driver commit savings in idle group A/B, no whole-game FPS rescue | A new real constrained GPU scene and net headroom benefit incl. CPU cache costs |
+| Run swap-disabled cold boot now | Hundreds MiB swapped while current safe-reclaim inventory is zero; historical CMA ~0 | A **new, proven** physical high-water saving large enough plus owner-approved safe rollback |
+| Lower SDK trace threshold or log every allocation | Corrected 16 KiB trace is incomplete at 8192 entries, detailed owners remain unjoined | A specific symbolised inner allocator with complete lifetime/locking proof |
+
+**Formal stop policy:** `evidence/unity-arena-owners/` already completed the bounded owner go/no-go; result **NO safe owner**. This satisfies `16.6's termination rule. Do not create a third "last try" memory profiler without a new observed *allocator* free contract, bytes and measured peak-headroom estimate. Under a strict no-swap requirement, the next rational choice is **different hardware/RAM budget or a reduced game scope**, not unsafe Linux VM calls. Swapped pages are not automatically resident, and large swapped-byte numbers alone cannot quantify swapoff's exact failure margin.
+
+### 17.9 Acceptance, CI and artifact requirements
+
+| Gate | Evidence needed | Explicit status on 2026-10-19 |
+| --- | --- | --- |
+| Fixed owner build | Source/overlay hash, original executable `main.text` and metadata v23, elf/section/save SHA, fail-closed hook tests, no wrong-build patch | Available in experiment receipts; redo for final release candidate |
+| Real moving world + guide/map | KMS reference/parity, verified world scroll, 720p P50/P95/P99, no black/false UI scene | **Done for Gulch** in six 720 A/B arms, *not strict P95 accepted* |
+| Town travel + dialogue | Correct input route, changed world/interaction screenshot, user input source | **Town center and one real dialogue captured** |
+| Interior and battle | Owner-known save/route, verified gameplay state (not action request), pixel/UI and FPS, transitions | **MISSING** |
+| Save/load and physical buttons/audio | Normal user controls, disk hashes, audio checks, recovery of game and Spruce | **MISSING as a full release acceptance** |
+| Stability / rare NVN stop | Bounded owned-process repeat/monitor, actual STOP/stack/cursor/guard receipt; no gameplay frozen silently | **One rare fail-closed nav5 stop, nav5b clean**, not proven root cause |
+| 720p performance | **≥30 presents/s + P95 ≤33.33 ms** in independently verified *representative* scenes at stock clocks, no moving-window cherry-picking | **Not met** in all moving arms (P95 34.4–37.9; one 29.02/s) |
+| Sparse lifecycle | Host+device byte tests, real battle/save/route parity, 3+ valid pairs per new claim, net PSS/SwapPSS/VM | **3 Gulch pairs passed**, full scene lifecycle missing |
+| Recoverable no-swap | Swap disabled **before** boot, real physical CMA/OS peak + fully safe rollback, no OOM | **PARKED/NOT ACHIEVED; not safe to test now** |
+
+**Protocol details:** distinguish requested action labels from verified scenes, replayed/out-of-phase fades from movement, and KMS signal from content correctness. Preserve failed arms. Use one pinned ELF, one flag variable per pair, ≥3 valid alternating A/B pairs for new claims, actual host CPU/GPU clocks, full interval statistics, explicitly timed collector overhead and aligned per-phase VM samples. Never add `PSS + Mali commitment` as disjoint RAM. Save/section untouched, owners' PID/starttime verified, original data backed up, visible Spruce MainUI restored.
+
+**Code and CI:** existing [`.github/workflows/native-probe.yml`](../.github/workflows/native-probe.yml) runs source/overlay syntax, frozen native build, synthetic memory tests, QEMU ARM64 native traps. Retain these; add small data-free regression cases for any new `nav5` guard diagnosis, sparse-copy lifecycle/failure fallback and 720 size-hook version mismatches. No game binary, captured owner asset or private shader in git. CI **cannot replace** real TSPS graphical/audio/save acceptance.
+
+### 17.10 Go/stop sequence and deliverable definition (no deadline guessing)
+
+| Next step | Exact deliverable | End of this line of work |
+| --- | --- | --- |
+| **1. 720 candidate identity** | Frozen size-only/trace-off ELF and full version guard; section/save and source-parity receipt | If reproducibility fails, **stop new perf tuning** |
+| **2. Scene and stability gap** | Owner-confirmed interior & real battle inputs, town/world travel, inventory, audio, saves, watchdog, command-record monitor | If scene cannot be reached, record **UNTESTED**; don't make full-play claim |
+| **3. Sparse TransferMemory finish** | Data/lifecycle checks during those scenes + peak and per-VMA ledgers, paired OFF/ON | Promote only on byte- and lifecycle-correct repeatable gain; otherwise leave OFF |
+| **4. Final 720 P95** | Trace-off FPS distribution and verified gameplay scene list, only then targeted GPU/CPU/VM bottleneck | Correct, small fix if causal and >noise; otherwise document tolerated experimental exceptions |
+| **5. Release gate** | Stable handheld 720p normal Spruce launcher, same-save reference KMS, physical inputs/audio, save-load and clean return | Ship/label *swap-enabled experimental* if agreed; never advertise zero-swap |
+| **6. Memory deep-optimization** | **No further task**; `unity-arena-owners` already ends with NO-GO | Reopen only on newly proven *real free pages* at needed physical peak; no speculative arena work |
+
+**Stopping point for optimization:** once the 720p route is sufficiently correct and responsive and sparse TransferMemory has an explicit promotion/rollback decision, **freeze resource settings**. Continued effort should be ordinary game compatibility/testing, not further unbounded cache, allocator, VM, Vulkan, GPU-clock or texture alias exploration. Only a reproducible user-visible slow scene/OOM, a new safely owned reclaimable segment or a correctness failure should reopen that specific path.
+
+**Answer:** **continue the bounded port qualification work, not an open-ended resource-reduction campaign.** The highest-leverage frame-time win and one genuine memory-pressure optimization already exist; the remaining blockers are primarily correctness and coverage.
