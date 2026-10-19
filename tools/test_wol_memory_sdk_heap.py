@@ -30,6 +30,11 @@ class SDKHeapSpanCensus(unittest.TestCase):
         with self.assertRaises(ValueError):walk_spans(read,BASE,65536)
         image,read=self.fixture();struct.pack_into('<Q',image,0x220,0)
         with self.assertRaises(ValueError):walk_spans(read,BASE,65536)
+    def test_reserved_metadata_state_three_is_not_free(self):
+        image,read=self.fixture();image[0x213]=3
+        doc=walk_spans(read,BASE,65536)
+        self.assertEqual(doc['spans'][0]['state'],3)
+        self.assertFalse(doc['reclaim_safe'])
     def test_page_table_bounds_and_state_guard(self):
         image,read=self.fixture();struct.pack_into('<Q',image,8,BASE+65536-1)
         with self.assertRaises(ValueError):walk_spans(read,BASE,65536)

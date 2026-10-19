@@ -61,12 +61,40 @@ acceptance is inferred here.
   lacked the not-yet-recorded runtime hash. Both harness issues are corrected: tolerate
   missing initial scanout under the common 300s deadline, and pin artifact hashes before
   waiting for readiness. No gameplay/memory win is inferred from this failed attempt.
-  `allocfix16b` is the replacement owned run; its result is pending at this checkpoint.
+  `allocfix16b` is the replacement owned run. It reached the real title, gulch gameplay,
+  actual five-marker map and world return, and restored unchanged owner saves + visible
+  Spruce without cleanup warnings. Its 16 KiB trace reached **8,192 events and explicit
+  incomplete=1**; it is NOT a complete live-allocation census. A one-off extra bounded
+  A request (`boot-advance`) was sent during this diagnostic and is preserved, so this
+  is not a standardized performance arm. Do not lower the trace again without a bounded
+  inner-allocator owner join, per the new roadmap §16.
+- SDK metadata spans use state **3**, explicitly written by Init at SDK +0x7d978.
+  The first SDK observer correctly refused the unknown state; the corrected observer
+  accepts 3 as non-free metadata/other, still rejects unknown states, and never treats
+  it as state-2 free ownership. Its data-free regression reproduces the refusal first.
+- `sdkbase1`: same ELF, all allocation/UpRender tracing and size change OFF. Independent
+  KMS title/HUD gates reached gameplay; the map and return are captured. Both SDK samples
+  have an unchanged header and zero descriptors changed at reread. Sequential snapshot
+  costs were **4.939 / 2.975 s**; this is a heavy diagnostic, NOT a timing/control arm.
+  State-1 large spans account for **280.09 / 294.81 MiB swapped**, while state-2 spans
+  retain **41.48 / 32.33 MiB present** and **96.69 / 101.06 MiB swapped** at game-idle /
+  precleanup. State-2 is an SDK classification, NOT a proven safe release contract:
+  locks, aliases and GPU/after-frame lifetime are not established. No page is discarded.
+  `sdk-summary.json` preserves all state counts and raw snapshot SHA256; large JSON
+  snapshots are byte-exact gzip-compressed. Source and saved-run identity remain pinned.
+
+The old directly hooked request census cannot exclude current SDK-owned pages: actual
+SDK spans and old hook requests measure different things, and the old captures were
+not gameplay. This closes the instrumentation correction, not inner Unity/GC liveness.
+The updated roadmap **§16 at 78167a9 takes priority**: stop expanding this diagnostic,
+proceed with 720p trace-off acceptance, and park unsafe memory release/no-swap claims.
 
 ## Validation
 
-74 memory/helper tests pass locally, including initial missing-framebuffer retry
-and exact PID refusal, real-image positive/negative readiness
+83 memory/helper tests pass locally, including bounded A/B protocol/host-input guards,
+adaptive 5s-settled/30s-transition
+budgets, checks during input-helper waits, exact helper cleanup, SDK metadata-state 3,
+initial missing-framebuffer retry and exact PID refusal, real-image positive/negative readiness
 fixtures, compiled original SDK instruction replay + nested realloc uniqueness,
 page-union/freed/reused/short-read/overflow guards and span-pointer/extent/state bounds.
 No swap/DVFS/default policy changed. No page discard or guest code call was introduced.

@@ -13,7 +13,7 @@ import subprocess
 import sys
 from wol_memory_benchmark import stop_owned
 from wol_memory_profile import stat_identity
-from wol_present_watchdog import PresentationStall, require_progress
+from wol_present_watchdog import PresentationStall, require_progress, phase_budget, run_monitored
 import time
 import struct
 import zlib
@@ -184,6 +184,7 @@ def main():
     ap.add_argument('--guest-pages',action='store_true',help='heavy diagnostic pagemap snapshots; not an FPS benchmark')
     ap.add_argument('--draw-trace',action='store_true',help='per-draw tracing for one short screen (heavy log, not an FPS arm)')
     ap.add_argument('--present-watchdog',type=float,default=0,help='opt-in 5..30s present-progress budget; requires MOMO_FRAME_CLOCK=1')
+    ap.add_argument('--settled-watchdog',type=float,default=0,help='optional stricter 5s gate only during verified settled gameplay; transitions retain present-watchdog budget')
     ap.add_argument('--stall-gdb',action='store_true',help='on stall only: bounded backtrace of the exact owned PID, no memory dump')
     ap.add_argument('--block-pages',action='store_true',help='read-only pagemap residency of >=4MiB live WOL_ALLOC blocks at game-idle and before cleanup')
     ap.add_argument('--vma-swap',action='store_true',help='read-only per-VMA Pss/SwapPss census at game-idle and before cleanup')
@@ -192,10 +193,13 @@ def main():
     a=ap.parse_args()
     if a.present_watchdog and (not 5<=a.present_watchdog<=30 or a.ordinary_title):
         ap.error('watchdog requires diagnostic mode and a finite 5..30 second budget')
+    try:phase_budget(False,a.settled_watchdog,a.present_watchdog)
+    except (TypeError,ValueError) as error:ap.error(str(error))
     route=json.loads(a.route.read_text()) if a.route else None
     if route is not None:
         if not isinstance(route,list) or not 1<=len(route)<=24:ap.error('route must have 1..24 actions')
         for action in route:
+            if not isinstance(action.get('settled',False),bool):ap.error('settled must be an explicit boolean')
             if not action['label'].replace('-','').isalnum() or not 1<=action['hold_ms']<=2000 or not 1<=action['wait_s']<=30:
                 ap.error('invalid route action')
             if int(action['buttons'],0)&0xc00==0xc00:ap.error('exit chord refused')
@@ -219,17 +223,21 @@ def main():
                  phase_labels_are_requests_not_scene_classifications=True,
                  heavy_guest_page_sampling=a.guest_pages)
     receipt['present_watchdog_s']=a.present_watchdog
+    receipt['settled_watchdog_s']=a.settled_watchdog
     receipt['progress_checks']=0
     ledger=None
     launch=None
     owned=None
-    def stage(name):
+    phase_settled=False
+    def stage(name,*,settled=False):
+        nonlocal phase_settled
+        phase_settled=settled
         (out/'phase.txt').write_text(name)
-        receipt['stages'].append(dict(name=name,t_ns=time.monotonic_ns()))
+        receipt['stages'].append(dict(name=name,t_ns=time.monotonic_ns(),settled_watchdog_context=settled,
+            watchdog_budget_s=phase_budget(settled,a.settled_watchdog,a.present_watchdog)))
         (out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
     def cmd(*args):
-        subprocess.run([sys.executable,'/mnt/UDISK/session.py',*args],check=True)
-        check_progress()
+        run_monitored([sys.executable,'/mnt/UDISK/session.py',*args],check_progress)
     def stall_diagnostics(error):
         receipt['failure']=dict(kind='presentation-stall',observation=error.observation)
         dest=out/'stall';dest.mkdir(exist_ok=True)
@@ -264,7 +272,8 @@ def main():
         with log.open('rb') as f:
             f.seek(0,2);f.seek(max(0,f.tell()-262144));tail=f.read(262144).decode(errors='replace')
         try:
-            receipt['last_progress_observation']=require_progress(tail,time.monotonic_ns(),a.present_watchdog)
+            budget=phase_budget(phase_settled,a.settled_watchdog,a.present_watchdog)
+            receipt['last_progress_observation']=dict(require_progress(tail,time.monotonic_ns(),budget),budget_s=budget)
             receipt['progress_checks']+=1
         except PresentationStall as e:
             try:stall_diagnostics(e)
@@ -430,17 +439,17 @@ def main():
             if time.monotonic()>=scene_deadline:raise RuntimeError('CONTINUE did not reach verified gameplay HUD within 180s')
             pause(5)
         receipt['observed_gameplay_hud']=True
-        stage('game-idle');pause(30)
+        stage('game-idle',settled=True);pause(30)
         sample_blocks('game-idle')
         sample_vma('game-idle')
         if route is not None:
             receipt['route_sha256']=hashlib.sha256(a.route.read_bytes()).hexdigest()
             for action in route:
-                stage(action['label'])
+                stage(action['label'],settled=action.get('settled',False))
                 cmd('press',action['buttons'],str(action.get('stick',0)),str(action['wait_s']),action['label'],str(action['hold_ms']))
         else:
-            stage('move-right');cmd('press','0x4000','0','4','right','1500')
-            stage('move-left');cmd('press','0x1000','0','4','left','1500')
+            stage('move-right',settled=True);cmd('press','0x4000','0','4','right','1500')
+            stage('move-left',settled=True);cmd('press','0x1000','0','4','left','1500')
             stage('map');cmd('press','0x100','0','4','map','180');pause(10)
             stage('map-return');cmd('press','0x100','0','4','return','180');pause(10)
             stage('pause');cmd('press','0x400','0','4','pause','180')

@@ -40,7 +40,8 @@ def walk_spans(read,base,max_bytes=MAX_HEAP) -> dict[str,Any]:
         if len(raw)!=48:raise ValueError('short span record')
         kind,state=raw[0x12],raw[0x13]
         address,count=struct.unpack_from('<QQ',raw,0x18)
-        if state not in (0,1,2):raise ValueError('unknown span state')
+        # Init +0x7d978 explicitly marks SDK metadata spans as state 3.
+        if state not in (0,1,2,3):raise ValueError(f'unknown span state {state} at {ptr:#x}')
         if not count or address%PAGE or address<base or count>(end-address)//PAGE:
             raise ValueError('invalid span extent')
         first=(address-base)//PAGE;following=first+count

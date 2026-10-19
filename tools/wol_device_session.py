@@ -126,10 +126,19 @@ elif mode=='press':
     hold=int(sys.argv[6]) if len(sys.argv)>6 else 180
     assert 0<=bits<1<<64 and 0<=stick<1<<32 and 1<=hold<=2000
     assert bits&0xc00!=0xc00
+    action=sys.argv[5] if len(sys.argv)>5 else 'after'
+    assert action.replace('-','').isalnum()
+    receipt=dict(pid=pid,start_ticks=state['identity'][1],buttons=hex(bits),stick=stick,hold_ms=hold,
+                 sent_begin_ns=time.monotonic_ns(),physical_input_verified=False,
+                 caveat='Diagnostic request timing only; runtime delivery and real KMS/scene change remain separate checks.')
     s=socket.socket(socket.AF_UNIX,socket.SOCK_DGRAM);s.sendto(struct.pack('<QII',bits,hold,stick),sock)
+    s.close();receipt['sent_end_ns']=time.monotonic_ns()
     print('SENT',pid,sock,bits,stick,flush=True)
     time.sleep(int(sys.argv[4]) if len(sys.argv)>4 else 12)
     assert identity(pid)==tuple(state['identity'])
-    cap(state['label']+'-'+sys.argv[5] if len(sys.argv)>5 else state['label']+'-after')
+    receipt['capture_begin_ns']=time.monotonic_ns()
+    cap(state['label']+'-'+action)
+    receipt['capture_end_ns']=time.monotonic_ns()
+    (out/(state['label']+'-'+action+'-input.json')).write_text(json.dumps(receipt,indent=2)+'\n')
     print('ALIVE',pid,flush=True)
 else:raise ValueError(mode)
