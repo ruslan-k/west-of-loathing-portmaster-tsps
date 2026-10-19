@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Summarize the frozen 720p acceptance trials (roadmap §16.3).
 
-Frame timestamps, stage timestamps and input receipts are all device-monotonic: the
-probe wrote the receipt and the runtime wrote MOMO_FRAME on the same boot. Requested
-stage names are not scene proof; independent KMS review stays separate. Moving stats
-are reported for the actual 2s hold windows (input receipts) so kmsgrab captures cannot
-contaminate them; capture-window stats are reported separately.
+Frame timestamps, stage timestamps and input receipts are all device-monotonic. Requested
+stage names are not scene proof: each walk capture is classified against the trial's own
+map/world reference frames (numpy luma diff + darkness + static check), and moving stats are
+reported over the actual 2 s hold windows restricted to clean world windows. KMS review of
+key frames stays a separate manual step; this tool assigns provisional classes for numbers.
 """
 from pathlib import Path
 import argparse
@@ -14,9 +14,45 @@ import json
 import re
 import statistics
 
+import numpy as np
+from PIL import Image
+
 from wol_memory_ledger import percentile
 
 PAIRS=(('accept-a1','accept-b1'),('accept-b2','accept-a2'),('accept-a3','accept-b3'))
+LUMA_THRESHOLD=20
+WORLD_MARGIN=40000
+MAP_MARGIN=40000
+STATIC_MARGIN=15000
+DARK_FRACTION=0.85
+
+
+def _luma(path):
+    with Image.open(path) as im:
+        return np.asarray(im.convert('L'),dtype=np.int16)
+
+
+def shot_diff(a,b):
+    la,lb=_luma(a),_luma(b)
+    if la.shape!=lb.shape:return None
+    return int((np.abs(la-lb)>LUMA_THRESHOLD).sum())
+
+
+def dark_fraction(path):
+    l=_luma(path)
+    return float((l<30).mean())
+
+
+def classify_shot(capture,map_ref,world_ref,prev=None):
+    md=shot_diff(capture,map_ref);wd=shot_diff(capture,world_ref)
+    dark=dark_fraction(capture)
+    pd=shot_diff(capture,prev) if prev else None
+    if dark>DARK_FRACTION:cls='transition-dark'
+    elif md is not None and wd is not None and wd+WORLD_MARGIN<md:cls='world'
+    elif md is not None and wd is not None and md+MAP_MARGIN<wd:cls='map'
+    elif pd is not None and pd<STATIC_MARGIN:cls='static-nonworld'
+    else:cls='ambiguous'
+    return dict(cls=cls,mapdiff=md,worlddiff=wd,dark=round(dark,3),prev_diff=pd)
 
 
 def stats(ts):
@@ -58,8 +94,7 @@ def load_frames(path):
 def input_receipts(root):
     receipts={}
     for path in sorted(root.glob('*-input.json')):
-        name=path.name[:-len('-input.json')]
-        receipts[name]=json.loads(path.read_text())
+        receipts[path.name[:-len('-input.json')]]=json.loads(path.read_text())
     return receipts
 
 
@@ -75,13 +110,21 @@ def trial(root):
         windows[s['name']]=(lo,hi,float(s.get('watchdog_budget_s') or 0))
     phase_frames={name:[t for _,t in frames if lo<=t<hi] for name,(lo,hi,_) in windows.items()}
     receipts=input_receipts(root)
-    hold_windows=[];capture_windows=[];holds={}
-    for name,r in receipts.items():
-        if name.startswith('walk-') and r.get('sent_end_ns') and r.get('hold_ms'):
-            hold=[t for _,t in frames if r['sent_end_ns']<=t<r['sent_end_ns']+r['hold_ms']*1_000_000]
-            hold_windows.append(hold);holds[name]=dict(hold_ms=r['hold_ms'],**stats(hold))
-        if r.get('capture_begin_ns') and r.get('capture_end_ns'):
-            capture_windows.append([t for _,t in frames if r['capture_begin_ns']<=t<r['capture_end_ns']])
+    walk_names=[s['name'] for s in stages if s['name'].startswith('walk-')]
+    actions=[];hold_all=[];prev_capture=None
+    for name in walk_names:
+        capture=root/(name+'.png')
+        info:dict=classify_shot(capture,root/'map.png',root/'world.png',prev_capture)
+        r=receipts.get(name) or {}
+        hold=[t for _,t in frames if r.get('sent_end_ns') and
+              r['sent_end_ns']<=t<r['sent_end_ns']+r['hold_ms']*1_000_000]
+        hold_all.append(hold)
+        info.update(name=name,hold=stats(hold),hold_t=hold,hold_ms=r.get('hold_ms'))
+        actions.append(info)
+        if capture.exists():prev_capture=capture
+    clean=[a['hold_t'] for a in actions if a['cls']=='world']
+    capture_windows=[[t for _,t in frames if r['capture_begin_ns']<=t<r['capture_end_ns']]
+                     for r in receipts.values() if r.get('capture_begin_ns') and r.get('capture_end_ns')]
     ledger=[json.loads(line) for line in (root/'ledger.jsonl').read_text().splitlines()
             if '"t_begin_ns"' in line]
     def med(rows,getter):
@@ -122,6 +165,8 @@ def trial(root):
         if name.startswith('walk-') and r.get('sent_end_ns') and r.get('hold_ms'):
             stalls+=stalls_in(r['sent_end_ns'],r['sent_end_ns']+r['hold_ms']*1_000_000,'hold:'+name,label,500)
     ids=[i for i,_ in frames]
+    classes={}
+    for a in actions:classes[a['cls']]=classes.get(a['cls'],0)+1
     return dict(label=label,variant='720' if env.get('WOL_UPRENDER_720')=='1' else '1080',
                 failure=receipt.get('failure'),cleanup_verified=receipt.get('cleanup_verified'),
                 cleanup_warnings=receipt.get('cleanup_warnings'),runtime_sha256=receipt['runtime_sha256'],
@@ -132,8 +177,9 @@ def trial(root):
                 phases={name:dict(window_s=(hi-lo)/1e9,settled=(name=='game-idle' or name.startswith('walk-')),
                                   watchdog_budget_s=budget,**stats(phase_frames[name]))
                         for name,(lo,hi,budget) in windows.items()},
+                actions=actions,walk_classes=classes,
                 moving=pooled([phase_frames[n] for n in phase_frames if n.startswith('walk-')]),
-                moving_hold=pooled(hold_windows),capture=pooled(capture_windows),holds=holds,
+                moving_hold=pooled(clean),moving_hold_all=pooled(hold_all),capture=pooled(capture_windows),
                 idle=stats(phase_frames.get('game-idle',[])),
                 map=stats(phase_frames.get('map',[])),pause=stats(phase_frames.get('pause',[])),
                 stalls=stalls,memory=memory,screenshots=sorted(p.name for p in root.glob('*.png')))
@@ -163,6 +209,7 @@ def main():
         pairs.append(dict(pair=l1+'/'+l2,order=t1['variant']+'->'+t2['variant'],
             valid=t1['variant']!=t2['variant'] and identity['all_clean'],
             hold=delta(on['moving_hold'],off['moving_hold']),
+            hold_all=delta(on['moving_hold_all'],off['moving_hold_all']),
             stage=delta(on['moving'],off['moving']),idle=delta(on['idle'],off['idle']),
             swap_pss_idle=((on['memory'].get('game-idle') or {}).get('swap_pss_kib') or 0)-
                           ((off['memory'].get('game-idle') or {}).get('swap_pss_kib') or 0),
@@ -175,29 +222,36 @@ def main():
                 hold_gain_consistent=bool(signs) and all(x>0 for x in signs),
                 moving_720_fps=[round(s['presents_per_s'],2) for s in on_hold],
                 moving_720_p95_ms=[round(s['p95_ms'],1) for s in on_hold],
+                walk_classes={k:v['walk_classes'] for k,v in runs.items()},
                 stalls=sum(len(t['stalls']) for t in runs.values()))
-    summary=dict(schema=2,order=batch['order'],identity=identity,checks=checks,pairs=pairs,trials=runs,
+    summary=dict(schema=3,order=batch['order'],identity=identity,checks=checks,pairs=pairs,trials=runs,
                  caveats=['Runtime presents are not independent panel FPS.',
-                          'Requested action labels are not scene proof; KMS review is separate.',
-                          'moving_hold uses the 2s input-hold windows; capture windows are reported separately.',
+                          'Walk captures are classified against the trial\u2019s own map/world references; '
+                          'non-world windows are excluded from moving_hold (moving_hold_all keeps the raw pool).',
                           'This is one save/scene family; interior, combat, dialogue, save/load and endurance are not covered.'])
     out=a.out or (root/'summary.json')
     out.write_text(json.dumps(summary,indent=2)+'\n')
     for label,t in runs.items():
-        h=t['moving_hold']
-        print('%-10s %s idle %6.2f/%5.1f | hold-moving %6.2f/%5.1f | stage-moving %6.2f | swapPSS %6.1f MiB | stalls %d'%(
+        h=t['moving_hold'];ha=t['moving_hold_all']
+        print('%-10s %s idle %6.2f/%5.1f | hold %6.2f/%5.1f (all %6.2f) | classes %s | swapPSS %6.1f | stalls %d'%(
             label,t['variant'],t['idle'].get('presents_per_s',0),t['idle'].get('p95_ms',0),
-            h.get('presents_per_s',0),h.get('p95_ms',0),t['moving'].get('presents_per_s',0),
-            ((t['memory'].get('game-idle') or {}).get('swap_pss_kib') or 0)/1024,len(t['stalls'])))
+            h.get('presents_per_s',0),h.get('p95_ms',0),ha.get('presents_per_s',0),
+            json.dumps(t['walk_classes']),(t['memory'].get('game-idle') or {}).get('swap_pss_kib',0)/1024,
+            len(t['stalls'])))
     for p in pairs:
-        h=p['hold'] or {}
-        print('PAIR %s (%s) %s dHoldFPS %+6.2f (p95 %+6.1f ms) dIdle %+6.2f swapPSS d%+6.1f MiB'%(
-            p['pair'],p['order'],'VALID' if p['valid'] else 'INVALID',h.get('presents_per_s',0),h.get('p95_ms',0),
-            (p['idle'] or {}).get('presents_per_s',0),p['swap_pss_idle']/1024))
+        d=p['hold'] or {}
+        print('PAIR %s (%s) %s dHoldFPS %+6.2f (p95 %+6.1f) dHoldAll %+6.2f dIdle %+6.2f swapPSS d%+6.1f MiB'%(
+            p['pair'],p['order'],'VALID' if p['valid'] else 'INVALID',d.get('presents_per_s',0),d.get('p95_ms',0),
+            (p['hold_all'] or {}).get('presents_per_s',0),(p['idle'] or {}).get('presents_per_s',0),
+            p['swap_pss_idle']/1024))
     for t in runs.values():
         for s in t['stalls']:
             print('STALL',json.dumps(s))
-    print('CHECKS',json.dumps(checks))
+        for a_ in t['actions']:
+            if a_['cls']!='world':
+                print('NONWORLD',t['label'],a_['name'],a_['cls'],'mapdiff',a_['mapdiff'],'worlddiff',a_['worlddiff'],
+                      'dark',a_['dark'],'prev',a_['prev_diff'])
+    print('CHECKS',json.dumps({k:v for k,v in checks.items() if k!='walk_classes'}))
 
 
 if __name__=='__main__':main()
