@@ -31,8 +31,18 @@ textures, shaders or anything else extracted from the game. They are the owner's
    - `sdk.text.seg`, `sdk.rodata.seg`, `sdk.data.seg`
    - `wol-romfs.section` (the extracted RomFS section, 217,743,360 bytes for the accepted build)
 
-   The launcher refuses to start and names every missing file, so a wrong/partial copy is obvious
-   instead of a black screen.
+   **Important owner-data preparation:** the device-accepted game section was **not merely the
+   untouched extracted RomFS**. It was built from the owner's version with the documented
+   mip-promotion/mip-tail and Sprite RenderData fixes, including map pixel-coordinate exceptions.
+   Reproduce that owner-only preparation and record the accepted section identity before claiming
+   the same image as `evidence/release-720/README.md`. See
+   `tools/wol_memory_repack.py`, `docs/gfx-repair-scope.md` and
+   `docs/optimization-roadmap.md` §§18–19; do not publish extracted assets. A raw section may be
+   accepted by the filename check yet **does not have demonstrated visual/memory parity**.
+
+   The launcher only verifies that the files **exist**, not their complete contents or provenance.
+   An incomplete/wrong-version file can still pass this check; validate sizes/manifest and the
+   exact supported owner image *offline*, and preserve the original owner data.
 
 2. Put `port/West of Loathing.sh` next to the other port launchers (for TSPS:
    `/mnt/SDCARD/Roms/PORTS/`) and the `wol-switch/` directory where that launcher expects it
@@ -46,10 +56,17 @@ textures, shaders or anything else extracted from the game. They are the owner's
 - 720 UpRender size-only profile by default (`WOL_UPRENDER_720=1`): measured **+9.04 / +9.99 / +6.19
   presents/s** in paired moving-world A/B runs, P95 improved 9.9–13.8 ms, process SwapPSS 35.6–45.2 MiB
   lower. Owner-accepted in real battle/cave play (32.1/31.7 fps vs 28.3/28.1 on the old profile).
-- Quiet release profile: no per-frame trace, no dumps beside the game, `~1.5 KB/frame` log volume removed.
+- Quiet release profile: removes the historical high-volume ~1.5 KB/frame trace in the
+  intended defaults, but **final quiet ELF ab132760… still has bounded diagnostic GL readbacks**
+  (up to 12 full-target sprite scans plus 24 multi-pixel checks). Its actual log rate and
+  gameplay behavior need device re-verification; see `evidence/quiet-build/README.md` and roadmap §19.
 - Saves live in `save-laboratory/` beside the game, not in the runtime's memory.
 
 ## Known limits (honest list)
+
+- The bundled quiet ELF `ab132760…` has **not yet passed** an independent post-change
+  normal-launch gameplay smoke test. The measured 720 battle/moving performance comes from the
+  earlier accepted `b60057ea…` build; keep an owner backup and verify/rollback first.
 
 - Strict performance certification is **not** claimed: moving P95 is 34.4–37.9 ms (goal ≤33.33) and one
   arm measured 29.02 presents/s. It is an accepted *experimental* profile, not a 30 fps guarantee.
