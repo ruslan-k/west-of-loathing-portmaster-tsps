@@ -70,6 +70,10 @@ if mode=='start':
     if os.environ.get('WOL_PBO_UPLOAD'):env['WOL_PBO_UPLOAD']=os.environ['WOL_PBO_UPLOAD']
     if os.environ.get('WOL_UPLOAD_TIMING'):env['WOL_UPLOAD_TIMING']=os.environ['WOL_UPLOAD_TIMING']
     if os.environ.get('WOL_ASTC_POSTCOPY_ID'):env['WOL_ASTC_POSTCOPY_ID']=os.environ['WOL_ASTC_POSTCOPY_ID']
+    # Host-allocation attribution (2026-10-19): the LD_PRELOAD shim logs host mmap/malloc
+    # requests >= WOL_HOSTMMAP_MIN with caller frames. Default OFF: only forwarded when the
+    # invoking environment sets LD_PRELOAD explicitly.
+    if os.environ.get('LD_PRELOAD'):env['LD_PRELOAD']=os.environ['LD_PRELOAD']
     # Screen-rect draw filter: prints every draw whose transformed bbox intersects the rect,
     # which is how a single UI region (e.g. the guide's location list) is inspected.
     # Generic WOL_* passthrough (2026-10-16): A/B runs need the runtime's own gates
