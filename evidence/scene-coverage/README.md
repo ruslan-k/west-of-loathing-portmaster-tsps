@@ -33,7 +33,13 @@ next to this README; each run's captures, receipt and log are in its subdirector
   positions — **no interior, dialogue or shop opened**; the doors stayed static.
 - **nav5** (`route-nav-town5.json`): another door hunt; the run **died before any route input**
   with a runtime fail-closed guard stop (see below).
-- **nav5b** (`route-nav-town5.json`, identical repeat): reproducibility probe — **pending**.
+- **nav5b** (`route-nav-town5.json`, identical repeat): clean full-route run (no STOP, 173
+  progress checks, 5,906 frames) — the nav5 guard stop **did not reproduce** (1/18 in this ELF
+  series). The town center is now visible with more buildings (**B.S. HOTEL, HORSERY, BAR,
+  TRADE, ALICE M.D. — CLOSED**), and `d1-interact` opened a real **text box**: “Nope. You're
+  not allowed in Topeka anymore, remember? [By the way, you can use the ZL or - buttons to
+  open your map and travel to new locations you've discovered.]” — the first interactive
+  dialogue captured in these attempts (it also confirms ZL as the map/travel button in-game).
 
 ## nav5 runtime guard stop — fact sheet
 
@@ -60,14 +66,19 @@ next to this README; each run's captures, receipt and log are in its subdirector
 - History scan: this exact guard (`NVN_COMMAND_RECORD_SIZE`) appears in **none** of the
   collected repo logs or the spike run logs; related fail-closed NVN guards
   (`NVN_COMMAND_RECORD_STORAGE`, `NVN_COMMAND_ARENA_OVERLAP`, `NVN_TEXTURE_SWIZZLE_REQUIRED`,
-  `NVN_GUEST_POINTER`) each appear a handful of times across the older history. This is the
-  17th run of this exact ELF in the current series (16 clean) — treat as a rare intermittent
-  event until nav5b answers reproducibility.
+  `NVN_GUEST_POINTER`) each appear a handful of times across the older history. It was the
+  17th run of this exact ELF in the current series (16 clean); the identical repeat `nav5b`
+  was clean as well — **not reproduced, rate 1/18**. Treat as a rare intermittent
+  runtime-integrity event; if it recurs, instrument the command-record path
+  (`T2_LIST_RANGES=verify` as the first falsification A/B against the ranges fast-path, which
+  is active — `mode=ranges`).
 
 ## Status
 
-Moving world + map/return + pause are covered by `../accept-720/`. The town approach was
-reached (nav3/nav4: Horsery + BAR, player movement confirmed); **interior, dialogue and battle
-are not yet captured**, and the door-entry attempts failed. Per §16.3 the correct next input is
-an owner-supplied known interior/battle save or route rather than wider blind input scripts.
-The nav5 guard stop is a separate runtime-integrity observation under investigation (nav5b).
+Moving world + map/return + pause are covered by `../accept-720/`. The town approach and town
+center were reached (nav3/nav4/nav5b: Horsery, BAR, TRADE, HOTEL, ALICE M.D.; player movement
+confirmed), and one **sign/dialogue text box** was captured (nav5b `d1-interact`). **Interior
+and battle are not yet captured** — the door-entry attempts failed, so per §16.3 the correct
+next input is an owner-supplied known interior/battle save or route rather than wider blind
+input scripts. The nav5 guard stop is a separate rare runtime-integrity observation
+(not reproduced; see the fact sheet).
