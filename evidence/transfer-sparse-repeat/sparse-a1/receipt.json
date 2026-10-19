@@ -1,0 +1,1214 @@
+{
+  "label": "sparse-a1",
+  "owner_save_hashes": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"
+  },
+  "stages": [
+    {
+      "name": "startup",
+      "t_ns": 39357063923342,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "menu",
+      "t_ns": 39417389110968,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "continue-load",
+      "t_ns": 39437592147717,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "game-idle",
+      "t_ns": 39461614546869,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-r01",
+      "t_ns": 39491828883786,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-l01",
+      "t_ns": 39493512997808,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-r02",
+      "t_ns": 39495149239900,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-l02",
+      "t_ns": 39496742967281,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-r03",
+      "t_ns": 39498388099515,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-l03",
+      "t_ns": 39499974812006,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-r04",
+      "t_ns": 39501567653258,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-l04",
+      "t_ns": 39503201969594,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-r05",
+      "t_ns": 39504885561862,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-l05",
+      "t_ns": 39506530996553,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-r06",
+      "t_ns": 39508115158744,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-l06",
+      "t_ns": 39509703092610,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-r07",
+      "t_ns": 39511292603019,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-l07",
+      "t_ns": 39512925921309,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-r08",
+      "t_ns": 39514513759381,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-l08",
+      "t_ns": 39516104121833,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-r09",
+      "t_ns": 39517697486998,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-l09",
+      "t_ns": 39519282515480,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-r10",
+      "t_ns": 39520874131975,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "walk-l10",
+      "t_ns": 39522458810830,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "map",
+      "t_ns": 39524044928187,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "map-return",
+      "t_ns": 39539642152458,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "pause",
+      "t_ns": 39555272615710,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "pause-return",
+      "t_ns": 39561876881246,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    }
+  ],
+  "cleanup_verified": true,
+  "probe_sha256": "da099bd5e6be0ffa157526be7cf3f54d7c337cc4da953c015002a30e12a5d62a",
+  "session_sha256": "13d9cc4f5546924900f18d36120c1a2745c4c663371abadd5cd186d9ff01f646",
+  "launcher_sha256": "fa30af838b22e01b7a5eeeb7c4f34c4b5eaf3f67c7a984eee0ba87ba90581f3a",
+  "layout_sha256": "c21c41900e37f2054408308d61dec93846632d17d2dadf63a89afbed41c454cd",
+  "ordinary_title_only": false,
+  "draw_trace": false,
+  "phase_labels_are_requests_not_scene_classifications": true,
+  "heavy_guest_page_sampling": false,
+  "present_watchdog_s": 30.0,
+  "settled_watchdog_s": 5.0,
+  "progress_checks": 163,
+  "control_save_hashes": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"
+  },
+  "runtime_sha256": "b60057eaeafa738e9b48cf2b68b356545ee5ffde2c57bb84a5da5722e5935158",
+  "section_sha256": "49bd16718ed0dc46f16599255791c7603e8aa2b5f04898784a39d6cacb9d0722",
+  "vma_samples": {
+    "startup": {
+      "method": "per-VMA Pss/SwapPss from /proc/<pid>/smaps; overlaps and shared pages are not summed as physical totals",
+      "totals": {
+        "vmas": 425,
+        "rss_mib": 504.6,
+        "pss_mib": 503.9,
+        "swap_pss_mib": 402.3
+      },
+      "top_by_swap": [
+        {
+          "start": "0x100a242000",
+          "end": "0x106c58e000",
+          "size_mib": 1571.3,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 355.8,
+          "pss_mib": 355.8,
+          "swap_mib": 217.5,
+          "sample_head": {
+            "kind": "mixed",
+            "first16": "696e69743e0000000000000009000000",
+            "last16": "00000000090000003c6e6f6e696e6974"
+          },
+          "sample_tail": {
+            "kind": "mixed",
+            "first16": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "last16": "aaaaaaaaf80f00000100200000000000"
+          },
+          "sampled_bytes": 128
+        },
+        {
+          "start": "0x1000f46000",
+          "end": "0x100a240000",
+          "size_mib": 147.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 67.8,
+          "pss_mib": 67.8,
+          "swap_mib": 79.2,
+          "sample_head": {
+            "kind": "single-byte-repeat",
+            "first16": "00000000010000000000000000000000",
+            "last16": "00000000000000000000000000000000"
+          },
+          "sample_tail": {
+            "kind": "mixed",
+            "first16": "3c6e6f6e696e69743e00000000000000",
+            "last16": "3e00000000000000090000003c6e6f6e"
+          },
+          "sampled_bytes": 128
+        },
+        {
+          "start": "0x7f7f800000",
+          "end": "0x7f84000000",
+          "size_mib": 72.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.0,
+          "pss_mib": 0.0,
+          "swap_mib": 64.1,
+          "sample_head": {
+            "kind": "all-zero",
+            "first16": "00000000000000000000000000000000",
+            "last16": "00000000000000000000000000000000"
+          },
+          "sample_tail": {
+            "kind": "all-zero",
+            "first16": "00000000000000000000000000000000",
+            "last16": "00000000000000000000000000000000"
+          },
+          "sampled_bytes": 128
+        },
+        {
+          "start": "0x7f70000000",
+          "end": "0x7f716c8000",
+          "size_mib": 22.8,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 12.9,
+          "pss_mib": 12.9,
+          "swap_mib": 9.4
+        },
+        {
+          "start": "0x555ee58000",
+          "end": "0x555feda000",
+          "size_mib": 16.5,
+          "perms": "rw-p",
+          "path": "[heap]",
+          "rss_mib": 1.1,
+          "pss_mib": 1.1,
+          "swap_mib": 6.9
+        },
+        {
+          "start": "0x1000000000",
+          "end": "0x1000c85000",
+          "size_mib": 12.5,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 6.2,
+          "pss_mib": 6.2,
+          "swap_mib": 5.1
+        },
+        {
+          "start": "0x555ac66000",
+          "end": "0x555c8ad000",
+          "size_mib": 28.3,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.2,
+          "pss_mib": 1.2,
+          "swap_mib": 4.3
+        },
+        {
+          "start": "0x9d4c000",
+          "end": "0xa0cf000",
+          "size_mib": 3.5,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.8,
+          "pss_mib": 1.8,
+          "swap_mib": 1.7
+        },
+        {
+          "start": "0x7f8d237000",
+          "end": "0x7f8d407000",
+          "size_mib": 1.8,
+          "perms": "r--p",
+          "path": "/usr/lib/libmali.so.0.32.0",
+          "rss_mib": 0.3,
+          "pss_mib": 0.3,
+          "swap_mib": 1.5
+        },
+        {
+          "start": "0xa631000",
+          "end": "0xa78e000",
+          "size_mib": 1.4,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.0,
+          "pss_mib": 0.0,
+          "swap_mib": 1.4
+        },
+        {
+          "start": "0x10782fd000",
+          "end": "0x1078b00000",
+          "size_mib": 8.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.2,
+          "pss_mib": 1.2,
+          "swap_mib": 1.2
+        },
+        {
+          "start": "0x1077ee2000",
+          "end": "0x10781fd000",
+          "size_mib": 3.1,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.9,
+          "pss_mib": 1.9,
+          "swap_mib": 1.2
+        },
+        {
+          "start": "0xb05c000",
+          "end": "0xb1a0000",
+          "size_mib": 1.3,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.2,
+          "pss_mib": 0.2,
+          "swap_mib": 1.1
+        },
+        {
+          "start": "0x1000ca5000",
+          "end": "0x1000d95000",
+          "size_mib": 0.9,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.1,
+          "pss_mib": 0.1,
+          "swap_mib": 0.8
+        },
+        {
+          "start": "0x1000da5000",
+          "end": "0x1000f26000",
+          "size_mib": 1.5,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.8,
+          "pss_mib": 0.8,
+          "swap_mib": 0.6
+        },
+        {
+          "start": "0x7f7c45f000",
+          "end": "0x7f7c790000",
+          "size_mib": 3.2,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.1,
+          "pss_mib": 0.1,
+          "swap_mib": 0.5
+        },
+        {
+          "start": "0x7f8d407000",
+          "end": "0x7f8d493000",
+          "size_mib": 0.5,
+          "perms": "rw-p",
+          "path": "/usr/lib/libmali.so.0.32.0",
+          "rss_mib": 0.1,
+          "pss_mib": 0.1,
+          "swap_mib": 0.5
+        },
+        {
+          "start": "0x2000000000",
+          "end": "0x2000055000",
+          "size_mib": 0.3,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.0,
+          "pss_mib": 0.0,
+          "swap_mib": 0.3
+        },
+        {
+          "start": "0x7f64000000",
+          "end": "0x7f64102000",
+          "size_mib": 1.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.7,
+          "pss_mib": 0.7,
+          "swap_mib": 0.2
+        },
+        {
+          "start": "0x106d8b2000",
+          "end": "0x107715e000",
+          "size_mib": 152.7,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 24.1,
+          "pss_mib": 24.1,
+          "swap_mib": 0.1
+        }
+      ]
+    },
+    "menu": {
+      "method": "per-VMA Pss/SwapPss from /proc/<pid>/smaps; overlaps and shared pages are not summed as physical totals",
+      "totals": {
+        "vmas": 425,
+        "rss_mib": 498.2,
+        "pss_mib": 497.5,
+        "swap_pss_mib": 406.0
+      },
+      "top_by_swap": [
+        {
+          "start": "0x100a242000",
+          "end": "0x106c58e000",
+          "size_mib": 1571.3,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 352.4,
+          "pss_mib": 352.4,
+          "swap_mib": 221.2,
+          "sample_head": {
+            "kind": "mixed",
+            "first16": "696e69743e0000000000000009000000",
+            "last16": "00000000090000003c6e6f6e696e6974"
+          },
+          "sample_tail": {
+            "kind": "mixed",
+            "first16": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "last16": "aaaaaaaaf80f00000100200000000000"
+          },
+          "sampled_bytes": 128
+        },
+        {
+          "start": "0x1000f46000",
+          "end": "0x100a240000",
+          "size_mib": 147.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 67.8,
+          "pss_mib": 67.8,
+          "swap_mib": 79.2,
+          "sample_head": {
+            "kind": "single-byte-repeat",
+            "first16": "00000000010000000000000000000000",
+            "last16": "00000000000000000000000000000000"
+          },
+          "sample_tail": {
+            "kind": "mixed",
+            "first16": "3c6e6f6e696e69743e00000000000000",
+            "last16": "3e00000000000000090000003c6e6f6e"
+          },
+          "sampled_bytes": 128
+        },
+        {
+          "start": "0x7f7f800000",
+          "end": "0x7f84000000",
+          "size_mib": 72.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.1,
+          "pss_mib": 0.1,
+          "swap_mib": 64.1,
+          "sample_head": {
+            "kind": "all-zero",
+            "first16": "00000000000000000000000000000000",
+            "last16": "00000000000000000000000000000000"
+          },
+          "sample_tail": {
+            "kind": "all-zero",
+            "first16": "00000000000000000000000000000000",
+            "last16": "00000000000000000000000000000000"
+          },
+          "sampled_bytes": 128
+        },
+        {
+          "start": "0x7f70000000",
+          "end": "0x7f716e3000",
+          "size_mib": 22.9,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 13.0,
+          "pss_mib": 13.0,
+          "swap_mib": 9.4
+        },
+        {
+          "start": "0x555ee58000",
+          "end": "0x555feda000",
+          "size_mib": 16.5,
+          "perms": "rw-p",
+          "path": "[heap]",
+          "rss_mib": 1.1,
+          "pss_mib": 1.1,
+          "swap_mib": 6.9
+        },
+        {
+          "start": "0x1000000000",
+          "end": "0x1000c85000",
+          "size_mib": 12.5,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 6.2,
+          "pss_mib": 6.2,
+          "swap_mib": 5.1
+        },
+        {
+          "start": "0x555ac66000",
+          "end": "0x555c8ad000",
+          "size_mib": 28.3,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.2,
+          "pss_mib": 1.2,
+          "swap_mib": 4.3
+        },
+        {
+          "start": "0x9d4c000",
+          "end": "0xa0cf000",
+          "size_mib": 3.5,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.8,
+          "pss_mib": 1.8,
+          "swap_mib": 1.7
+        },
+        {
+          "start": "0x7f8d237000",
+          "end": "0x7f8d407000",
+          "size_mib": 1.8,
+          "perms": "r--p",
+          "path": "/usr/lib/libmali.so.0.32.0",
+          "rss_mib": 0.3,
+          "pss_mib": 0.3,
+          "swap_mib": 1.5
+        },
+        {
+          "start": "0xa631000",
+          "end": "0xa78e000",
+          "size_mib": 1.4,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.0,
+          "pss_mib": 0.0,
+          "swap_mib": 1.4
+        },
+        {
+          "start": "0x10782fd000",
+          "end": "0x1078b00000",
+          "size_mib": 8.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.2,
+          "pss_mib": 1.2,
+          "swap_mib": 1.2
+        },
+        {
+          "start": "0x1077ee2000",
+          "end": "0x10781fd000",
+          "size_mib": 3.1,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.9,
+          "pss_mib": 1.9,
+          "swap_mib": 1.2
+        },
+        {
+          "start": "0xb05c000",
+          "end": "0xb1a0000",
+          "size_mib": 1.3,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.2,
+          "pss_mib": 0.2,
+          "swap_mib": 1.1
+        },
+        {
+          "start": "0x1000ca5000",
+          "end": "0x1000d95000",
+          "size_mib": 0.9,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.1,
+          "pss_mib": 0.1,
+          "swap_mib": 0.8
+        },
+        {
+          "start": "0x1000da5000",
+          "end": "0x1000f26000",
+          "size_mib": 1.5,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.8,
+          "pss_mib": 0.8,
+          "swap_mib": 0.6
+        },
+        {
+          "start": "0x7f7c45f000",
+          "end": "0x7f7c790000",
+          "size_mib": 3.2,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.1,
+          "pss_mib": 0.1,
+          "swap_mib": 0.5
+        },
+        {
+          "start": "0x7f8d407000",
+          "end": "0x7f8d493000",
+          "size_mib": 0.5,
+          "perms": "rw-p",
+          "path": "/usr/lib/libmali.so.0.32.0",
+          "rss_mib": 0.1,
+          "pss_mib": 0.1,
+          "swap_mib": 0.5
+        },
+        {
+          "start": "0x2000000000",
+          "end": "0x2000055000",
+          "size_mib": 0.3,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.0,
+          "pss_mib": 0.0,
+          "swap_mib": 0.3
+        },
+        {
+          "start": "0x7f64000000",
+          "end": "0x7f64102000",
+          "size_mib": 1.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.7,
+          "pss_mib": 0.7,
+          "swap_mib": 0.2
+        },
+        {
+          "start": "0x106d8b2000",
+          "end": "0x107715e000",
+          "size_mib": 152.7,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 24.1,
+          "pss_mib": 24.1,
+          "swap_mib": 0.1
+        }
+      ]
+    },
+    "game-idle": {
+      "method": "per-VMA Pss/SwapPss from /proc/<pid>/smaps; overlaps and shared pages are not summed as physical totals",
+      "totals": {
+        "vmas": 436,
+        "rss_mib": 480.6,
+        "pss_mib": 479.9,
+        "swap_pss_mib": 432.5
+      },
+      "top_by_swap": [
+        {
+          "start": "0x100a242000",
+          "end": "0x106c58e000",
+          "size_mib": 1571.3,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 330.0,
+          "pss_mib": 330.0,
+          "swap_mib": 247.0,
+          "sample_head": {
+            "kind": "mixed",
+            "first16": "696e69743e0000000000000009000000",
+            "last16": "00000000090000003c6e6f6e696e6974"
+          },
+          "sample_tail": {
+            "kind": "mixed",
+            "first16": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "last16": "aaaaaaaaf80f00000100200000000000"
+          },
+          "sampled_bytes": 128
+        },
+        {
+          "start": "0x1000f46000",
+          "end": "0x100a240000",
+          "size_mib": 147.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 67.0,
+          "pss_mib": 67.0,
+          "swap_mib": 80.0,
+          "sample_head": {
+            "kind": "single-byte-repeat",
+            "first16": "00000000010000000000000000000000",
+            "last16": "00000000000000000000000000000000"
+          },
+          "sample_tail": {
+            "kind": "mixed",
+            "first16": "3c6e6f6e696e69743e00000000000000",
+            "last16": "3e00000000000000090000003c6e6f6e"
+          },
+          "sampled_bytes": 128
+        },
+        {
+          "start": "0x7f7f800000",
+          "end": "0x7f84000000",
+          "size_mib": 72.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.1,
+          "pss_mib": 0.1,
+          "swap_mib": 64.1,
+          "sample_head": {
+            "kind": "all-zero",
+            "first16": "00000000000000000000000000000000",
+            "last16": "00000000000000000000000000000000"
+          },
+          "sample_tail": {
+            "kind": "all-zero",
+            "first16": "00000000000000000000000000000000",
+            "last16": "00000000000000000000000000000000"
+          },
+          "sampled_bytes": 128
+        },
+        {
+          "start": "0x7f70000000",
+          "end": "0x7f717f7000",
+          "size_mib": 24.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 14.1,
+          "pss_mib": 14.1,
+          "swap_mib": 9.4
+        },
+        {
+          "start": "0x555ee58000",
+          "end": "0x555feda000",
+          "size_mib": 16.5,
+          "perms": "rw-p",
+          "path": "[heap]",
+          "rss_mib": 1.2,
+          "pss_mib": 1.2,
+          "swap_mib": 6.9
+        },
+        {
+          "start": "0x1000000000",
+          "end": "0x1000c85000",
+          "size_mib": 12.5,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 6.3,
+          "pss_mib": 6.3,
+          "swap_mib": 5.1
+        },
+        {
+          "start": "0x555ac66000",
+          "end": "0x555c8ad000",
+          "size_mib": 28.3,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.2,
+          "pss_mib": 1.2,
+          "swap_mib": 4.3
+        },
+        {
+          "start": "0x9d4c000",
+          "end": "0xa0cf000",
+          "size_mib": 3.5,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.8,
+          "pss_mib": 1.8,
+          "swap_mib": 1.7
+        },
+        {
+          "start": "0x7f8d237000",
+          "end": "0x7f8d407000",
+          "size_mib": 1.8,
+          "perms": "r--p",
+          "path": "/usr/lib/libmali.so.0.32.0",
+          "rss_mib": 0.3,
+          "pss_mib": 0.3,
+          "swap_mib": 1.5
+        },
+        {
+          "start": "0xa631000",
+          "end": "0xa78e000",
+          "size_mib": 1.4,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.0,
+          "pss_mib": 0.0,
+          "swap_mib": 1.4
+        },
+        {
+          "start": "0x1077ee2000",
+          "end": "0x10781fd000",
+          "size_mib": 3.1,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 2.0,
+          "pss_mib": 2.0,
+          "swap_mib": 1.1
+        },
+        {
+          "start": "0xb05c000",
+          "end": "0xb1a0000",
+          "size_mib": 1.3,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.2,
+          "pss_mib": 0.2,
+          "swap_mib": 1.1
+        },
+        {
+          "start": "0x10782fd000",
+          "end": "0x1078b00000",
+          "size_mib": 8.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.3,
+          "pss_mib": 1.3,
+          "swap_mib": 1.1
+        },
+        {
+          "start": "0x1000ca5000",
+          "end": "0x1000d95000",
+          "size_mib": 0.9,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.1,
+          "pss_mib": 0.1,
+          "swap_mib": 0.8
+        },
+        {
+          "start": "0x1000da5000",
+          "end": "0x1000f26000",
+          "size_mib": 1.5,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.8,
+          "pss_mib": 0.8,
+          "swap_mib": 0.6
+        },
+        {
+          "start": "0x7f7c45f000",
+          "end": "0x7f7c790000",
+          "size_mib": 3.2,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.1,
+          "pss_mib": 0.1,
+          "swap_mib": 0.5
+        },
+        {
+          "start": "0x7f8d407000",
+          "end": "0x7f8d493000",
+          "size_mib": 0.5,
+          "perms": "rw-p",
+          "path": "/usr/lib/libmali.so.0.32.0",
+          "rss_mib": 0.1,
+          "pss_mib": 0.1,
+          "swap_mib": 0.5
+        },
+        {
+          "start": "0x2000000000",
+          "end": "0x2000055000",
+          "size_mib": 0.3,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.0,
+          "pss_mib": 0.0,
+          "swap_mib": 0.3
+        },
+        {
+          "start": "0x7f64000000",
+          "end": "0x7f64102000",
+          "size_mib": 1.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.7,
+          "pss_mib": 0.7,
+          "swap_mib": 0.2
+        },
+        {
+          "start": "0x106d8b2000",
+          "end": "0x107715e000",
+          "size_mib": 152.7,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 24.1,
+          "pss_mib": 24.1,
+          "swap_mib": 0.1
+        }
+      ]
+    },
+    "precleanup": {
+      "method": "per-VMA Pss/SwapPss from /proc/<pid>/smaps; overlaps and shared pages are not summed as physical totals",
+      "totals": {
+        "vmas": 445,
+        "rss_mib": 460.8,
+        "pss_mib": 460.1,
+        "swap_pss_mib": 460.7
+      },
+      "top_by_swap": [
+        {
+          "start": "0x100a242000",
+          "end": "0x106c58e000",
+          "size_mib": 1571.3,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 314.9,
+          "pss_mib": 314.9,
+          "swap_mib": 267.0,
+          "sample_head": {
+            "kind": "mixed",
+            "first16": "696e69743e0000000000000009000000",
+            "last16": "00000000090000003c6e6f6e696e6974"
+          },
+          "sample_tail": {
+            "kind": "mixed",
+            "first16": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "last16": "aaaaaaaaf80f00000100200000000000"
+          },
+          "sampled_bytes": 128
+        },
+        {
+          "start": "0x1000f46000",
+          "end": "0x100a240000",
+          "size_mib": 147.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 60.6,
+          "pss_mib": 60.6,
+          "swap_mib": 86.3,
+          "sample_head": {
+            "kind": "single-byte-repeat",
+            "first16": "00000000010000000000000000000000",
+            "last16": "00000000000000000000000000000000"
+          },
+          "sample_tail": {
+            "kind": "mixed",
+            "first16": "3c6e6f6e696e69743e00000000000000",
+            "last16": "3e00000000000000090000003c6e6f6e"
+          },
+          "sampled_bytes": 128
+        },
+        {
+          "start": "0x7f7f800000",
+          "end": "0x7f84000000",
+          "size_mib": 72.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.0,
+          "pss_mib": 0.0,
+          "swap_mib": 64.1,
+          "sample_head": {
+            "kind": "all-zero",
+            "first16": "00000000000000000000000000000000",
+            "last16": "00000000000000000000000000000000"
+          },
+          "sample_tail": {
+            "kind": "all-zero",
+            "first16": "00000000000000000000000000000000",
+            "last16": "00000000000000000000000000000000"
+          },
+          "sampled_bytes": 128
+        },
+        {
+          "start": "0x7f70000000",
+          "end": "0x7f7260b000",
+          "size_mib": 38.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 27.3,
+          "pss_mib": 27.3,
+          "swap_mib": 10.2,
+          "sample_head": {
+            "kind": "mixed",
+            "first16": "200000707f0000000000000000000000",
+            "last16": "c092f0707f0000000000000000000000"
+          },
+          "sample_tail": {
+            "kind": "all-zero",
+            "first16": "00000000000000000000000000000000",
+            "last16": "00000000000000000000000000000000"
+          },
+          "sampled_bytes": 128
+        },
+        {
+          "start": "0x555ee58000",
+          "end": "0x555feda000",
+          "size_mib": 16.5,
+          "perms": "rw-p",
+          "path": "[heap]",
+          "rss_mib": 1.3,
+          "pss_mib": 1.3,
+          "swap_mib": 6.8
+        },
+        {
+          "start": "0x1000000000",
+          "end": "0x1000c85000",
+          "size_mib": 12.5,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 5.7,
+          "pss_mib": 5.7,
+          "swap_mib": 6.0
+        },
+        {
+          "start": "0x555ac66000",
+          "end": "0x555c8ad000",
+          "size_mib": 28.3,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.3,
+          "pss_mib": 1.3,
+          "swap_mib": 4.3
+        },
+        {
+          "start": "0x9d4c000",
+          "end": "0xa0cf000",
+          "size_mib": 3.5,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.8,
+          "pss_mib": 1.8,
+          "swap_mib": 1.7
+        },
+        {
+          "start": "0x7f8d237000",
+          "end": "0x7f8d407000",
+          "size_mib": 1.8,
+          "perms": "r--p",
+          "path": "/usr/lib/libmali.so.0.32.0",
+          "rss_mib": 0.3,
+          "pss_mib": 0.3,
+          "swap_mib": 1.5
+        },
+        {
+          "start": "0x1077ee2000",
+          "end": "0x10781fd000",
+          "size_mib": 3.1,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.7,
+          "pss_mib": 1.7,
+          "swap_mib": 1.4
+        },
+        {
+          "start": "0xa631000",
+          "end": "0xa78e000",
+          "size_mib": 1.4,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.0,
+          "pss_mib": 0.0,
+          "swap_mib": 1.4
+        },
+        {
+          "start": "0xb05c000",
+          "end": "0xb1a0000",
+          "size_mib": 1.3,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.2,
+          "pss_mib": 0.2,
+          "swap_mib": 1.1
+        },
+        {
+          "start": "0x10782fd000",
+          "end": "0x1078b00000",
+          "size_mib": 8.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 1.4,
+          "pss_mib": 1.4,
+          "swap_mib": 1.0
+        },
+        {
+          "start": "0x1000ca5000",
+          "end": "0x1000d95000",
+          "size_mib": 0.9,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.1,
+          "pss_mib": 0.1,
+          "swap_mib": 0.8
+        },
+        {
+          "start": "0x1000da5000",
+          "end": "0x1000f26000",
+          "size_mib": 1.5,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.8,
+          "pss_mib": 0.8,
+          "swap_mib": 0.7
+        },
+        {
+          "start": "0x7f7c45f000",
+          "end": "0x7f7c790000",
+          "size_mib": 3.2,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.1,
+          "pss_mib": 0.1,
+          "swap_mib": 0.5
+        },
+        {
+          "start": "0x7f8d407000",
+          "end": "0x7f8d493000",
+          "size_mib": 0.5,
+          "perms": "rw-p",
+          "path": "/usr/lib/libmali.so.0.32.0",
+          "rss_mib": 0.1,
+          "pss_mib": 0.1,
+          "swap_mib": 0.5
+        },
+        {
+          "start": "0x2000000000",
+          "end": "0x2000055000",
+          "size_mib": 0.3,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.0,
+          "pss_mib": 0.0,
+          "swap_mib": 0.3
+        },
+        {
+          "start": "0x7f64000000",
+          "end": "0x7f64102000",
+          "size_mib": 1.0,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 0.7,
+          "pss_mib": 0.7,
+          "swap_mib": 0.2
+        },
+        {
+          "start": "0x106d8b2000",
+          "end": "0x107715e000",
+          "size_mib": 152.7,
+          "perms": "rw-p",
+          "path": "[anon rw-p]",
+          "rss_mib": 24.2,
+          "pss_mib": 24.2,
+          "swap_mib": 0.1
+        }
+      ]
+    }
+  },
+  "last_progress_observation": {
+    "frame": 5587,
+    "ns": 39582513221580,
+    "age_s": 0.005963095,
+    "budget_s": 30.0
+  },
+  "gameplay_readiness": [
+    {
+      "t_ns": 39461607440021,
+      "has_game_hud": true,
+      "mismatch": 0.0,
+      "best_offset": [
+        0,
+        0
+      ],
+      "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"
+    }
+  ],
+  "observed_gameplay_hud": true,
+  "route_sha256": "9a1959b0bffe8a0b7b747b1d2851a660edc281bf5bc45ef2df13595ba1d97d3a",
+  "ledger_exit": 0,
+  "restored_save_hashes": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"
+  },
+  "menu_rgb_signal_verified": true,
+  "cleanup_warnings": [],
+  "menu_pids": [
+    13291
+  ]
+}

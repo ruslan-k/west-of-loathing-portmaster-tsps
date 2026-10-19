@@ -68,6 +68,13 @@ def trial(root):
             entry['transfer_vma']=dict(size_mib=picked['size_mib'],swap_mib=picked['swap_mib'],
                                        rss_mib=picked['rss_mib'],pss_mib=picked['pss_mib'])
         vma[tag]=entry
+    for tag,entry in vma.items():
+        if tag not in memory and entry.get('totals'):
+            totals=entry['totals']
+            memory[tag]=dict(samples=1,source='vma_samples',
+                             pss_kib=round(totals.get('pss_mib',0)*1024),
+                             swap_pss_kib=round(totals.get('swap_pss_mib',0)*1024),
+                             rss_mib=totals.get('rss_mib'))
     stalls=0
     for name,(lo,hi) in windows.items():
         if name=='game-idle' or name.startswith('walk-'):
@@ -114,8 +121,8 @@ def main():
             item['pss_delta_%s'%phase]=(b_.get('pss_kib') or 0)-(a_.get('pss_kib') or 0)
         for tag in ('startup','game-idle','precleanup'):
             ov=(off['vma'].get(tag) or {}).get('transfer_vma');nv=(on['vma'].get(tag) or {}).get('transfer_vma')
-            if ov and nv:
-                item['transfer_vma_swap_delta_mib_%s'%tag]=nv['swap_mib']-ov['swap_mib']
+            if ov:
+                item['transfer_vma_swap_delta_mib_%s'%tag]=round((nv['swap_mib'] if nv else 0.0)-ov['swap_mib'],1)
         h_off,h_on=off['moving_hold'],on['moving_hold']
         item['moving_hold_parity_fps']=(h_on.get('presents_per_s',0)-h_off.get('presents_per_s',0)
                                         if h_off.get('available') and h_on.get('available') else None)

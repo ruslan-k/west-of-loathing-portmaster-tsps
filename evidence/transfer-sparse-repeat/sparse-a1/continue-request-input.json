@@ -1,0 +1,13 @@
+{
+  "pid": 12492,
+  "start_ticks": "3936026",
+  "buttons": "0x1",
+  "stick": 0,
+  "hold_ms": 180,
+  "sent_begin_ns": 39437893523162,
+  "physical_input_verified": false,
+  "caveat": "Diagnostic request timing only; runtime delivery and real KMS/scene change remain separate checks.",
+  "sent_end_ns": 39437893765204,
+  "capture_begin_ns": 39449903360122,
+  "capture_end_ns": 39450174486047
+}
