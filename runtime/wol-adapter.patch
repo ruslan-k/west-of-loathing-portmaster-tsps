@@ -1944,7 +1944,7 @@ index 0545586..4de1da4 100644
      if(!++nvn_gl_completion.use_serial)stop("NVN_GL_SERIAL_WRAP",nvn_caller,0,24);
      nvn_gl_completion.completion_valid=0;
 diff --git a/native/nvn_render.h b/native/nvn_render.h
-index 543b4b5..6e7ea53 100644
+index 543b4b5..8a8e518 100644
 --- a/native/nvn_render.h
 +++ b/native/nvn_render.h
 @@ -197,6 +197,8 @@ static GLenum nvn_blend_factor(unsigned value) {
@@ -2393,7 +2393,7 @@ index 543b4b5..6e7ea53 100644
      if(nvn_draw_diagnostic_active()) {
          GLint previous;GLuint fb;glGetIntegerv(GL_FRAMEBUFFER_BINDING,&previous);glGenFramebuffers(1,&fb);
          glBindFramebuffer(GL_FRAMEBUFFER,fb);glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,texture_name,0);
-@@ -507,8 +860,1347 @@ static unsigned aw_target_frozen(uint64_t id) {
+@@ -507,8 +860,1348 @@ static unsigned aw_target_frozen(uint64_t id) {
  }
  #endif
  static inline uint64_t aw_setup_now(void){if(!nvn_phase.enabled)return 0;struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
@@ -3650,9 +3650,10 @@ index 543b4b5..6e7ea53 100644
 +                 * the render state that could swallow it (scissor/depth/viewport), right after the draw. */
 +                /* Sprite draws (stride 24): scan the whole target once for any non-black pixels - tells
 +                 * whether the d88c64a6 geometry lands anywhere (review 2026-10-13). Bounded to the first
-+                 * twelve draws AND skipped in the owner-facing release profile: this does a full
-+                 * glReadPixels of the target plus a synchronous error query on the draw path. */
-+                if(!aw_release_mode() && stride==24 && nvn_render.target && nvn_render.target->id!=30&&nvn_render.target->id!=31&&nvn_render.target->id!=32) {
++                 * twelve draws. NOTE: this scan also CONSUMES pending GL errors via glGetError(), so it
++                 * stays enabled in the release profile: removing it would let an otherwise-swallowed
++                 * error surface later in zero_texture_refresh's fail-closed check. Kept for that reason. */
++                if(stride==24 && nvn_render.target && nvn_render.target->id!=30&&nvn_render.target->id!=31&&nvn_render.target->id!=32) {
 +                    static unsigned sp_told;if(sp_told<12){sp_told++;
 +                        GLint vp2[4]={0,0,0,0};glGetIntegerv(GL_VIEWPORT,vp2);
 +                        unsigned rw=(unsigned)(vp2[2]>0?vp2[2]:0),rh=(unsigned)(vp2[3]>0?vp2[3]:0);
@@ -3741,7 +3742,7 @@ index 543b4b5..6e7ea53 100644
      if(r->args[0]==0)stop("ZERO_POINT_DRAW_SHADER_REQUIRED",nvn_caller,0,20);
      if(r->args[0]<=3)glLineWidth(nvn_render.line_width);
      if(nvn_skip.active){nvn_skip.draws_skipped++;return;}
-@@ -704,6 +2396,7 @@ static void nvn_render_draw_inner(struct nvn_record *r) {
+@@ -704,6 +2397,7 @@ static void nvn_render_draw_inner(struct nvn_record *r) {
  #endif
      uint64_t aw_t2=aw_setup_now();
      nvn_render_state_epoch();nvn_render_use_program(p,program);
@@ -3749,7 +3750,7 @@ index 543b4b5..6e7ea53 100644
      nvn_uniform_begin(p,program);
      zero_texture_storage_sampler_begin();
  #ifdef ANIMAL_WELL_SHADERS
-@@ -1340,7 +3033,7 @@ static void nvn_render_draw_inner(struct nvn_record *r) {
+@@ -1340,7 +3034,7 @@ static void nvn_render_draw_inner(struct nvn_record *r) {
              if(cadence_stencil && mfc_stencil_preserve_geometry(primitive,indices,count,maximum)) {
                  nvn_mfc_require(nvn_render.depth,MFC_STENCIL,0);
                  nvn_render_color_mask(0);nvn_render_depth_mask(GL_FALSE);
@@ -3758,7 +3759,7 @@ index 543b4b5..6e7ea53 100644
                  nvn_render_color_mask(effective_color_mask);
                  nvn_render_depth_mask((nvn_render.depth_state[0]>>1)&1);
                  uint64_t preserved=++megaman_frame_cadence.stencil_preserved_draws;
-@@ -1411,7 +3104,7 @@ static void nvn_render_draw_inner(struct nvn_record *r) {
+@@ -1411,7 +3105,7 @@ static void nvn_render_draw_inner(struct nvn_record *r) {
          uint64_t aw_probe_t0=0;if(tpf && nvn_replay.last_frame+1==tpf){glFinish();aw_probe_t0=nvn_nanoseconds();}
          if(p->aw_noise_location>=0){glActiveTexture(GL_TEXTURE0+7);glBindTexture(GL_TEXTURE_2D,aw_noise.tex);GLint unit=7;nvn_uniform_send(p->aw_noise_location,NVN_UNIFORM_INT,&unit);glActiveTexture(GL_TEXTURE0);}
  #endif
@@ -3767,7 +3768,7 @@ index 543b4b5..6e7ea53 100644
          zero_depth_draw_end(&depth_draw);nvn_draw_finish_profile();
  #ifdef ANIMAL_WELL_SHADERS
          nvn_render.target->aw_draws_since_clear++;
-@@ -1535,6 +3228,465 @@ static void nvn_render_draw(struct nvn_record *r) {
+@@ -1535,6 +3229,465 @@ static void nvn_render_draw(struct nvn_record *r) {
          begin=end+1;
      }
  }
@@ -4233,7 +4234,7 @@ index 543b4b5..6e7ea53 100644
  static unsigned nvn_render_record(struct nvn_record *r) {
      uint64_t *a=r->args;
      switch(r->op) {
-@@ -1562,7 +3714,16 @@ static unsigned nvn_render_record(struct nvn_record *r) {
+@@ -1562,7 +3715,16 @@ static unsigned nvn_render_record(struct nvn_record *r) {
          for(unsigned i=0;i<4;i++)if(!isfinite(color[i]))stop("ZERO_BLEND_COLOR_INVALID",nvn_caller,i,24);
          glBlendColor(color[0],color[1],color[2],color[3]);return 1;
      }
@@ -4251,7 +4252,7 @@ index 543b4b5..6e7ea53 100644
      case NI_nvnCommandBufferSetLineWidth:case NI_nvnCommandBufferSetPointSize: {
          float size;memcpy(&size,r->vectors,4);
          if(!isfinite(size) || size<=0)stop("ZERO_RASTER_SIZE_INVALID",nvn_caller,r->op,24);
-@@ -1682,9 +3843,10 @@ static unsigned nvn_render_record(struct nvn_record *r) {
+@@ -1682,9 +3844,10 @@ static unsigned nvn_render_record(struct nvn_record *r) {
              nvn_render.framebuffer=nvn_framebuffer_bind(nvn_render.target,d);nvn_render.pass_skipped=0;
              zero_udd_restore(d);
              nvn_low_target(nvn_render.target,d);d->composition_target_seen=1;
@@ -4263,7 +4264,7 @@ index 543b4b5..6e7ea53 100644
          nvn_cpu_image_require_target(t);nvn_cpu_image_require_target(d);
          nvn_rt_storage_target(t,d);
          nvn_mfc_target(t);nvn_mfc_target(d);
-@@ -1697,6 +3859,7 @@ static unsigned nvn_render_record(struct nvn_record *r) {
+@@ -1697,6 +3860,7 @@ static unsigned nvn_render_record(struct nvn_record *r) {
              if(nvn_low_color(t)<0&&!t->host_scaled)d->composition_other_target=1;}
          nvn_packaged_require_writable(t,"NVN_LC2_PACKAGED_RENDER_TARGET_REQUIRED");
          if(!t->name||(d&&(!d->depth_buffer||d->b.width!=t->b.width||d->b.height!=t->b.height)))stop("NVN_FRAMEBUFFER_ATTACHMENTS",nvn_caller,targets[0],24);
