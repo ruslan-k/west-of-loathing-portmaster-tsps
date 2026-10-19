@@ -28,7 +28,7 @@ not a paired A/B; the paired acceptance series remains `../accept-720/`):
 
 | metric | default profile | 720 profile |
 | --- | --- | --- |
-| live fps (w1 / w2) | 28.3 / 28.1 | **32.1 / 31.7** (+3.4…+4.0) |
+| live fps (w1 / w2) | 28.3 / 28.1 | **32.1 / 31.7** (+3.6…+3.8, ~+13 %) |
 | process VmSwap | 487.5 → 580.2 MiB (↑94.7) | **443.1 → 445.4 MiB (↑2.3)** |
 | SwapPss (late) | 579.5 MiB | **445.0 MiB** |
 | system swap used | 631 → 708 MiB | **602 → 606 MiB** |
