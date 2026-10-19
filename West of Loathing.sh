@@ -66,8 +66,10 @@ export MEGAMAN_PROBE_SECONDS="${WOL_PROBE_SECONDS:-0}"
 # the shader substitution, banks and counters stay intact. Diagnostics pass WOL_QUIET=0 explicitly.
 export WOL_QUIET="${WOL_QUIET:-1}"
 # 2026-10-19 (owner request): ordinary play runs the QUIET release profile. AW_RELEASE=1 turns off the
-# runtime's diagnostic receipts and the remaining per-frame diagnostic prints (sprite scan, upload
-# attribution), and disables automatic video-frame dumps to the port directory. It does NOT touch
+# runtime's high-volume diagnostic receipts (e.g. SVC/NVN calls and upload
+# attribution) and disables automatic video-frame dumps to the port directory. The final
+# quiet overlay still performs bounded WOL_SPRITE_SCAN / WOL_PAIR_PIXELS readbacks because
+# the sprite scan currently affects GL-error consumption (see roadmap §19). It does NOT touch
 # rendering, the shader substitution, memory behaviour or any fail-closed guard.
 # Video sampling stays "until the first image proof, then explicit captures only" (T2_READBACK_OFF=2):
 # that keeps the startup black-screen proof while removing the periodic readback that cost
