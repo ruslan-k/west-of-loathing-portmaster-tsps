@@ -74,6 +74,9 @@ if mode=='start':
     # requests >= WOL_HOSTMMAP_MIN with caller frames. Default OFF: only forwarded when the
     # invoking environment sets LD_PRELOAD explicitly.
     if os.environ.get('LD_PRELOAD'):env['LD_PRELOAD']=os.environ['LD_PRELOAD']
+    # Guest TransferMemory copy mode (2026-10-19): the runtime's sparse backing copy keeps
+    # zero pages uncommitted; forwarded explicitly because the generic loop only carries WOL_*.
+    if os.environ.get('T2_TRANSFER_SPARSE_COPY'):env['T2_TRANSFER_SPARSE_COPY']=os.environ['T2_TRANSFER_SPARSE_COPY']
     # Screen-rect draw filter: prints every draw whose transformed bbox intersects the rect,
     # which is how a single UI region (e.g. the guide's location list) is inspected.
     # Generic WOL_* passthrough (2026-10-16): A/B runs need the runtime's own gates
