@@ -1,4 +1,15 @@
-# Lowered-threshold allocator census: the remaining swap is NOT in known SDK allocations
+# Lowered-threshold allocator census: historical observations, gameplay interpretation withdrawn
+
+> **Correction (follow-up audit):** `allocmin-b1`/`b2` did **not** enter gameplay.
+> Their `title`/`world` captures are the developer splash and their `map`/`return`
+> captures are the main title. The original request labels below are not scene identities.
+> In addition, `Reallocate(NULL,n)` could log an internal Allocate and create a duplicate
+> live slot in the old runtime tracer; later frees can therefore leave the reconstructed
+> lifetime set inconsistent despite `incomplete=0`. Neither absence of overflow nor these
+> counters proves a complete allocation census. The earlier decisive gameplay verdict is
+> **withdrawn**. Preserve the raw measurements as title/startup observations, not a proven
+> steady-state working set or reclaim target. See [screen reclassification and corrected
+> instrumentation](../allocator-history/README.md) for the replacement gates and runs.
 
 Read-only single-arm device census requested by roadmap §§15.12–15.14: lower the SDK
 StandardAllocator trace threshold (≤256 KiB) and aggregate the surviving blocks by caller to

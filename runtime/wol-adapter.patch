@@ -158,14 +158,14 @@
      return 0;
 --- a/native/graphics_trace.h
 +++ b/native/graphics_trace.h
-@@ -42,3 +42,99 @@
+@@ -42,3 +42,104 @@
      }
      ctx->uc_mcontext.pc+=4;return 1;
  }
 +/* WOL_ALLOC_TRACE=1: bounded read-only SDK StandardAllocator tracing.
 + * These five instruction sites are selected from the exact pinned owner SDK's dynamic
 + * symbols and decoded prologue/return, not guessed Unity ABI. No guest allocation is replaced.
-+ * WOL_ALLOC_MIN overrides the tracked-size threshold (default 1 MiB, accepted 64 KiB..1 GiB,
++ * WOL_ALLOC_MIN overrides the tracked-size threshold (default 1 MiB, accepted 16 KiB..1 GiB,
 + * decimal or 0x hex) so a lower-threshold census can attribute sub-threshold blocks by caller;
 + * the tables stay fixed-size, overflow is reported (`incomplete=`), never unbounded.
 + * Large SDK allocations are arenas, NOT proof of inner Unity object liveness/free pages. */
@@ -189,7 +189,7 @@
 +    const char *m=getenv("WOL_ALLOC_MIN");
 +    if(m && *m) {
 +        char *end=0;unsigned long long v=strtoull(m,&end,0);
-+        if(!end || *end || v<(1ULL<<16) || v>(1ULL<<30))stop("WOL_ALLOC_MIN_VALUE",0,0,24);
++        if(!end || *end || v<(1ULL<<14) || v>(1ULL<<30))stop("WOL_ALLOC_MIN_VALUE",0,0,24);
 +        wol_alloc_min=v;
 +    }
 +    if(!wol_alloc_on)return;
@@ -251,7 +251,12 @@
 +    if(saved.sp!=ctx->uc_mcontext.sp || saved.caller!=r[30])stop("WOL_ALLOC_RETURN_IDENTITY",pc,r[30],24);
 +    if(action==5 && (r[0] || !saved.size))wol_alloc_remove(saved.old,saved.caller,saved.fp,saved.sp);
 +    if(r[0] && saved.size>=wol_alloc_min) {
-+        unsigned k=0;while(k<WOL_ALLOC_SLOTS && wol_alloc_live[k].ptr)k++;
++        /* Reallocate(NULL,n) can call the instrumented Allocate internally.
++         * Update that same pointer instead of creating a second live slot. */
++        unsigned k=0;while(k<WOL_ALLOC_SLOTS && wol_alloc_live[k].ptr!=r[0])k++;
++        if(k==WOL_ALLOC_SLOTS) {
++            k=0;while(k<WOL_ALLOC_SLOTS && wol_alloc_live[k].ptr)k++;
++        } else if(action!=5)wol_alloc_overflow=1;
 +        if(k<WOL_ALLOC_SLOTS)wol_alloc_live[k]=(typeof(wol_alloc_live[0])){r[0],saved.size,saved.arena,saved.caller};
 +        else wol_alloc_overflow=1;
 +        wol_alloc_emit(action==5?"realloc":"alloc",r[0],saved.size,saved.arena,saved.caller,saved.fp,saved.sp);

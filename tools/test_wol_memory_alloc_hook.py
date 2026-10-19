@@ -77,8 +77,33 @@ int main(void){
     assert(wol_alloc_live[0].ptr==0x30000000 && wol_alloc_live[0].size==300000);
     c.uc_mcontext.pc=LC2_SDK_BASE+0x83198;c.uc_mcontext.regs[1]=0x30000000;c.uc_mcontext.regs[20]=91;c.uc_mcontext.regs[19]=92;
     assert(wol_alloc_handle(c.uc_mcontext.pc,0xa9be4ff4,&c));
+    /* 16 KiB rung: captures 32 KiB requests that the earlier 64 KiB census omitted. */
+    c.uc_mcontext.sp=original;
+    setenv("WOL_ALLOC_MIN","16384",1);wol_alloc_configure();
+    c.uc_mcontext.pc=LC2_SDK_BASE+0x830a0;c.uc_mcontext.regs[0]=0x8000;c.uc_mcontext.regs[1]=32768;
+    assert(wol_alloc_handle(c.uc_mcontext.pc,0xd10103ff,&c));
+    c.uc_mcontext.sp=original;c.uc_mcontext.pc=LC2_SDK_BASE+0x8318c;c.uc_mcontext.regs[0]=0x40000000;
+    assert(wol_alloc_handle(c.uc_mcontext.pc,0xd65f03c0,&c));
+    assert(wol_alloc_live[0].ptr==0x40000000 && wol_alloc_live[0].size==32768);
+    c.uc_mcontext.pc=LC2_SDK_BASE+0x83198;c.uc_mcontext.regs[1]=0x40000000;
+    assert(wol_alloc_handle(c.uc_mcontext.pc,0xa9be4ff4,&c));
     unsetenv("WOL_ALLOC_MIN");wol_alloc_configure();
-    assert(!wol_alloc_live[0].ptr);assert(wol_alloc_logged==4);assert(!wol_alloc_depth[0]);
+    assert(!wol_alloc_live[0].ptr);assert(wol_alloc_logged==6);assert(!wol_alloc_depth[0]);
+    /* Reallocate(NULL,n) invokes Allocate internally: one pointer, not two live slots. */
+    c.uc_mcontext.sp=original;c.uc_mcontext.regs[30]=0x1234;
+    c.uc_mcontext.pc=LC2_SDK_BASE+0x831f8;c.uc_mcontext.regs[0]=0x8000;c.uc_mcontext.regs[1]=0;c.uc_mcontext.regs[2]=65536;
+    wol_alloc_handle(c.uc_mcontext.pc,0xd10103ff,&c);
+    c.uc_mcontext.pc=LC2_SDK_BASE+0x830a0;c.uc_mcontext.regs[0]=0x8000;c.uc_mcontext.regs[1]=65536;c.uc_mcontext.regs[30]=0x9988;
+    wol_alloc_handle(c.uc_mcontext.pc,0xd10103ff,&c);
+    c.uc_mcontext.sp=original-64;c.uc_mcontext.pc=LC2_SDK_BASE+0x8318c;c.uc_mcontext.regs[0]=0x50000000;
+    wol_alloc_handle(c.uc_mcontext.pc,0xd65f03c0,&c);
+    c.uc_mcontext.sp=original;c.uc_mcontext.pc=LC2_SDK_BASE+0x83320;c.uc_mcontext.regs[30]=0x1234;
+    wol_alloc_handle(c.uc_mcontext.pc,0xd65f03c0,&c);
+    unsigned seen=0;for(unsigned i=0;i<WOL_ALLOC_SLOTS;i++)seen+=wol_alloc_live[i].ptr==0x50000000;
+    assert(seen==1);
+    c.uc_mcontext.pc=LC2_SDK_BASE+0x83198;c.uc_mcontext.regs[1]=0x50000000;
+    wol_alloc_handle(c.uc_mcontext.pc,0xa9be4ff4,&c);
+    for(unsigned i=0;i<WOL_ALLOC_SLOTS;i++)assert(!wol_alloc_live[i].ptr);
     puts("ALLOC_HOOK_SEMANTICS_OK");return 0;
 }
 '''

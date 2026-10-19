@@ -1,0 +1,1644 @@
+{
+  "label": "allocfix16",
+  "owner_save_hashes": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"
+  },
+  "stages": [
+    {
+      "name": "startup",
+      "t_ns": 34702006142736
+    }
+  ],
+  "cleanup_verified": true,
+  "probe_sha256": "75df5b4bc881b4e81dd3f16027ce601328c3bddea684cb5389e9340433256ef7",
+  "session_sha256": "8cee91955fa015cbb15cfbbdd188ffa370df8d9ef4726d0d9e702f5254bf2c32",
+  "launcher_sha256": "fa30af838b22e01b7a5eeeb7c4f34c4b5eaf3f67c7a984eee0ba87ba90581f3a",
+  "layout_sha256": "c21c41900e37f2054408308d61dec93846632d17d2dadf63a89afbed41c454cd",
+  "ordinary_title_only": false,
+  "draw_trace": false,
+  "phase_labels_are_requests_not_scene_classifications": true,
+  "heavy_guest_page_sampling": false,
+  "present_watchdog_s": 30.0,
+  "progress_checks": 0,
+  "control_save_hashes": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"
+  },
+  "failure": {
+    "kind": "RuntimeError",
+    "message": "session start failed"
+  },
+  "block_samples": {
+    "precleanup": {
+      "method": "pagemap present/swapped bits per 4KiB page; requested bytes are allocator requests, not physical pages; caller is the WOL_ALLOC request site; no reclaim inferred",
+      "threshold_bytes": 16384,
+      "live_blocks": 174,
+      "sampled": 174,
+      "truncated": false,
+      "by_caller": [
+        {
+          "caller": "main.text.seg+0x13a49ec",
+          "blocks": 158,
+          "requested_kib": 709601,
+          "present_kib": 103928,
+          "swapped_kib": 0
+        },
+        {
+          "caller": "main.text.seg+0x13a4b38",
+          "blocks": 7,
+          "requested_kib": 25936,
+          "present_kib": 1160,
+          "swapped_kib": 0
+        },
+        {
+          "caller": "main.text.seg+0x13a4a64",
+          "blocks": 9,
+          "requested_kib": 553,
+          "present_kib": 548,
+          "swapped_kib": 0
+        }
+      ],
+      "blocks": [
+        {
+          "ptr": "0x106058b000",
+          "requested_kib": 196612,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 124,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1050186000",
+          "requested_kib": 196612,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 176,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106f85a000",
+          "requested_kib": 98308,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 124,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x105c188000",
+          "requested_kib": 65540,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 180,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1078b00000",
+          "requested_kib": 65536,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 65536,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106d8b3000",
+          "requested_kib": 32408,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 24304,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x107595c000",
+          "requested_kib": 16384,
+          "caller": "main.text.seg+0x13a4b38",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x107695c000",
+          "requested_kib": 8192,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 1456,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10776e2000",
+          "requested_kib": 8192,
+          "caller": "main.text.seg+0x13a4b38",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1078700000",
+          "requested_kib": 4096,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1077ee2000",
+          "requested_kib": 3172,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 3172,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10782fe000",
+          "requested_kib": 2048,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 2048,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1077462000",
+          "requested_kib": 1536,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 1536,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10781fc000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x107725f000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x107715d000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106d7b1000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106d6af000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106d5ad000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106d4ab000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106d3a9000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106d2a7000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106d1a5000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106d0a3000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106cfa1000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106ce9f000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106cd9d000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106cc9b000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106cb99000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106ca97000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106c995000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106c893000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106c791000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106c68f000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106c58d000",
+          "requested_kib": 1028,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1077361000",
+          "requested_kib": 1024,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10784ff000",
+          "requested_kib": 1024,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x107cb00000",
+          "requested_kib": 1024,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1078600000",
+          "requested_kib": 1024,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 112,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10775e2000",
+          "requested_kib": 1024,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 1024,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x107585c000",
+          "requested_kib": 1024,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10005f1000",
+          "requested_kib": 512,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 308,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000d3c000",
+          "requested_kib": 336,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 336,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000a80000",
+          "requested_kib": 336,
+          "caller": "main.text.seg+0x13a4b38",
+          "present_kib": 336,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000cf3000",
+          "requested_kib": 288,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 288,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x100047f000",
+          "requested_kib": 256,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x100054b000",
+          "requested_kib": 256,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 256,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000715000",
+          "requested_kib": 256,
+          "caller": "main.text.seg+0x13a4b38",
+          "present_kib": 52,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000755000",
+          "requested_kib": 256,
+          "caller": "main.text.seg+0x13a4b38",
+          "present_kib": 256,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000795000",
+          "requested_kib": 256,
+          "caller": "main.text.seg+0x13a4b38",
+          "present_kib": 256,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10007d5000",
+          "requested_kib": 256,
+          "caller": "main.text.seg+0x13a4b38",
+          "present_kib": 256,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000ad9000",
+          "requested_kib": 256,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 144,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000b1a000",
+          "requested_kib": 256,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000b5e000",
+          "requested_kib": 256,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10601dc000",
+          "requested_kib": 256,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10006a1000",
+          "requested_kib": 151,
+          "caller": "main.text.seg+0x13a4a64",
+          "present_kib": 148,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10006c7000",
+          "requested_kib": 137,
+          "caller": "main.text.seg+0x13a4a64",
+          "present_kib": 136,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000679000",
+          "requested_kib": 132,
+          "caller": "main.text.seg+0x13a4a64",
+          "present_kib": 132,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000c84000",
+          "requested_kib": 132,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000f25000",
+          "requested_kib": 132,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000caf000",
+          "requested_kib": 124,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 124,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000930000",
+          "requested_kib": 100,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 100,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000701000",
+          "requested_kib": 80,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 80,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000d91000",
+          "requested_kib": 68,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10009b6000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 64,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10009c7000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 64,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10009d8000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 64,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000a34000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 64,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000a45000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 64,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000a59000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 64,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000c3d000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000c4e000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 64,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000e2a000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 12,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000e3b000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 64,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000e56000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000e67000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000e78000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 64,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000eb6000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 64,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106021c000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 12,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106022d000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106023e000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x106024f000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 8,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1060260000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10004f9000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x100051b000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 64,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000815000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 64,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008fe000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 64,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000915000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 64,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1001074000",
+          "requested_kib": 64,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 64,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x100099f000",
+          "requested_kib": 51,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 48,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000cd1000",
+          "requested_kib": 48,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 48,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000c70000",
+          "requested_kib": 41,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 40,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000ce7000",
+          "requested_kib": 36,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 36,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000959000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 32,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1001010000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a4a64",
+          "present_kib": 32,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1001019000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a4a64",
+          "present_kib": 32,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000ca6000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 32,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000cde000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 32,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000db2000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 32,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000dbb000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 32,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000dc4000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 32,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000dcd000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 32,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000dd6000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 32,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000ddf000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 32,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000c2f000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 32,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x100098f000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 32,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000e89000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 32,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000b9e000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000ba7000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000bb2000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000bba000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000bc2000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000bca000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000bd3000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000bdb000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000be4000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000bed000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000bf5000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000c00000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000c08000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000c10000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000c19000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000c21000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 0,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000e0b000",
+          "requested_kib": 32,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 32,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x100119c000",
+          "requested_kib": 24,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 24,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000f47000",
+          "requested_kib": 24,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 24,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x100069b000",
+          "requested_kib": 21,
+          "caller": "main.text.seg+0x13a4a64",
+          "present_kib": 20,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000a17000",
+          "requested_kib": 20,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 20,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000da3000",
+          "requested_kib": 20,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 20,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000dac000",
+          "requested_kib": 20,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 20,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000a6b000",
+          "requested_kib": 19,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x100097a000",
+          "requested_kib": 17,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10009f2000",
+          "requested_kib": 17,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000e51000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x100094a000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000972000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10009ff000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000a2f000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000dea000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000def000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000df4000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000df9000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000dfe000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000671000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 4,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000675000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000834000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x100083e000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a4a64",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000846000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a4a64",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000895000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x100087d000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000882000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1000886000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x100088a000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008a5000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008a9000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008ad000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008b1000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008b5000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008b9000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008bd000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008c1000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008c5000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008c9000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008cd000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008d1000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008d5000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008d9000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008dd000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008e1000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008e5000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008e9000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008ed000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x10008f1000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a49ec",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        },
+        {
+          "ptr": "0x1001031000",
+          "requested_kib": 16,
+          "caller": "main.text.seg+0x13a4a64",
+          "present_kib": 16,
+          "swapped_kib": 0,
+          "file_or_shared_kib": 0,
+          "exclusive_kib": 0
+        }
+      ]
+    }
+  },
+  "ledger_exit": 0,
+  "restored_save_hashes": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"
+  },
+  "menu_rgb_signal_verified": true,
+  "cleanup_warnings": [
+    "vma sample: 'runtime_sha256'"
+  ],
+  "menu_pids": [
+    27963
+  ]
+}

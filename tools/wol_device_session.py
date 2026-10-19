@@ -103,9 +103,16 @@ if mode=='start':
     for k,v in env.items():assert actual.get(k)==v,(k,v,actual.get(k))
     (out/'session.json').write_text(json.dumps(dict(label=label,pid=pid,identity=ident,env=env)))
     print('STARTED',label,pid,flush=True)
-    time.sleep(65)
-    assert identity(pid)==ident,('runtime ended',pid)
-    cap(label+'-title')
+    # A fixed 65-second delay is not a title-ready gate under allocation tracing.
+    # Inspect the known static title sign before sending CONTINUE; keep each score.
+    from wol_screen_gate import wait_for_title
+    readiness=[]
+    def record_readiness(observed):
+        readiness.append(observed)
+        (out/(label+'-title-readiness.json')).write_text(json.dumps(readiness,indent=2)+'\n')
+    observed=wait_for_title(lambda:cap(label+'-title'),out/(label+'-title.png'),
+                            lambda:identity(pid)==ident,record_readiness)
+    print('TITLE_READY',json.dumps(observed),flush=True)
     print('ALIVE',pid,'ONLINE',Path('/sys/devices/system/cpu/online').read_text(),flush=True)
 elif mode=='press':
     state=json.loads((out/'session.json').read_text());pid=state['pid']

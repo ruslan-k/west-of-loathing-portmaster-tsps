@@ -11,7 +11,7 @@
 
 **Latest §15 execution:** [native UpRender producer and repeated component-settings A/B](../evidence/uprender-owner/README.md) identifies the Switch IL2CPP consumer. Three 720 candidates observe **32.638 / 33.348 / 33.878 runtime presents/s** in gulch versus valid controls **24.019 / 24.226**. One attempted 1080 control freezes and is excluded, not concealed by successful cleanup. SwapPSS remains **533–552 MiB**; there is no full-game/no-swap acceptance or default promotion. See §§15.8–15.9; the original handheld and upload-skip decisions stand.
 
-**Latest §15 memory execution:** [the lowered-threshold allocator census](../evidence/alloc-min/README.md) (§15.15) closes "the arena swap hides in known ≥64 KiB SDK allocations" as **measured false** — tracked blocks hold only 38.9–83.6 MiB of a 411.6–454.6 MiB SwapPss; ~371–373 MiB lies outside every tracked block and the 1524.7 MiB arena's ~263–275 MiB unattributed share is the standing no-swap target. Nothing reclaimed; no swap/DVFS/default change.
+**Correction to latest memory interpretation:** the [readiness/lifetime audit](../evidence/allocator-history/README.md) found that the old `allocmin` phases were still splash/title, not gameplay, and that nested `Reallocate(NULL,n)` could duplicate the tracer's live pointer. §15.15's original counters are retained as historical observations, but its **complete gameplay census / decisive owner exclusion is withdrawn**. The replacement uses actual KMS title/HUD gates, unique live pointers, page unions including allocation history, and a read-only SDK span-table census. No validated no-swap acceptance exists.
 
 ## 1. Current measurable baseline and open gates
 
@@ -522,7 +522,9 @@ The transferred region is **entirely zero**, so the sparse copy (`T2_TRANSFER_SP
 
 The gate stays **opt-in and default OFF**; nothing else changed. The remaining swap is dominated by the guest arenas.
 
-### 15.15 Lowered-threshold census: the remaining swap is not in known SDK allocations
+### 15.15 Lowered-threshold census: historical checkpoint, interpretation corrected
+
+> **Superseded interpretation:** a later visual/lifetime audit found that `allocmin-b1`/`b2` remained on splash/title and the old tracer could duplicate nested realloc pointers. The figures below remain raw-window observations, not a complete gameplay allocation census or proof that the untracked arena pages are reclaimable. See [allocator-history follow-up](../evidence/allocator-history/README.md). The earlier "measured false" conclusion is withdrawn pending corrected real-gameplay sampling.
 
 [Lowered-threshold allocator census](../evidence/alloc-min/README.md) — two read-only single-arm runs on ELF `84819832…` (`allocmin-b1` `WOL_ALLOC_MIN=262144`, `allocmin-b2` `WOL_ALLOC_MIN=65536`), every other flag OFF, 87 progress checks per arm, saves restored, real Spruce screen after each run:
 

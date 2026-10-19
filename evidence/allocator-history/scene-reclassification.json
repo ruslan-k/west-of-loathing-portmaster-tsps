@@ -1,0 +1,367 @@
+{
+  "schema": 1,
+  "scope": "Retrospective actual-screen gate; requested phase names are invalid for scene attribution in these old arms",
+  "rows": [
+    {
+      "path": "evidence/alloc-min/allocmin-b1/title.png",
+      "sha256": "2adbd9ea641308f47f286b5b496bedfaef7b34b33d07bcaef6f395ea5e6b7e99",
+      "title": {
+        "is_title": false,
+        "mismatch": 0.6568742655699178,
+        "best_offset": [
+          -8,
+          12
+        ],
+        "samples": 851,
+        "scope": "known title sign only; not game-state proof"
+      },
+      "hud": {
+        "has_game_hud": false,
+        "mismatch": 0.7843137254901961,
+        "best_offset": [
+          -4,
+          -4
+        ],
+        "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"
+      },
+      "category": "other-needs-visual-review"
+    },
+    {
+      "path": "evidence/alloc-min/allocmin-b1/world.png",
+      "sha256": "2adbd9ea641308f47f286b5b496bedfaef7b34b33d07bcaef6f395ea5e6b7e99",
+      "title": {
+        "is_title": false,
+        "mismatch": 0.6568742655699178,
+        "best_offset": [
+          -8,
+          12
+        ],
+        "samples": 851,
+        "scope": "known title sign only; not game-state proof"
+      },
+      "hud": {
+        "has_game_hud": false,
+        "mismatch": 0.7843137254901961,
+        "best_offset": [
+          -4,
+          -4
+        ],
+        "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"
+      },
+      "category": "other-needs-visual-review"
+    },
+    {
+      "path": "evidence/alloc-min/allocmin-b1/map.png",
+      "sha256": "2ba450c3dd08e41423dadb6b1ddc5ab9b9fad39af1dc206be4f802684e3130bf",
+      "title": {
+        "is_title": true,
+        "mismatch": 0.0023501762632197414,
+        "best_offset": [
+          0,
+          0
+        ],
+        "samples": 851,
+        "scope": "known title sign only; not game-state proof"
+      },
+      "hud": {
+        "has_game_hud": false,
+        "mismatch": 0.21568627450980393,
+        "best_offset": [
+          -4,
+          -4
+        ],
+        "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"
+      },
+      "category": "title"
+    },
+    {
+      "path": "evidence/alloc-min/allocmin-b1/return.png",
+      "sha256": "523e40f1f8a84c5ae4a2ff0af036a0dd92a1f8a81fe39af4848869ab182c8877",
+      "title": {
+        "is_title": true,
+        "mismatch": 0.02937720329024677,
+        "best_offset": [
+          0,
+          0
+        ],
+        "samples": 851,
+        "scope": "known title sign only; not game-state proof"
+      },
+      "hud": {
+        "has_game_hud": false,
+        "mismatch": 0.21568627450980393,
+        "best_offset": [
+          -4,
+          -4
+        ],
+        "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"
+      },
+      "category": "title"
+    },
+    {
+      "path": "evidence/alloc-min/allocmin-b1/restored-menu.png",
+      "sha256": "40f55660a8a816b0393d533ac3e75246288d05772a8abc91c4799c62111076b7",
+      "title": {
+        "is_title": false,
+        "mismatch": 0.5687426556991775,
+        "best_offset": [
+          6,
+          12
+        ],
+        "samples": 851,
+        "scope": "known title sign only; not game-state proof"
+      },
+      "hud": {
+        "has_game_hud": false,
+        "mismatch": 0.6946778711484594,
+        "best_offset": [
+          2,
+          -3
+        ],
+        "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"
+      },
+      "category": "other-needs-visual-review"
+    },
+    {
+      "path": "evidence/alloc-min/allocmin-b2/title.png",
+      "sha256": "2adbd9ea641308f47f286b5b496bedfaef7b34b33d07bcaef6f395ea5e6b7e99",
+      "title": {
+        "is_title": false,
+        "mismatch": 0.6568742655699178,
+        "best_offset": [
+          -8,
+          12
+        ],
+        "samples": 851,
+        "scope": "known title sign only; not game-state proof"
+      },
+      "hud": {
+        "has_game_hud": false,
+        "mismatch": 0.7843137254901961,
+        "best_offset": [
+          -4,
+          -4
+        ],
+        "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"
+      },
+      "category": "other-needs-visual-review"
+    },
+    {
+      "path": "evidence/alloc-min/allocmin-b2/world.png",
+      "sha256": "2adbd9ea641308f47f286b5b496bedfaef7b34b33d07bcaef6f395ea5e6b7e99",
+      "title": {
+        "is_title": false,
+        "mismatch": 0.6568742655699178,
+        "best_offset": [
+          -8,
+          12
+        ],
+        "samples": 851,
+        "scope": "known title sign only; not game-state proof"
+      },
+      "hud": {
+        "has_game_hud": false,
+        "mismatch": 0.7843137254901961,
+        "best_offset": [
+          -4,
+          -4
+        ],
+        "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"
+      },
+      "category": "other-needs-visual-review"
+    },
+    {
+      "path": "evidence/alloc-min/allocmin-b2/map.png",
+      "sha256": "bb0a6ba21243d0cbec24327376a8c92f9724247970ac0b4bf4f57656326e2c38",
+      "title": {
+        "is_title": true,
+        "mismatch": 0.052878965922444184,
+        "best_offset": [
+          0,
+          -2
+        ],
+        "samples": 851,
+        "scope": "known title sign only; not game-state proof"
+      },
+      "hud": {
+        "has_game_hud": false,
+        "mismatch": 0.21568627450980393,
+        "best_offset": [
+          -4,
+          -4
+        ],
+        "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"
+      },
+      "category": "title"
+    },
+    {
+      "path": "evidence/alloc-min/allocmin-b2/return.png",
+      "sha256": "6384d7bcb40f07fa7ed3a19d09d0e4b85695e805a2dce816286b3886bbf30047",
+      "title": {
+        "is_title": true,
+        "mismatch": 0.04465334900117509,
+        "best_offset": [
+          0,
+          0
+        ],
+        "samples": 851,
+        "scope": "known title sign only; not game-state proof"
+      },
+      "hud": {
+        "has_game_hud": false,
+        "mismatch": 0.21568627450980393,
+        "best_offset": [
+          -4,
+          -4
+        ],
+        "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"
+      },
+      "category": "title"
+    },
+    {
+      "path": "evidence/alloc-min/allocmin-b2/restored-menu.png",
+      "sha256": "bf01132061b7277cb0844b4282b0f84ac4587081fc7cc506547b6b2fc7a5fbab",
+      "title": {
+        "is_title": false,
+        "mismatch": 0.5687426556991775,
+        "best_offset": [
+          6,
+          12
+        ],
+        "samples": 851,
+        "scope": "known title sign only; not game-state proof"
+      },
+      "hud": {
+        "has_game_hud": false,
+        "mismatch": 0.6946778711484594,
+        "best_offset": [
+          2,
+          -3
+        ],
+        "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"
+      },
+      "category": "other-needs-visual-review"
+    },
+    {
+      "path": "evidence/allocator-history/allochist64/title.png",
+      "sha256": "2adbd9ea641308f47f286b5b496bedfaef7b34b33d07bcaef6f395ea5e6b7e99",
+      "title": {
+        "is_title": false,
+        "mismatch": 0.6568742655699178,
+        "best_offset": [
+          -8,
+          12
+        ],
+        "samples": 851,
+        "scope": "known title sign only; not game-state proof"
+      },
+      "hud": {
+        "has_game_hud": false,
+        "mismatch": 0.7843137254901961,
+        "best_offset": [
+          -4,
+          -4
+        ],
+        "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"
+      },
+      "category": "other-needs-visual-review"
+    },
+    {
+      "path": "evidence/allocator-history/allochist64/world.png",
+      "sha256": "2adbd9ea641308f47f286b5b496bedfaef7b34b33d07bcaef6f395ea5e6b7e99",
+      "title": {
+        "is_title": false,
+        "mismatch": 0.6568742655699178,
+        "best_offset": [
+          -8,
+          12
+        ],
+        "samples": 851,
+        "scope": "known title sign only; not game-state proof"
+      },
+      "hud": {
+        "has_game_hud": false,
+        "mismatch": 0.7843137254901961,
+        "best_offset": [
+          -4,
+          -4
+        ],
+        "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"
+      },
+      "category": "other-needs-visual-review"
+    },
+    {
+      "path": "evidence/allocator-history/allochist64/map.png",
+      "sha256": "9cd2d03a2a52a592854b54e3d76827e5a938dee40d807db80ceb202811c7d26a",
+      "title": {
+        "is_title": true,
+        "mismatch": 0.05405405405405406,
+        "best_offset": [
+          0,
+          -2
+        ],
+        "samples": 851,
+        "scope": "known title sign only; not game-state proof"
+      },
+      "hud": {
+        "has_game_hud": false,
+        "mismatch": 0.21568627450980393,
+        "best_offset": [
+          -4,
+          -4
+        ],
+        "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"
+      },
+      "category": "title"
+    },
+    {
+      "path": "evidence/allocator-history/allochist64/return.png",
+      "sha256": "916c73c90ada97755e49e6dcd0af193d77af9c41264a75f842a337c4933c53c1",
+      "title": {
+        "is_title": true,
+        "mismatch": 0.043478260869565216,
+        "best_offset": [
+          0,
+          0
+        ],
+        "samples": 851,
+        "scope": "known title sign only; not game-state proof"
+      },
+      "hud": {
+        "has_game_hud": false,
+        "mismatch": 0.21288515406162464,
+        "best_offset": [
+          2,
+          3
+        ],
+        "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"
+      },
+      "category": "title"
+    },
+    {
+      "path": "evidence/allocator-history/allochist64/restored-menu.png",
+      "sha256": "159bbec2286f6e44bd59c6badaf89958e79d401ee93114a759e1f9433b147beb",
+      "title": {
+        "is_title": false,
+        "mismatch": 0.5687426556991775,
+        "best_offset": [
+          6,
+          12
+        ],
+        "samples": 851,
+        "scope": "known title sign only; not game-state proof"
+      },
+      "hud": {
+        "has_game_hud": false,
+        "mismatch": 0.6946778711484594,
+        "best_offset": [
+          2,
+          -3
+        ],
+        "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"
+      },
+      "category": "other-needs-visual-review"
+    }
+  ],
+  "correction": "allocmin b1/b2 and allochist64 do not establish gameplay memory. Their late map/return captures are title screens. Scalar counters remain observations in their original windows, not controlled gulch/battle data. All earlier no-swap/30fps acceptance remains unmet."
+}

@@ -61,7 +61,7 @@ def trace_threshold(text,default=BLOCK_MIN_BYTES):
             match=re.search(r'threshold=(\d+)',line)
             if match:
                 value=int(match.group(1))
-                return value if 65536<=value<=BLOCK_MAX_BYTES else default
+                return value if 16384<=value<=BLOCK_MAX_BYTES else default
     return default
 
 
@@ -80,7 +80,7 @@ def scan_log(path,max_bytes=BLOCK_MAX_BYTES):
                     threshold=int(match.group(1))
             elif line.startswith('WOL_ALLOC '):
                 alloc_event(line,live)
-    if threshold is None or not 65536<=threshold<=max_bytes:
+    if threshold is None or not 16384<=threshold<=max_bytes:
         threshold=BLOCK_MIN_BYTES
     return block_list(live,threshold,max_bytes),threshold
 
@@ -187,6 +187,8 @@ def main():
     ap.add_argument('--stall-gdb',action='store_true',help='on stall only: bounded backtrace of the exact owned PID, no memory dump')
     ap.add_argument('--block-pages',action='store_true',help='read-only pagemap residency of >=4MiB live WOL_ALLOC blocks at game-idle and before cleanup')
     ap.add_argument('--vma-swap',action='store_true',help='read-only per-VMA Pss/SwapPss census at game-idle and before cleanup')
+    ap.add_argument('--allocation-pages',action='store_true',help='heavy read-only page union: live/historical-not-live/unseen SDK spans; not free ownership or an FPS run')
+    ap.add_argument('--sdk-heap',action='store_true',help='read-only pinned SDK heap-span census with separate allocator-free vs allocated residency; no reclaim')
     a=ap.parse_args()
     if a.present_watchdog and (not 5<=a.present_watchdog<=30 or a.ordinary_title):
         ap.error('watchdog requires diagnostic mode and a finite 5..30 second budget')
@@ -303,8 +305,42 @@ def main():
             method='pagemap present/swapped bits per 4KiB page; requested bytes are allocator requests, not physical pages; caller is the WOL_ALLOC request site; no reclaim inferred',
             threshold_bytes=min_bytes,live_blocks=len(candidates),sampled=len(samples),truncated=truncated,
             by_caller=aggregate_callers(samples),blocks=samples[:BLOCK_DETAIL_LIMIT])
+    def sample_allocation_pages(tag,rows):
+        if not a.allocation_pages or not owned:return
+        from wol_allocator_pages import AllocationCoverage, classify_pages
+        started=time.monotonic_ns()
+        proc=Path('/proc')/str(owned[0])
+        if stat_identity(proc)['start_ticks']!=owned[1]:raise RuntimeError('allocation-pages PID changed')
+        results=[]
+        # Only >=32 MiB readable guest-heap VMAs (<=64 slices in the 2 GiB heap).
+        arenas=[r for r in rows if 0x1000000000<=r['start']<r['end']<=0x1080000000 and r['size_kib']>=32768 and r['perms'].startswith('rw')]
+        for arena in arenas:
+            coverage=AllocationCoverage(arena['start'],arena['end'])
+            with (root/'logs/latest.log').open('rb') as log:
+                size=os.fstat(log.fileno()).st_size
+                while log.tell()<size:
+                    line=log.readline(min(65536,size-log.tell()))
+                    if not line:break
+                    if line.startswith((b'WOL_ALLOC ',b'WOL_ALLOC_OVERFLOW ')):
+                        coverage.feed(line.decode(errors='replace'))
+            with (proc/'pagemap').open('rb',buffering=0) as pages:
+                pages.seek((arena['start']//4096)*8)
+                result=classify_pages(coverage,pages)
+                result['vma_pss_kib']=arena['pss_kib'];result['vma_swap_pss_kib']=arena['swap_kib']
+                results.append(result)
+        if stat_identity(proc)['start_ticks']!=owned[1]:raise RuntimeError('allocation-pages PID changed after sample')
+        receipt.setdefault('allocation_pages',{})[tag]=dict(begin_ns=started,end_ns=time.monotonic_ns(),arenas=results)
     def sample_vma(tag):
-        if not a.vma_swap or not owned:return
+        if not (a.vma_swap or a.allocation_pages or a.sdk_heap) or not owned:return
+        if a.sdk_heap and tag in ('game-idle','precleanup'):
+            from wol_sdk_heap_census import sample as sdk_sample
+            try:
+                sdk=sdk_sample(owned[0],owned[1],receipt['runtime_sha256'])
+                (out/('sdk-heap-'+tag+'.json')).write_text(json.dumps(sdk,indent=2)+'\n')
+                receipt.setdefault('sdk_heap',{})[tag]={k:v for k,v in sdk.items() if k!='spans'}
+                receipt['sdk_heap'][tag]['top_swapped_spans']=sorted(sdk['spans'],key=lambda r:-r['swapped_pages'])[:16]
+            except (OSError,ValueError,RuntimeError) as error:
+                receipt.setdefault('sdk_heap',{})[tag]=dict(error=str(error),reclaim_safe=False)
         if stat_identity(Path('/proc')/str(owned[0]))['start_ticks']!=owned[1]:
             receipt.setdefault('vma_samples',{})[tag]=dict(error='PID/start-time changed');return
         try:text=(Path('/proc')/str(owned[0])/'smaps').read_text(errors='replace')
@@ -342,6 +378,7 @@ def main():
                               perms=r['perms'],path=label(r),rss_mib=round(r['rss_kib']/1024,1),
                               pss_mib=round(r['pss_kib']/1024,1),swap_mib=round(r['swap_kib']/1024,1),
                               **{k:r[k] for k in ('sample_head','sample_tail','sampled_bytes') if k in r}) for r in top])
+        sample_allocation_pages(tag,rows)
     try:
         if a.control_save:
             for p in save.iterdir():
@@ -366,10 +403,11 @@ def main():
         if a.guest_pages:
             ledger_args+=['--layout',str(a.layout)]
         ledger=subprocess.Popen(ledger_args)
-        launch.wait(timeout=150)
-        if launch.returncode:raise RuntimeError('session start failed')
+        # Pin artifact identities before readiness: failed startup still needs exact cleanup receipts.
         receipt['runtime_sha256']=hashlib.sha256((root/'wol-horizon').read_bytes()).hexdigest()
         receipt['section_sha256']=hashlib.sha256((root/'wol-romfs.section').read_bytes()).hexdigest()
+        launch.wait(timeout=360)
+        if launch.returncode:raise RuntimeError('session start failed')
         raw=(Path('/proc')/str(ps[0])/'environ').read_bytes().split(b'\0')
         if a.present_watchdog and b'MOMO_FRAME_CLOCK=1' not in raw:
             raise RuntimeError('watchdog cannot infer progress without enabled frame clock')
@@ -378,7 +416,20 @@ def main():
         stage('menu');pause(20)
         sample_vma('menu')
         if a.ordinary_title:return
-        stage('continue-load');cmd('press','0x1','0','12','world','180')
+        stage('continue-load');cmd('press','0x1','0','12','continue-request','180')
+        from wol_screen_gate import gameplay_observation
+        scene_deadline=time.monotonic()+180;observations=[]
+        while True:
+            subprocess.run(['/mnt/SDCARD/spruce/bin64/kmsgrab',str(out/'world-ready.png')],check=True,timeout=25)
+            observed=gameplay_observation(out/'world-ready.png')
+            observations.append(dict(t_ns=time.monotonic_ns(),**observed))
+            receipt['gameplay_readiness']=observations
+            if observed['has_game_hud']:
+                shutil.copyfile(out/'world-ready.png',Path('/mnt/UDISK/wol-goal-20261015')/(a.label+'-world.png'))
+                break
+            if time.monotonic()>=scene_deadline:raise RuntimeError('CONTINUE did not reach verified gameplay HUD within 180s')
+            pause(5)
+        receipt['observed_gameplay_hud']=True
         stage('game-idle');pause(30)
         sample_blocks('game-idle')
         sample_vma('game-idle')
@@ -394,6 +445,9 @@ def main():
             stage('map-return');cmd('press','0x100','0','4','return','180');pause(10)
             stage('pause');cmd('press','0x400','0','4','pause','180')
             stage('pause-return');cmd('press','0x400','0','4','unpause','180');pause(10)
+    except Exception as error:
+        receipt.setdefault('failure',dict(kind=type(error).__name__,message=str(error)))
+        raise
     finally:
         warnings=[]
         try:
