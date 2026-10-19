@@ -3,12 +3,17 @@ from pathlib import Path
 import subprocess
 import sys
 import unittest
-from wol_acceptance_batch import COMMON, ORDER
+from wol_acceptance_batch import COMMON, ORDER, plan_trial
 
 ROOT=Path(__file__).resolve().parent.parent
 
 
 class AcceptanceProtocol(unittest.TestCase):
+    def test_resume_plan_skips_collects_or_runs(self):
+        self.assertEqual(plan_trial(True,True,True),'skip')
+        self.assertEqual(plan_trial(False,True,False),'fail-partial')
+        self.assertEqual(plan_trial(False,False,True),'collect')
+        self.assertEqual(plan_trial(False,False,False),'run')
     def test_three_alternating_pairs_and_only_size_treatment(self):
         self.assertEqual(tuple(x.split('-')[1][0] for x in ORDER),('a','b','b','a','a','b'))
         self.assertEqual(len(set(ORDER)),6)

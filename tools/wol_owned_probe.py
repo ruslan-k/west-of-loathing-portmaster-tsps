@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Host runner for one exact owned device probe; preserves failed-trial artifacts."""
+"""Host runner for one exact owned device probe; preserves failed-trial artifacts.
+
+--collect-only collects a finished or still-running device trial without launching.
+"""
 from pathlib import Path
 import argparse
 import hashlib
@@ -19,9 +22,12 @@ def main():
     ap.add_argument('--env',required=True)
     ap.add_argument('--probe-args',default='')
     ap.add_argument('--ssh-target',default='tsps')
+    ap.add_argument('--collect-only',action='store_true',help='do not launch; collect an existing device trial')
+    ap.add_argument('--wait-s',type=float,default=1000)
     a=ap.parse_args();label=a.label
     if not label.replace('-','').isalnum():ap.error('simple label required')
     if len(a.elf)!=64 or any(c not in '0123456789abcdef' for c in a.elf):ap.error('exact lowercase SHA256 required')
+    if not 60<=a.wait_s<=7200:ap.error('bounded wait required')
     env=json.loads(a.env)
     if not all(k.startswith(('WOL_','T2_')) and isinstance(v,str) for k,v in env.items()):
         ap.error('explicit WOL_/T2_ environment string values required')
@@ -33,21 +39,25 @@ def main():
     probe_sha=hashlib.sha256((repo/'tools/wol_roadmap_probe.py').read_bytes()).hexdigest()
     if remote('sha256sum /mnt/UDISK/wol_roadmap_probe.py').split()[0]!=probe_sha:
         raise RuntimeError('installed probe differs')
-    if remote('test -d /mnt/UDISK/roadmap-v2-%s && printf yes || true'%label).strip():
-        raise RuntimeError('refuse to reuse trial directory')
+    device_dir=bool(remote('test -d /mnt/UDISK/roadmap-v2-%s && printf yes || true'%label).strip())
     dest=a.out/label
     if dest.exists():raise RuntimeError('refuse to overwrite host trial')
-    args=['env',*(k+'='+v for k,v in env.items()),'python3','/mnt/UDISK/wol_roadmap_probe.py',
-          '--label',label,'--layout',a.layout,'--present-watchdog','30','--stall-gdb',*shlex.split(a.probe_args)]
-    remote('setsid nohup '+shlex.join(args)+' > /mnt/UDISK/'+label+'-run.log 2>&1 < /dev/null &')
-    print('STARTED',label,flush=True)
-    deadline=time.monotonic()+1000
+    if a.collect_only:
+        if not device_dir:raise RuntimeError('no device trial directory to collect')
+    else:
+        if device_dir:raise RuntimeError('refuse to reuse trial directory')
+        args=['env',*(k+'='+v for k,v in env.items()),'python3','/mnt/UDISK/wol_roadmap_probe.py',
+              '--label',label,'--layout',a.layout,'--present-watchdog','30','--stall-gdb',*shlex.split(a.probe_args)]
+        remote('setsid nohup '+shlex.join(args)+' > /mnt/UDISK/'+label+'-run.log 2>&1 < /dev/null &')
+        print('STARTED',label,flush=True)
+    deadline=time.monotonic()+a.wait_s
     while time.monotonic()<deadline:
         code='from pathlib import Path;p=Path("/mnt/UDISK/roadmap-v2-'+label+'/receipt.json");print(p.read_text() if p.exists() else "{}")'
         r=json.loads(remote('python3 -c '+shlex.quote(code)))
         if 'cleanup_warnings' in r:break
         time.sleep(10)
-    else:raise RuntimeError(label+' incomplete; backup preserved; inspect exact owned PID, never blindly kill')
+    else:raise RuntimeError(label+(' device receipt not ready; inspect device state before retrying'
+        if a.collect_only else ' incomplete; backup preserved; inspect exact owned PID, never blindly kill'))
     dest.mkdir(parents=True,exist_ok=False)
     code='from pathlib import Path;import json;p=Path("/mnt/UDISK/roadmap-v2-'+label+'");print(json.dumps([str(x.relative_to(p)) for x in p.rglob("*") if x.is_file() and (x.name in ("receipt.json","effective-env.json","ledger.jsonl","runtime.log.gz","restored-menu.png") or x.name.startswith("sdk-heap-") or "stall" in x.relative_to(p).parts)]))'
     for name in json.loads(remote('python3 -c '+shlex.quote(code))):
