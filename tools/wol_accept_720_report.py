@@ -14,8 +14,12 @@ import json
 import re
 import statistics
 
-import numpy as np
-from PIL import Image
+try:
+    import numpy as np
+    from PIL import Image
+except ImportError:  # only the frame-classification/motion features need these
+    np=None
+    Image=None
 
 from wol_memory_ledger import percentile
 
@@ -27,7 +31,13 @@ STATIC_MARGIN=15000
 DARK_FRACTION=0.85
 
 
+def _require_vision():
+    if np is None or Image is None:
+        raise RuntimeError('numpy and Pillow are required for frame classification/motion analysis')
+
+
 def _luma(path):
+    _require_vision()
     with Image.open(path) as im:
         return np.asarray(im.convert('L'),dtype=np.int16)
 
@@ -45,6 +55,7 @@ def dark_fraction(path):
 
 def phase_shift(a_path,b_path):
     """Horizontal/vertical translation between two frames (central band, phase correlation)."""
+    _require_vision()
     la=_luma(a_path);lb=_luma(b_path)
     if la.shape!=lb.shape:return None
     h,w=la.shape
