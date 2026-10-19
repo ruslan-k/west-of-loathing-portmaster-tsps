@@ -1,0 +1,215 @@
+{
+  "schema": 1,
+  "label": "allocmin-b1",
+  "runtime_sha256": "84819832afa558de4c9cbcf9fd4e73bce891906f4070cbbefaf16443807f94ea",
+  "phases": {
+    "game-idle": {
+      "threshold_bytes": 262144,
+      "live_blocks": 96,
+      "sampled": 96,
+      "truncated": false,
+      "by_caller": [
+        {
+          "caller": "main.text.seg+0x13a49ec",
+          "blocks": 71,
+          "requested_kib": 779608,
+          "present_kib": 190032,
+          "swapped_kib": 73048
+        },
+        {
+          "caller": "main.text.seg+0x13a4b38",
+          "blocks": 24,
+          "requested_kib": 171552,
+          "present_kib": 150320,
+          "swapped_kib": 12476
+        },
+        {
+          "caller": "main.text.seg+0x13a4ae0",
+          "blocks": 1,
+          "requested_kib": 256,
+          "present_kib": 92,
+          "swapped_kib": 84
+        }
+      ],
+      "bands": [
+        {
+          "lo_bytes": 262144,
+          "hi_bytes": 524288,
+          "blocks": 44,
+          "requested_mib": 11.9,
+          "present_mib": 8.9,
+          "swapped_mib": 2.1
+        },
+        {
+          "lo_bytes": 524288,
+          "hi_bytes": 1048576,
+          "blocks": 9,
+          "requested_mib": 5.4,
+          "present_mib": 5.1,
+          "swapped_mib": 0.3
+        },
+        {
+          "lo_bytes": 1048576,
+          "hi_bytes": 4194304,
+          "blocks": 31,
+          "requested_mib": 33.9,
+          "present_mib": 6.1,
+          "swapped_mib": 1.3
+        },
+        {
+          "lo_bytes": 4194304,
+          "hi_bytes": 16777216,
+          "blocks": 3,
+          "requested_mib": 20.0,
+          "present_mib": 5.6,
+          "swapped_mib": 2.4
+        },
+        {
+          "lo_bytes": 16777216,
+          "hi_bytes": 67108864,
+          "blocks": 2,
+          "requested_mib": 47.6,
+          "present_mib": 37.8,
+          "swapped_mib": 1.9
+        },
+        {
+          "lo_bytes": 67108864,
+          "hi_bytes": 9223372036854775808,
+          "blocks": 7,
+          "requested_mib": 810.2,
+          "present_mib": 268.9,
+          "swapped_mib": 75.6
+        }
+      ],
+      "totals": {
+        "blocks": 96,
+        "errors": 0,
+        "requested_mib": 929.1,
+        "present_mib": 332.5,
+        "swapped_mib": 83.6
+      },
+      "swap_cross_check": {
+        "process_swap_pss_mib": 454.6,
+        "tracked_swapped_mib": 83.6,
+        "outside_tracked_swap_mib": 371.0,
+        "process_pss_mib": 464.7,
+        "tracked_present_mib": 332.5,
+        "arena": [
+          {
+            "arena": "0x1000f47000..0x1060406000",
+            "arena_size_mib": 1524.7,
+            "arena_swap_mib": 295.2,
+            "tracked_inside": 43,
+            "tracked_inside_present_mib": 198.7,
+            "tracked_inside_swapped_mib": 31.9,
+            "unattributed_swap_mib": 263.3
+          }
+        ]
+      }
+    },
+    "precleanup": {
+      "threshold_bytes": 262144,
+      "live_blocks": 97,
+      "sampled": 97,
+      "truncated": false,
+      "by_caller": [
+        {
+          "caller": "main.text.seg+0x13a49ec",
+          "blocks": 72,
+          "requested_kib": 779864,
+          "present_kib": 191444,
+          "swapped_kib": 72364
+        },
+        {
+          "caller": "main.text.seg+0x13a4b38",
+          "blocks": 24,
+          "requested_kib": 171552,
+          "present_kib": 152260,
+          "swapped_kib": 10536
+        },
+        {
+          "caller": "main.text.seg+0x13a4ae0",
+          "blocks": 1,
+          "requested_kib": 256,
+          "present_kib": 108,
+          "swapped_kib": 68
+        }
+      ],
+      "bands": [
+        {
+          "lo_bytes": 262144,
+          "hi_bytes": 524288,
+          "blocks": 45,
+          "requested_mib": 12.1,
+          "present_mib": 9.1,
+          "swapped_mib": 2.2
+        },
+        {
+          "lo_bytes": 524288,
+          "hi_bytes": 1048576,
+          "blocks": 9,
+          "requested_mib": 5.4,
+          "present_mib": 5.1,
+          "swapped_mib": 0.3
+        },
+        {
+          "lo_bytes": 1048576,
+          "hi_bytes": 4194304,
+          "blocks": 31,
+          "requested_mib": 33.9,
+          "present_mib": 6.1,
+          "swapped_mib": 1.3
+        },
+        {
+          "lo_bytes": 4194304,
+          "hi_bytes": 16777216,
+          "blocks": 3,
+          "requested_mib": 20.0,
+          "present_mib": 8.0,
+          "swapped_mib": 0.0
+        },
+        {
+          "lo_bytes": 16777216,
+          "hi_bytes": 67108864,
+          "blocks": 2,
+          "requested_mib": 47.6,
+          "present_mib": 39.7,
+          "swapped_mib": 0.0
+        },
+        {
+          "lo_bytes": 67108864,
+          "hi_bytes": 9223372036854775808,
+          "blocks": 7,
+          "requested_mib": 810.2,
+          "present_mib": 267.7,
+          "swapped_mib": 77.3
+        }
+      ],
+      "totals": {
+        "blocks": 97,
+        "errors": 0,
+        "requested_mib": 929.4,
+        "present_mib": 335.8,
+        "swapped_mib": 81.0
+      },
+      "swap_cross_check": {
+        "process_swap_pss_mib": 454.4,
+        "tracked_swapped_mib": 81.0,
+        "outside_tracked_swap_mib": 373.4,
+        "process_pss_mib": 463.7,
+        "tracked_present_mib": 335.8,
+        "arena": [
+          {
+            "arena": "0x1000f47000..0x1060406000",
+            "arena_size_mib": 1524.7,
+            "arena_swap_mib": 300.0,
+            "tracked_inside": 44,
+            "tracked_inside_present_mib": 199.4,
+            "tracked_inside_swapped_mib": 31.8,
+            "unattributed_swap_mib": 268.2
+          }
+        ]
+      }
+    }
+  }
+}

@@ -158,15 +158,21 @@
      return 0;
 --- a/native/graphics_trace.h
 +++ b/native/graphics_trace.h
-@@ -42,3 +42,87 @@
+@@ -42,3 +42,99 @@
      }
      ctx->uc_mcontext.pc+=4;return 1;
  }
 +/* WOL_ALLOC_TRACE=1: bounded read-only SDK StandardAllocator tracing.
 + * These five instruction sites are selected from the exact pinned owner SDK's dynamic
 + * symbols and decoded prologue/return, not guessed Unity ABI. No guest allocation is replaced.
++ * WOL_ALLOC_MIN overrides the tracked-size threshold (default 1 MiB, accepted 64 KiB..1 GiB,
++ * decimal or 0x hex) so a lower-threshold census can attribute sub-threshold blocks by caller;
++ * the tables stay fixed-size, overflow is reported (`incomplete=`), never unbounded.
 + * Large SDK allocations are arenas, NOT proof of inner Unity object liveness/free pages. */
 +static unsigned wol_alloc_on,wol_alloc_logged,wol_alloc_overflow;
++static uint64_t wol_alloc_min=1U<<20;
++#define WOL_ALLOC_SLOTS 2048U
++#define WOL_ALLOC_EVENTS 8192U
 +static const struct {uint64_t offset;uint32_t opcode;unsigned action;} wol_alloc_sites[]={
 +    {0x830a0,0xd10103ffU,1}, /* Allocate(this,size,alignment): sub sp,sp,#64 */
 +    {0x8318c,0xd65f03c0U,2}, /* Allocate return: ret */
@@ -174,16 +180,22 @@
 +    {0x831f8,0xd10103ffU,4}, /* Reallocate(this,pointer,size): sub sp,sp,#64 */
 +    {0x83320,0xd65f03c0U,5}  /* Reallocate return: ret */
 +};
-+static struct {uint64_t ptr,size,arena,caller;} wol_alloc_live[512];
++static struct {uint64_t ptr,size,arena,caller;} wol_alloc_live[WOL_ALLOC_SLOTS];
 +#define WOL_ALLOC_THREADS 128U
 +static struct {uint64_t size,old,arena,caller,sp,fp;} wol_alloc_pending[WOL_ALLOC_THREADS][8];
 +static unsigned wol_alloc_depth[WOL_ALLOC_THREADS];
 +static void wol_alloc_configure(void) {
 +    const char *o=getenv("WOL_ALLOC_TRACE");wol_alloc_on=o&&!strcmp(o,"1");
++    const char *m=getenv("WOL_ALLOC_MIN");
++    if(m && *m) {
++        char *end=0;unsigned long long v=strtoull(m,&end,0);
++        if(!end || *end || v<(1ULL<<16) || v>(1ULL<<30))stop("WOL_ALLOC_MIN_VALUE",0,0,24);
++        wol_alloc_min=v;
++    }
 +    if(!wol_alloc_on)return;
 +    if(strcmp(LC2_SDK_SHA256,"3c5fc6933f619271feb42f62519e9f9043d06f3ee76746552b6b4cfe9094537e"))
 +        stop("WOL_ALLOC_SDK_IDENTITY",0,0,24);
-+    printf("WOL_ALLOC_TRACE enabled=1 threshold=1048576 slots=512 events=2048 scope=SDK-StandardAllocator inner-Unity-ownership=unknown mutation=none\n");
++    printf("WOL_ALLOC_TRACE enabled=1 threshold=%llu slots=%u events=%u scope=SDK-StandardAllocator inner-Unity-ownership=unknown mutation=none\n",(unsigned long long)wol_alloc_min,WOL_ALLOC_SLOTS,WOL_ALLOC_EVENTS);
 +}
 +static unsigned wol_alloc_site(uint64_t pc,uint32_t op) {
 +    if(!wol_alloc_on)return 0;
@@ -194,11 +206,11 @@
 +    return 0;
 +}
 +static void wol_alloc_emit(const char *event,uint64_t ptr,uint64_t size,uint64_t arena,uint64_t caller,uint64_t fp,uint64_t sp) {
-+    if(wol_alloc_logged>=2048){wol_alloc_overflow=1;return;}
++    if(wol_alloc_logged>=WOL_ALLOC_EVENTS){wol_alloc_overflow=1;return;}
 +    struct line l={0};text(&l,"WOL_ALLOC event=");text(&l,event);text(&l," seq=");hex(&l,++wol_alloc_logged);
 +    text(&l," ptr=");hex(&l,ptr);text(&l," bytes=");hex(&l,size);text(&l," arena=");hex(&l,arena);
 +    text(&l," caller=");location(&l,caller);text(&l," thread=");hex(&l,guest_thread_index);
-+    uint64_t live=0;for(unsigned i=0;i<512;i++)live+=wol_alloc_live[i].size;
++    uint64_t live=0;for(unsigned i=0;i<WOL_ALLOC_SLOTS;i++)live+=wol_alloc_live[i].size;
 +    struct timespec now;clock_gettime(CLOCK_MONOTONIC,&now);
 +    text(&l," ns=");hex(&l,(uint64_t)now.tv_sec*1000000000ULL+(uint64_t)now.tv_nsec);
 +    text(&l," tracked-large-live=");hex(&l,live);text(&l," incomplete=");hex(&l,wol_alloc_overflow);
@@ -210,7 +222,7 @@
 +    emit(&l);
 +}
 +static void wol_alloc_remove(uint64_t ptr,uint64_t caller,uint64_t fp,uint64_t sp) {
-+    for(unsigned i=0;i<512;i++)if(ptr && wol_alloc_live[i].ptr==ptr) {
++    for(unsigned i=0;i<WOL_ALLOC_SLOTS;i++)if(ptr && wol_alloc_live[i].ptr==ptr) {
 +        uint64_t size=wol_alloc_live[i].size,arena=wol_alloc_live[i].arena;wol_alloc_live[i].ptr=0;wol_alloc_live[i].size=0;
 +        wol_alloc_emit("free",ptr,size,arena,caller,fp,sp);return;
 +    }
@@ -238,9 +250,9 @@
 +    typeof(wol_alloc_pending[0][0]) saved=wol_alloc_pending[thread][--(*depth)];
 +    if(saved.sp!=ctx->uc_mcontext.sp || saved.caller!=r[30])stop("WOL_ALLOC_RETURN_IDENTITY",pc,r[30],24);
 +    if(action==5 && (r[0] || !saved.size))wol_alloc_remove(saved.old,saved.caller,saved.fp,saved.sp);
-+    if(r[0] && saved.size>=(1U<<20)) {
-+        unsigned k=0;while(k<512 && wol_alloc_live[k].ptr)k++;
-+        if(k<512)wol_alloc_live[k]=(typeof(wol_alloc_live[0])){r[0],saved.size,saved.arena,saved.caller};
++    if(r[0] && saved.size>=wol_alloc_min) {
++        unsigned k=0;while(k<WOL_ALLOC_SLOTS && wol_alloc_live[k].ptr)k++;
++        if(k<WOL_ALLOC_SLOTS)wol_alloc_live[k]=(typeof(wol_alloc_live[0])){r[0],saved.size,saved.arena,saved.caller};
 +        else wol_alloc_overflow=1;
 +        wol_alloc_emit(action==5?"realloc":"alloc",r[0],saved.size,saved.arena,saved.caller,saved.fp,saved.sp);
 +    }

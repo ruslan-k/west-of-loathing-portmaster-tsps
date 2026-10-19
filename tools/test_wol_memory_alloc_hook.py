@@ -62,7 +62,23 @@ int main(void){
     assert(wol_alloc_handle(c.uc_mcontext.pc,0xa9be4ff4,&c));
     assert(c.uc_mcontext.sp==original-32 && c.uc_mcontext.pc==LC2_SDK_BASE+0x8319c);
     uint64_t *saved=(uint64_t *)(uintptr_t)c.uc_mcontext.sp;assert(saved[0]==77 && saved[1]==88);
-    assert(!wol_alloc_live[0].ptr);assert(wol_alloc_logged==2);assert(!wol_alloc_depth[0]);
+    /* Lowered threshold: WOL_ALLOC_MIN=262144 tracks a 300000-byte request and skips 200000. */
+    c.uc_mcontext.sp=original;
+    setenv("WOL_ALLOC_MIN","262144",1);wol_alloc_configure();
+    c.uc_mcontext.pc=LC2_SDK_BASE+0x830a0;c.uc_mcontext.regs[0]=0x8000;c.uc_mcontext.regs[1]=200000;
+    assert(wol_alloc_handle(c.uc_mcontext.pc,0xd10103ff,&c));
+    c.uc_mcontext.sp=original;c.uc_mcontext.pc=LC2_SDK_BASE+0x8318c;c.uc_mcontext.regs[0]=0x20000000;
+    assert(wol_alloc_handle(c.uc_mcontext.pc,0xd65f03c0,&c));
+    assert(!wol_alloc_live[0].ptr);
+    c.uc_mcontext.pc=LC2_SDK_BASE+0x830a0;c.uc_mcontext.regs[0]=0x8000;c.uc_mcontext.regs[1]=300000;
+    assert(wol_alloc_handle(c.uc_mcontext.pc,0xd10103ff,&c));
+    c.uc_mcontext.sp=original;c.uc_mcontext.pc=LC2_SDK_BASE+0x8318c;c.uc_mcontext.regs[0]=0x30000000;
+    assert(wol_alloc_handle(c.uc_mcontext.pc,0xd65f03c0,&c));
+    assert(wol_alloc_live[0].ptr==0x30000000 && wol_alloc_live[0].size==300000);
+    c.uc_mcontext.pc=LC2_SDK_BASE+0x83198;c.uc_mcontext.regs[1]=0x30000000;c.uc_mcontext.regs[20]=91;c.uc_mcontext.regs[19]=92;
+    assert(wol_alloc_handle(c.uc_mcontext.pc,0xa9be4ff4,&c));
+    unsetenv("WOL_ALLOC_MIN");wol_alloc_configure();
+    assert(!wol_alloc_live[0].ptr);assert(wol_alloc_logged==4);assert(!wol_alloc_depth[0]);
     puts("ALLOC_HOOK_SEMANTICS_OK");return 0;
 }
 '''

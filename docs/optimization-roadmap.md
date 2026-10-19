@@ -519,3 +519,15 @@ The transferred region is **entirely zero**, so the sparse copy (`T2_TRANSFER_SP
 - Presents 4882 vs 4877 over the identical route; KMS frames near-identical (world diff mean 0.1/255).
 
 The gate stays **opt-in and default OFF**; nothing else changed. The remaining swap is dominated by the guest arenas.
+
+### 15.15 Lowered-threshold census: the remaining swap is not in known SDK allocations
+
+[Lowered-threshold allocator census](../evidence/alloc-min/README.md) — two read-only single-arm runs on ELF `84819832…` (`allocmin-b1` `WOL_ALLOC_MIN=262144`, `allocmin-b2` `WOL_ALLOC_MIN=65536`), every other flag OFF, 87 progress checks per arm, saves restored, real Spruce screen after each run:
+
+- **Complete enumeration** at both thresholds (227 / 778 events, `incomplete=0x0`, no pagemap errors, no truncation): the game's direct pinned SDK StandardAllocator traffic is small — 96 / 261 live blocks ≥256 KiB / ≥64 KiB.
+- Tracked blocks carry 332.5 / 395.3 MiB present but only **83.6 / 38.9 MiB** of a 454.6 / 411.6 MiB process SwapPss; the outside-tracked remainder is stable (~371–373 MiB) across thresholds, phases and runs.
+- The **1524.7 MiB anonymous arena** carries 290–295 MiB swap; tracked blocks inside explain only 21.9–31.9 MiB — **~263–275 MiB unattributed** (allocated below 64 KiB or through non-traced paths).
+- The 64–256 KiB band (≈164 new blocks) is **resident, not swapped** (~3.5 MiB): mid-size SDK blocks are rejected as the swap holder at this granularity.
+- The known cold 72.0 MiB TransferMemory copy (64.1 MiB swap) is present in these control arms (sparse gate OFF) and stays a separate, already-measured lever ([transfer-sparse](../evidence/transfer-sparse/README.md)).
+
+**Position:** "the remaining arena swap hides in known ≥64 KiB SDK allocations" is now measured false; no pool cap, page discard or swap change is justified by this. Open: sub-64 KiB vs non-SDK suballocation ownership of the ~265 MiB unattributed arena swap and its page liveness. Instrument shipped here: `WOL_ALLOC_MIN` (runtime), streaming `scan_log` + per-caller aggregation (probe), `tools/wol_allocmin_report.py`.

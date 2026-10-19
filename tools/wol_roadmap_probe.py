@@ -22,25 +22,82 @@ import re
 
 BLOCK_MIN_BYTES=4*1024*1024
 BLOCK_MAX_BYTES=1024*1024*1024
+BLOCK_SAMPLE_LIMIT=2048
+BLOCK_DETAIL_LIMIT=512
+CALLER_LIMIT=40
+
+
+def alloc_event(line,live):
+    """Apply one WOL_ALLOC log line to the live-block map: ptr -> (bytes, caller)."""
+    row=dict(re.findall(r'([\w-]+)=([^\s]+)',line))
+    if 'ptr' not in row or 'bytes' not in row:
+        return
+    try:
+        ptr=int(row['ptr'],0);n=int(row['bytes'],0)
+    except ValueError:
+        return
+    if row.get('event')=='free':
+        live.pop(ptr,None)
+    elif row.get('event') in ('alloc','realloc'):
+        live[ptr]=(n,row.get('caller'))
+
+
+def block_list(live,min_bytes,max_bytes):
+    return sorted(((p,n,c) for p,(n,c) in live.items() if min_bytes<=n<=max_bytes),key=lambda x:-x[1])
 
 
 def live_blocks(text,min_bytes=BLOCK_MIN_BYTES,max_bytes=BLOCK_MAX_BYTES):
     live={}
     for line in text.splitlines():
-        if not line.startswith('WOL_ALLOC '):
+        if line.startswith('WOL_ALLOC '):
+            alloc_event(line,live)
+    return block_list(live,min_bytes,max_bytes)
+
+
+def trace_threshold(text,default=BLOCK_MIN_BYTES):
+    """Adopt the WOL_ALLOC_TRACE header's own threshold so the census matches what was logged."""
+    for line in text.splitlines():
+        if line.startswith('WOL_ALLOC_TRACE enabled=1'):
+            match=re.search(r'threshold=(\d+)',line)
+            if match:
+                value=int(match.group(1))
+                return value if 65536<=value<=BLOCK_MAX_BYTES else default
+    return default
+
+
+def scan_log(path,max_bytes=BLOCK_MAX_BYTES):
+    """Single streaming pass over the runtime log: (live blocks, trace threshold).
+
+    The streaming form keeps the device-side memory cost bounded and applies the log's
+    own threshold; a missing/invalid header falls back to the >=4 MiB read-only default.
+    """
+    live={};threshold=None
+    with Path(path).open('r',errors='replace') as f:
+        for line in f:
+            if line.startswith('WOL_ALLOC_TRACE enabled=1'):
+                match=re.search(r'threshold=(\d+)',line)
+                if match:
+                    threshold=int(match.group(1))
+            elif line.startswith('WOL_ALLOC '):
+                alloc_event(line,live)
+    if threshold is None or not 65536<=threshold<=max_bytes:
+        threshold=BLOCK_MIN_BYTES
+    return block_list(live,threshold,max_bytes),threshold
+
+
+def aggregate_callers(samples):
+    """Group sampled live blocks by their WOL_ALLOC caller site, biggest swap first."""
+    by={}
+    for sample in samples:
+        if 'present_kib' not in sample:
             continue
-        row=dict(re.findall(r'([\w-]+)=([^\s]+)',line))
-        if 'ptr' not in row or 'bytes' not in row:
-            continue
-        try:
-            ptr=int(row['ptr'],0);n=int(row['bytes'],0)
-        except ValueError:
-            continue
-        if row.get('event')=='free':
-            live.pop(ptr,None)
-        elif row.get('event') in ('alloc','realloc'):
-            live[ptr]=n
-    return sorted(((p,n) for p,n in live.items() if min_bytes<=n<=max_bytes),key=lambda x:-x[1])
+        caller=sample.get('caller') or '[unattributed]'
+        row=by.setdefault(caller,dict(caller=caller,blocks=0,requested_kib=0,present_kib=0,swapped_kib=0))
+        row['blocks']+=1
+        row['requested_kib']+=sample['requested_kib']
+        row['present_kib']+=sample['present_kib']
+        row['swapped_kib']+=sample['swapped_kib']
+    return sorted(by.values(),key=lambda row:(-row['swapped_kib'],-row['requested_kib']))[:CALLER_LIMIT]
 
 
 def decode_pagemap(data):
@@ -221,29 +278,31 @@ def main():
         if not a.block_pages or not owned:return
         if stat_identity(Path('/proc')/str(owned[0]))['start_ticks']!=owned[1]:
             receipt.setdefault('block_samples',{})[tag]=dict(error='PID/start-time changed');return
-        try:text=(root/'logs/latest.log').read_text(errors='replace')
+        try:candidates,min_bytes=scan_log(root/'logs/latest.log')
         except OSError as e:
             receipt.setdefault('block_samples',{})[tag]=dict(error=str(e));return
-        blocks=[]
+        truncated=len(candidates)>BLOCK_SAMPLE_LIMIT
+        samples=[]
         try:
             fd=os.open('/proc/%d/pagemap'%owned[0],os.O_RDONLY)
             try:
-                for ptr,n in live_blocks(text):
+                for ptr,n,caller in candidates[:BLOCK_SAMPLE_LIMIT]:
                     try:
                         data=os.pread(fd,(n//4096)*8,(ptr//4096)*8)
                         if len(data)!=(n//4096)*8:raise OSError('short pagemap read')
                         counts=decode_pagemap(data)
-                        blocks.append(dict(ptr=hex(ptr),requested_kib=n//1024,
+                        samples.append(dict(ptr=hex(ptr),requested_kib=n//1024,caller=caller,
                             present_kib=counts['present']*4,swapped_kib=counts['swapped']*4,
                             file_or_shared_kib=counts['file_or_shared']*4,exclusive_kib=counts['exclusive']*4))
                     except (OSError,ValueError) as e:
-                        blocks.append(dict(ptr=hex(ptr),requested_kib=n//1024,error=str(e)))
+                        samples.append(dict(ptr=hex(ptr),requested_kib=n//1024,caller=caller,error=str(e)))
             finally:os.close(fd)
         except OSError as e:
             receipt.setdefault('block_samples',{})[tag]=dict(error=str(e));return
         receipt.setdefault('block_samples',{})[tag]=dict(
-            method='pagemap present/swapped bits per 4KiB page; requested bytes are allocator requests, not physical pages; no reclaim inferred',
-            blocks=blocks)
+            method='pagemap present/swapped bits per 4KiB page; requested bytes are allocator requests, not physical pages; caller is the WOL_ALLOC request site; no reclaim inferred',
+            threshold_bytes=min_bytes,live_blocks=len(candidates),sampled=len(samples),truncated=truncated,
+            by_caller=aggregate_callers(samples),blocks=samples[:BLOCK_DETAIL_LIMIT])
     def sample_vma(tag):
         if not a.vma_swap or not owned:return
         if stat_identity(Path('/proc')/str(owned[0]))['start_ticks']!=owned[1]:
