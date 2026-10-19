@@ -86,4 +86,14 @@ runtime or save changes are involved - the change is one launcher env line.
 - `../uprender-owner/`, `../uprender-scope/` — UpRender mechanism evidence;
 - `../transfer-sparse-repeat/` — sparse candidate pairs (still default OFF);
 - `../unity-arena-owners/` — zero-swap no-go;
-- `../../docs/optimization-roadmap.md` — sections 16-17 (execution log and decision contract).
+- `../../docs/optimization-roadmap.md` — sections 16-18 (execution log and decision contract).
+
+## Post-acceptance follow-ups (roadmap §18)
+
+- The checked-in `West of Loathing Switch.sh` now carries the same 720 default as the device
+  (sha256 `4b2a275364c522411b93abb85d1438cb933779bfc8e3a5940b2853bc58b6f710`, 119 lines); the
+  only difference from the deployed copy is the explanatory comment block.
+- Source parity is proven: `../source-parity/README.md` shows the manifest-pinned baseline plus
+  the published overlay reproducing the measured native tree with **0 differences**.
+- Still open (not claimed here): full SAVE→QUIT→LOAD cycle, formal physical-controls audit,
+  town-building interiors, sparse lifecycle coverage, the rare zero-prefix command-record stop.
