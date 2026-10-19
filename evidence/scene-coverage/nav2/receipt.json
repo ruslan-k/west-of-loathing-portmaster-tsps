@@ -1,0 +1,177 @@
+{
+  "label": "nav2",
+  "owner_save_hashes": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"
+  },
+  "stages": [
+    {
+      "name": "startup",
+      "t_ns": 41743550471388,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "menu",
+      "t_ns": 41804226595206,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "continue-load",
+      "t_ns": 41824241755106,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "game-idle",
+      "t_ns": 41850043634085,
+      "settled_watchdog_context": true,
+      "watchdog_budget_s": 5.0
+    },
+    {
+      "name": "m1-map-open",
+      "t_ns": 41880056299091,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "s1-right",
+      "t_ns": 41890771741326,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "s2-down",
+      "t_ns": 41897472649937,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "l1-select",
+      "t_ns": 41904180239554,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "g1-go",
+      "t_ns": 41912891365292,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "w1",
+      "t_ns": 41928679326092,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "w2",
+      "t_ns": 41933421825223,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "w3",
+      "t_ns": 41938166682105,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "d1-interact",
+      "t_ns": 41942961044330,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "w4",
+      "t_ns": 41951774685059,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "w5",
+      "t_ns": 41956569000099,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "w6",
+      "t_ns": 41961362679923,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "w7",
+      "t_ns": 41966209317892,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "w8",
+      "t_ns": 41971102299152,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "w9",
+      "t_ns": 41975999503375,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    },
+    {
+      "name": "w10",
+      "t_ns": 41980847781704,
+      "settled_watchdog_context": false,
+      "watchdog_budget_s": 30.0
+    }
+  ],
+  "cleanup_verified": true,
+  "probe_sha256": "da099bd5e6be0ffa157526be7cf3f54d7c337cc4da953c015002a30e12a5d62a",
+  "session_sha256": "13d9cc4f5546924900f18d36120c1a2745c4c663371abadd5cd186d9ff01f646",
+  "launcher_sha256": "fa30af838b22e01b7a5eeeb7c4f34c4b5eaf3f67c7a984eee0ba87ba90581f3a",
+  "layout_sha256": "c21c41900e37f2054408308d61dec93846632d17d2dadf63a89afbed41c454cd",
+  "ordinary_title_only": false,
+  "draw_trace": false,
+  "phase_labels_are_requests_not_scene_classifications": true,
+  "heavy_guest_page_sampling": false,
+  "present_watchdog_s": 30.0,
+  "settled_watchdog_s": 5.0,
+  "progress_checks": 172,
+  "control_save_hashes": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"
+  },
+  "runtime_sha256": "b60057eaeafa738e9b48cf2b68b356545ee5ffde2c57bb84a5da5722e5935158",
+  "section_sha256": "49bd16718ed0dc46f16599255791c7603e8aa2b5f04898784a39d6cacb9d0722",
+  "last_progress_observation": {
+    "frame": 6394,
+    "ns": 41985784209734,
+    "age_s": 0.008618608,
+    "budget_s": 30.0
+  },
+  "gameplay_readiness": [
+    {
+      "t_ns": 41850031297680,
+      "has_game_hud": true,
+      "mismatch": 0.0,
+      "best_offset": [
+        0,
+        0
+      ],
+      "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"
+    }
+  ],
+  "observed_gameplay_hud": true,
+  "route_sha256": "3a770f288acdfba1e997378d9a18b4cc9d3f6daf75a17c4fe46cbcaa64d72af7",
+  "ledger_exit": 0,
+  "restored_save_hashes": {
+    "permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2",
+    "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"
+  },
+  "menu_rgb_signal_verified": true,
+  "cleanup_warnings": [],
+  "menu_pids": [
+    25479
+  ]
+}

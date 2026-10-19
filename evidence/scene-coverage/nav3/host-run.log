@@ -1,0 +1,68 @@
+STARTED nav3 26641
+No active framebuffers found on planes
+No active framebuffers found on planes
+No active framebuffers found on planes
+No active framebuffers found on planes
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-title.png (FB ID: 163, 1280x720)
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-title.png (FB ID: 163, 1280x720)
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-title.png (FB ID: 160, 1280x720)
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-title.png (FB ID: 161, 1280x720)
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-title.png (FB ID: 161, 1280x720)
+TITLE_READY {"is_title": true, "mismatch": 0.01410105757931845, "best_offset": [0, 0], "samples": 851, "scope": "known title sign only; not game-state proof", "t_ns": 42270926846346}
+ALIVE 26641 ONLINE 4-7
+
+SENT 26641 /tmp/cotm-input-FH6rVE/buttons.sock 1 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-continue-request.png (FB ID: 161, 1280x720)
+ALIVE 26641
+Screenshot saved to /mnt/UDISK/roadmap-v2-nav3/world-ready.png (FB ID: 160, 1280x720)
+SENT 26641 /tmp/cotm-input-FH6rVE/buttons.sock 256 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-m1-map-open.png (FB ID: 160, 1280x720)
+ALIVE 26641
+SENT 26641 /tmp/cotm-input-FH6rVE/buttons.sock 16384 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-s1-right.png (FB ID: 161, 1280x720)
+ALIVE 26641
+SENT 26641 /tmp/cotm-input-FH6rVE/buttons.sock 32768 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-s2-down.png (FB ID: 161, 1280x720)
+ALIVE 26641
+SENT 26641 /tmp/cotm-input-FH6rVE/buttons.sock 1 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-g1-go.png (FB ID: 163, 1280x720)
+ALIVE 26641
+SENT 26641 /tmp/cotm-input-FH6rVE/buttons.sock 2 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-b1-close.png (FB ID: 161, 1280x720)
+ALIVE 26641
+SENT 26641 /tmp/cotm-input-FH6rVE/buttons.sock 16384 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-w1.png (FB ID: 160, 1280x720)
+ALIVE 26641
+SENT 26641 /tmp/cotm-input-FH6rVE/buttons.sock 16384 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-w2.png (FB ID: 161, 1280x720)
+ALIVE 26641
+SENT 26641 /tmp/cotm-input-FH6rVE/buttons.sock 4096 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-w3.png (FB ID: 161, 1280x720)
+ALIVE 26641
+SENT 26641 /tmp/cotm-input-FH6rVE/buttons.sock 1 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-d1-interact.png (FB ID: 163, 1280x720)
+ALIVE 26641
+SENT 26641 /tmp/cotm-input-FH6rVE/buttons.sock 16384 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-w4.png (FB ID: 163, 1280x720)
+ALIVE 26641
+SENT 26641 /tmp/cotm-input-FH6rVE/buttons.sock 4096 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-w5.png (FB ID: 163, 1280x720)
+ALIVE 26641
+SENT 26641 /tmp/cotm-input-FH6rVE/buttons.sock 16384 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-w6.png (FB ID: 163, 1280x720)
+ALIVE 26641
+SENT 26641 /tmp/cotm-input-FH6rVE/buttons.sock 4096 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-w7.png (FB ID: 163, 1280x720)
+ALIVE 26641
+SENT 26641 /tmp/cotm-input-FH6rVE/buttons.sock 16384 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-w8.png (FB ID: 161, 1280x720)
+ALIVE 26641
+SENT 26641 /tmp/cotm-input-FH6rVE/buttons.sock 4096 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-w9.png (FB ID: 161, 1280x720)
+ALIVE 26641
+SENT 26641 /tmp/cotm-input-FH6rVE/buttons.sock 16384 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav3-w10.png (FB ID: 160, 1280x720)
+ALIVE 26641
+LEDGER_DONE 127 /mnt/UDISK/roadmap-v2-nav3/ledger.jsonl
+Screenshot saved to /mnt/UDISK/roadmap-v2-nav3/restored-menu.png (FB ID: 163, 1280x720)
+FINAL {"label": "nav3", "owner_save_hashes": {"permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2", "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"}, "stages": [{"name": "startup", "t_ns": 42208020250844, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "menu", "t_ns": 42271514536717, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "continue-load", "t_ns": 42291532259512, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "game-idle", "t_ns": 42321471128963, "settled_watchdog_context": true, "watchdog_budget_s": 5.0}, {"name": "m1-map-open", "t_ns": 42351487644238, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "s1-right", "t_ns": 42362527860041, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "s2-down", "t_ns": 42369485535821, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "g1-go", "t_ns": 42376642573592, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "b1-close", "t_ns": 42392782341494, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "w1", "t_ns": 42401944722192, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "w2", "t_ns": 42407086830291, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "w3", "t_ns": 42412439338039, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "d1-interact", "t_ns": 42417634782854, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "w4", "t_ns": 42426845759878, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "w5", "t_ns": 42432200947650, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "w6", "t_ns": 42437667025175, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "w7", "t_ns": 42442979372025, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "w8", "t_ns": 42448425808065, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "w9", "t_ns": 42453676512026, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "w10", "t_ns": 42458971446600, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}], "cleanup_verified": true, "probe_sha256": "da099bd5e6be0ffa157526be7cf3f54d7c337cc4da953c015002a30e12a5d62a", "session_sha256": "13d9cc4f5546924900f18d36120c1a2745c4c663371abadd5cd186d9ff01f646", "launcher_sha256": "fa30af838b22e01b7a5eeeb7c4f34c4b5eaf3f67c7a984eee0ba87ba90581f3a", "layout_sha256": "c21c41900e37f2054408308d61dec93846632d17d2dadf63a89afbed41c454cd", "ordinary_title_only": false, "draw_trace": false, "phase_labels_are_requests_not_scene_classifications": true, "heavy_guest_page_sampling": false, "present_watchdog_s": 30.0, "settled_watchdog_s": 5.0, "progress_checks": 186, "control_save_hashes": {"permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2", "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"}, "runtime_sha256": "b60057eaeafa738e9b48cf2b68b356545ee5ffde2c57bb84a5da5722e5935158", "section_sha256": "49bd16718ed0dc46f16599255791c7603e8aa2b5f04898784a39d6cacb9d0722", "last_progress_observation": {"frame": 5929, "ns": 42464332768722, "age_s": 0.036670516, "budget_s": 30.0}, "gameplay_readiness": [{"t_ns": 42321458810346, "has_game_hud": true, "mismatch": 0.0, "best_offset": [0, 0], "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"}], "observed_gameplay_hud": true, "route_sha256": "bdb1327ef529b99a86eff39563aa98d86596bfe4e49d2baae532517257d5dd89", "ledger_exit": 0, "restored_save_hashes": {"permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2", "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"}, "menu_rgb_signal_verified": true, "cleanup_warnings": [], "menu_pids": [27458]}

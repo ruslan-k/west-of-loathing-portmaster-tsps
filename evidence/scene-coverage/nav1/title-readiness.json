@@ -1,0 +1,57 @@
+[
+  {
+    "is_title": false,
+    "mismatch": 0.6568742655699178,
+    "best_offset": [
+      -8,
+      12
+    ],
+    "samples": 851,
+    "scope": "known title sign only; not game-state proof",
+    "t_ns": 41213596830841
+  },
+  {
+    "is_title": false,
+    "mismatch": 0.6568742655699178,
+    "best_offset": [
+      -8,
+      12
+    ],
+    "samples": 851,
+    "scope": "known title sign only; not game-state proof",
+    "t_ns": 41224209819899
+  },
+  {
+    "is_title": false,
+    "mismatch": 0.6568742655699178,
+    "best_offset": [
+      -8,
+      12
+    ],
+    "samples": 851,
+    "scope": "known title sign only; not game-state proof",
+    "t_ns": 41233266765605
+  },
+  {
+    "is_title": false,
+    "mismatch": 0.7027027027027027,
+    "best_offset": [
+      -8,
+      -12
+    ],
+    "samples": 851,
+    "scope": "known title sign only; not game-state proof",
+    "t_ns": 41240836575724
+  },
+  {
+    "is_title": true,
+    "mismatch": 0.010575793184488837,
+    "best_offset": [
+      0,
+      0
+    ],
+    "samples": 851,
+    "scope": "known title sign only; not game-state proof",
+    "t_ns": 41259782392588
+  }
+]

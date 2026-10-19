@@ -1,0 +1,18 @@
+[
+  {"label":"m1-map-open","buttons":"0x100","hold_ms":180,"wait_s":10},
+  {"label":"s1-right","buttons":"0x4000","hold_ms":300,"wait_s":6},
+  {"label":"s2-down","buttons":"0x8000","hold_ms":300,"wait_s":6},
+  {"label":"g1-go","buttons":"0x1","hold_ms":180,"wait_s":15},
+  {"label":"b1-close","buttons":"0x2","hold_ms":180,"wait_s":8},
+  {"label":"w1","buttons":"0x4000","hold_ms":1500,"wait_s":4},
+  {"label":"w2","buttons":"0x4000","hold_ms":1500,"wait_s":4},
+  {"label":"w3","buttons":"0x1000","hold_ms":1500,"wait_s":4},
+  {"label":"d1-interact","buttons":"0x1","hold_ms":180,"wait_s":8},
+  {"label":"w4","buttons":"0x4000","hold_ms":1500,"wait_s":4},
+  {"label":"w5","buttons":"0x1000","hold_ms":1500,"wait_s":4},
+  {"label":"w6","buttons":"0x4000","hold_ms":1500,"wait_s":4},
+  {"label":"w7","buttons":"0x1000","hold_ms":1500,"wait_s":4},
+  {"label":"w8","buttons":"0x4000","hold_ms":1500,"wait_s":4},
+  {"label":"w9","buttons":"0x1000","hold_ms":1500,"wait_s":4},
+  {"label":"w10","buttons":"0x4000","hold_ms":1500,"wait_s":4}
+]
