@@ -43,6 +43,42 @@ def dark_fraction(path):
     return float((l<30).mean())
 
 
+def phase_shift(a_path,b_path):
+    """Horizontal/vertical translation between two frames (central band, phase correlation)."""
+    la=_luma(a_path);lb=_luma(b_path)
+    if la.shape!=lb.shape:return None
+    h,w=la.shape
+    band=(slice(150,h-40),slice(80,w-80))
+    a=la[band].astype(np.float32);b=lb[band].astype(np.float32)
+    a=a-a.mean();b=b-b.mean()
+    A=np.fft.rfft2(a);B=np.fft.rfft2(b)
+    R=A*np.conj(B);R/=(np.abs(R)+1e-9)
+    r=np.fft.irfft2(R,s=a.shape)
+    dy,dx=np.unravel_index(np.argmax(r),r.shape)
+    if dy>a.shape[0]//2:dy-=a.shape[0]
+    if dx>a.shape[1]//2:dx-=a.shape[1]
+    return dict(dx=int(dx),dy=int(dy),score=round(float(r.max()),3))
+
+
+def motion_segments(root,actions):
+    """Directional world-scroll check between consecutive world-class windows."""
+    segments=[]
+    for a,b in zip(actions,actions[1:]):
+        if a['cls']!='world' or b['cls']!='world':continue
+        r=json.loads((root/(b['name']+'-input.json')).read_text())
+        buttons=int(r.get('buttons','0'),0)
+        if buttons&0x4000:expected=-1   # right hold -> scene scrolls left
+        elif buttons&0x1000:expected=+1 # left hold -> scene scrolls right
+        else:continue
+        shift=phase_shift(root/(a['name']+'.png'),root/(b['name']+'.png'))
+        if not shift:continue
+        strong=abs(shift['dx'])>=8
+        segments.append(dict(a=a['name'],b=b['name'],expected='left' if expected>0 else 'right',
+                             dx=shift['dx'],score=shift['score'],strong=strong,
+                             matched=(shift['dx']>0)==(expected>0)))
+    return segments
+
+
 def classify_shot(capture,map_ref,world_ref,prev=None):
     md=shot_diff(capture,map_ref);wd=shot_diff(capture,world_ref)
     dark=dark_fraction(capture)
@@ -167,6 +203,7 @@ def trial(root):
     ids=[i for i,_ in frames]
     classes={}
     for a in actions:classes[a['cls']]=classes.get(a['cls'],0)+1
+    motion=motion_segments(root,actions)
     return dict(label=label,variant='720' if env.get('WOL_UPRENDER_720')=='1' else '1080',
                 failure=receipt.get('failure'),cleanup_verified=receipt.get('cleanup_verified'),
                 cleanup_warnings=receipt.get('cleanup_warnings'),runtime_sha256=receipt['runtime_sha256'],
@@ -177,7 +214,7 @@ def trial(root):
                 phases={name:dict(window_s=(hi-lo)/1e9,settled=(name=='game-idle' or name.startswith('walk-')),
                                   watchdog_budget_s=budget,**stats(phase_frames[name]))
                         for name,(lo,hi,budget) in windows.items()},
-                actions=actions,walk_classes=classes,
+                actions=actions,walk_classes=classes,motion=motion,
                 moving=pooled([phase_frames[n] for n in phase_frames if n.startswith('walk-')]),
                 moving_hold=pooled(clean),moving_hold_all=pooled(hold_all),capture=pooled(capture_windows),
                 idle=stats(phase_frames.get('game-idle',[])),
@@ -217,17 +254,25 @@ def main():
                      ((off['memory'].get('game-idle') or {}).get('pss_kib') or 0)))
     signs=[p['hold']['presents_per_s'] for p in pairs if p['valid'] and p['hold']]
     on_hold=[t['moving_hold'] for t in runs.values() if t['variant']=='720' and t['moving_hold'].get('available')]
+    motion_strong=[s for t in runs.values() for s in t['motion'] if s['strong']]
+    motion_weak=[s for t in runs.values() for s in t['motion'] if not s['strong']]
     checks=dict(all_trials_clean=identity['all_clean'],
                 hold_gain_moving=[round(x,2) for x in signs],
                 hold_gain_consistent=bool(signs) and all(x>0 for x in signs),
                 moving_720_fps=[round(s['presents_per_s'],2) for s in on_hold],
                 moving_720_p95_ms=[round(s['p95_ms'],1) for s in on_hold],
+                motion=dict(segments=len(motion_strong)+len(motion_weak),
+                            strong=len(motion_strong),
+                            matched=sum(1 for s in motion_strong if s['matched']),
+                            weak=len(motion_weak)),
                 walk_classes={k:v['walk_classes'] for k,v in runs.items()},
                 stalls=sum(len(t['stalls']) for t in runs.values()))
-    summary=dict(schema=3,order=batch['order'],identity=identity,checks=checks,pairs=pairs,trials=runs,
+    summary=dict(schema=4,order=batch['order'],identity=identity,checks=checks,pairs=pairs,trials=runs,
                  caveats=['Runtime presents are not independent panel FPS.',
                           'Walk captures are classified against the trial\u2019s own map/world references; '
                           'non-world windows are excluded from moving_hold (moving_hold_all keeps the raw pool).',
+                          'World movement is verified separately by directional phase-correlation segments '
+                          '(strong = |dx|>=8; matched = scroll direction follows the pressed dpad direction).',
                           'This is one save/scene family; interior, combat, dialogue, save/load and endurance are not covered.'])
     out=a.out or (root/'summary.json')
     out.write_text(json.dumps(summary,indent=2)+'\n')
@@ -251,7 +296,8 @@ def main():
             if a_['cls']!='world':
                 print('NONWORLD',t['label'],a_['name'],a_['cls'],'mapdiff',a_['mapdiff'],'worlddiff',a_['worlddiff'],
                       'dark',a_['dark'],'prev',a_['prev_diff'])
-    print('CHECKS',json.dumps({k:v for k,v in checks.items() if k!='walk_classes'}))
+    print('MOTION',json.dumps(checks['motion']))
+    print('CHECKS',json.dumps({k:v for k,v in checks.items() if k not in ('walk_classes','motion')}))
 
 
 if __name__=='__main__':main()

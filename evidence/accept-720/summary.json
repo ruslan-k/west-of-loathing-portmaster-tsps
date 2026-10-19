@@ -1,5 +1,5 @@
 {
-  "schema": 3,
+  "schema": 4,
   "order": [
     "accept-a1",
     "accept-b1",
@@ -36,6 +36,12 @@
       35.7,
       37.9
     ],
+    "motion": {
+      "segments": 95,
+      "strong": 86,
+      "matched": 86,
+      "weak": 9
+    },
     "walk_classes": {
       "accept-a1": {
         "world": 20
@@ -1887,6 +1893,179 @@
       "walk_classes": {
         "world": 20
       },
+      "motion": [
+        {
+          "a": "walk-r01",
+          "b": "walk-l01",
+          "expected": "left",
+          "dx": 14,
+          "score": 0.227,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l01",
+          "b": "walk-r02",
+          "expected": "right",
+          "dx": -25,
+          "score": 0.177,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r02",
+          "b": "walk-l02",
+          "expected": "left",
+          "dx": 25,
+          "score": 0.198,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l02",
+          "b": "walk-r03",
+          "expected": "right",
+          "dx": -49,
+          "score": 0.145,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r03",
+          "b": "walk-l03",
+          "expected": "left",
+          "dx": 49,
+          "score": 0.136,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l03",
+          "b": "walk-r04",
+          "expected": "right",
+          "dx": -79,
+          "score": 0.085,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r04",
+          "b": "walk-l04",
+          "expected": "left",
+          "dx": 79,
+          "score": 0.087,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l04",
+          "b": "walk-r05",
+          "expected": "right",
+          "dx": -43,
+          "score": 0.148,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r05",
+          "b": "walk-l05",
+          "expected": "left",
+          "dx": 43,
+          "score": 0.148,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l05",
+          "b": "walk-r06",
+          "expected": "right",
+          "dx": -51,
+          "score": 0.139,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r06",
+          "b": "walk-l06",
+          "expected": "left",
+          "dx": 51,
+          "score": 0.138,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l06",
+          "b": "walk-r07",
+          "expected": "right",
+          "dx": -63,
+          "score": 0.095,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r07",
+          "b": "walk-l07",
+          "expected": "left",
+          "dx": 63,
+          "score": 0.093,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l07",
+          "b": "walk-r08",
+          "expected": "right",
+          "dx": -77,
+          "score": 0.084,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r08",
+          "b": "walk-l08",
+          "expected": "left",
+          "dx": 91,
+          "score": 0.082,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l08",
+          "b": "walk-r09",
+          "expected": "right",
+          "dx": -75,
+          "score": 0.092,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r09",
+          "b": "walk-l09",
+          "expected": "left",
+          "dx": 75,
+          "score": 0.098,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l09",
+          "b": "walk-r10",
+          "expected": "right",
+          "dx": -65,
+          "score": 0.099,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r10",
+          "b": "walk-l10",
+          "expected": "left",
+          "dx": 65,
+          "score": 0.098,
+          "strong": true,
+          "matched": true
+        }
+      ],
       "moving": {
         "available": true,
         "frames": 717,
@@ -4304,6 +4483,179 @@
       "walk_classes": {
         "world": 20
       },
+      "motion": [
+        {
+          "a": "walk-r01",
+          "b": "walk-l01",
+          "expected": "left",
+          "dx": 9,
+          "score": 0.333,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l01",
+          "b": "walk-r02",
+          "expected": "right",
+          "dx": -26,
+          "score": 0.186,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r02",
+          "b": "walk-l02",
+          "expected": "left",
+          "dx": 26,
+          "score": 0.187,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l02",
+          "b": "walk-r03",
+          "expected": "right",
+          "dx": -6,
+          "score": 0.376,
+          "strong": false,
+          "matched": true
+        },
+        {
+          "a": "walk-r03",
+          "b": "walk-l03",
+          "expected": "left",
+          "dx": 6,
+          "score": 0.384,
+          "strong": false,
+          "matched": true
+        },
+        {
+          "a": "walk-l03",
+          "b": "walk-r04",
+          "expected": "right",
+          "dx": -16,
+          "score": 0.227,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r04",
+          "b": "walk-l04",
+          "expected": "left",
+          "dx": 16,
+          "score": 0.225,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l04",
+          "b": "walk-r05",
+          "expected": "right",
+          "dx": -25,
+          "score": 0.205,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r05",
+          "b": "walk-l05",
+          "expected": "left",
+          "dx": 25,
+          "score": 0.206,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l05",
+          "b": "walk-r06",
+          "expected": "right",
+          "dx": -27,
+          "score": 0.184,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r06",
+          "b": "walk-l06",
+          "expected": "left",
+          "dx": 27,
+          "score": 0.187,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l06",
+          "b": "walk-r07",
+          "expected": "right",
+          "dx": -13,
+          "score": 0.263,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r07",
+          "b": "walk-l07",
+          "expected": "left",
+          "dx": 13,
+          "score": 0.264,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l07",
+          "b": "walk-r08",
+          "expected": "right",
+          "dx": -21,
+          "score": 0.2,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r08",
+          "b": "walk-l08",
+          "expected": "left",
+          "dx": 21,
+          "score": 0.2,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l08",
+          "b": "walk-r09",
+          "expected": "right",
+          "dx": -20,
+          "score": 0.235,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r09",
+          "b": "walk-l09",
+          "expected": "left",
+          "dx": 20,
+          "score": 0.234,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l09",
+          "b": "walk-r10",
+          "expected": "right",
+          "dx": -29,
+          "score": 0.205,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r10",
+          "b": "walk-l10",
+          "expected": "left",
+          "dx": 29,
+          "score": 0.205,
+          "strong": true,
+          "matched": true
+        }
+      ],
       "moving": {
         "available": true,
         "frames": 999,
@@ -6717,6 +7069,26 @@
         "ambiguous": 1,
         "static-nonworld": 12
       },
+      "motion": [
+        {
+          "a": "walk-r01",
+          "b": "walk-l01",
+          "expected": "left",
+          "dx": 0,
+          "score": 0.805,
+          "strong": false,
+          "matched": false
+        },
+        {
+          "a": "walk-l01",
+          "b": "walk-r02",
+          "expected": "right",
+          "dx": 0,
+          "score": 0.173,
+          "strong": false,
+          "matched": true
+        }
+      ],
       "moving": {
         "available": true,
         "frames": 1053,
@@ -8812,6 +9184,179 @@
       "walk_classes": {
         "world": 20
       },
+      "motion": [
+        {
+          "a": "walk-r01",
+          "b": "walk-l01",
+          "expected": "left",
+          "dx": 7,
+          "score": 0.401,
+          "strong": false,
+          "matched": true
+        },
+        {
+          "a": "walk-l01",
+          "b": "walk-r02",
+          "expected": "right",
+          "dx": -16,
+          "score": 0.257,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r02",
+          "b": "walk-l02",
+          "expected": "left",
+          "dx": 16,
+          "score": 0.274,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l02",
+          "b": "walk-r03",
+          "expected": "right",
+          "dx": -7,
+          "score": 0.458,
+          "strong": false,
+          "matched": true
+        },
+        {
+          "a": "walk-r03",
+          "b": "walk-l03",
+          "expected": "left",
+          "dx": 7,
+          "score": 0.459,
+          "strong": false,
+          "matched": true
+        },
+        {
+          "a": "walk-l03",
+          "b": "walk-r04",
+          "expected": "right",
+          "dx": -13,
+          "score": 0.342,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r04",
+          "b": "walk-l04",
+          "expected": "left",
+          "dx": 13,
+          "score": 0.345,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l04",
+          "b": "walk-r05",
+          "expected": "right",
+          "dx": -61,
+          "score": 0.111,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r05",
+          "b": "walk-l05",
+          "expected": "left",
+          "dx": 61,
+          "score": 0.106,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l05",
+          "b": "walk-r06",
+          "expected": "right",
+          "dx": -91,
+          "score": 0.087,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r06",
+          "b": "walk-l06",
+          "expected": "left",
+          "dx": 91,
+          "score": 0.085,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l06",
+          "b": "walk-r07",
+          "expected": "right",
+          "dx": -123,
+          "score": 0.076,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r07",
+          "b": "walk-l07",
+          "expected": "left",
+          "dx": 122,
+          "score": 0.093,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l07",
+          "b": "walk-r08",
+          "expected": "right",
+          "dx": -176,
+          "score": 0.085,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r08",
+          "b": "walk-l08",
+          "expected": "left",
+          "dx": 176,
+          "score": 0.099,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l08",
+          "b": "walk-r09",
+          "expected": "right",
+          "dx": -140,
+          "score": 0.073,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r09",
+          "b": "walk-l09",
+          "expected": "left",
+          "dx": 159,
+          "score": 0.089,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l09",
+          "b": "walk-r10",
+          "expected": "right",
+          "dx": -167,
+          "score": 0.078,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r10",
+          "b": "walk-l10",
+          "expected": "left",
+          "dx": 167,
+          "score": 0.085,
+          "strong": true,
+          "matched": true
+        }
+      ],
       "moving": {
         "available": true,
         "frames": 727,
@@ -10870,6 +11415,161 @@
         "world": 19,
         "ambiguous": 1
       },
+      "motion": [
+        {
+          "a": "walk-r01",
+          "b": "walk-l01",
+          "expected": "left",
+          "dx": 7,
+          "score": 0.375,
+          "strong": false,
+          "matched": true
+        },
+        {
+          "a": "walk-l01",
+          "b": "walk-r02",
+          "expected": "right",
+          "dx": -42,
+          "score": 0.136,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r02",
+          "b": "walk-l02",
+          "expected": "left",
+          "dx": 42,
+          "score": 0.134,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l02",
+          "b": "walk-r03",
+          "expected": "right",
+          "dx": -40,
+          "score": 0.163,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r03",
+          "b": "walk-l03",
+          "expected": "left",
+          "dx": 40,
+          "score": 0.165,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l03",
+          "b": "walk-r04",
+          "expected": "right",
+          "dx": -33,
+          "score": 0.188,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r04",
+          "b": "walk-l04",
+          "expected": "left",
+          "dx": 33,
+          "score": 0.188,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l05",
+          "b": "walk-r06",
+          "expected": "right",
+          "dx": -64,
+          "score": 0.088,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r06",
+          "b": "walk-l06",
+          "expected": "left",
+          "dx": 64,
+          "score": 0.09,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l06",
+          "b": "walk-r07",
+          "expected": "right",
+          "dx": -66,
+          "score": 0.1,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r07",
+          "b": "walk-l07",
+          "expected": "left",
+          "dx": 66,
+          "score": 0.104,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l07",
+          "b": "walk-r08",
+          "expected": "right",
+          "dx": -61,
+          "score": 0.101,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r08",
+          "b": "walk-l08",
+          "expected": "left",
+          "dx": 61,
+          "score": 0.108,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l08",
+          "b": "walk-r09",
+          "expected": "right",
+          "dx": -35,
+          "score": 0.17,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r09",
+          "b": "walk-l09",
+          "expected": "left",
+          "dx": 35,
+          "score": 0.172,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l09",
+          "b": "walk-r10",
+          "expected": "right",
+          "dx": -27,
+          "score": 0.207,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r10",
+          "b": "walk-l10",
+          "expected": "left",
+          "dx": 27,
+          "score": 0.207,
+          "strong": true,
+          "matched": true
+        }
+      ],
       "moving": {
         "available": true,
         "frames": 734,
@@ -13178,6 +13878,179 @@
       "walk_classes": {
         "world": 20
       },
+      "motion": [
+        {
+          "a": "walk-r01",
+          "b": "walk-l01",
+          "expected": "left",
+          "dx": 6,
+          "score": 0.409,
+          "strong": false,
+          "matched": true
+        },
+        {
+          "a": "walk-l01",
+          "b": "walk-r02",
+          "expected": "right",
+          "dx": -39,
+          "score": 0.148,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r02",
+          "b": "walk-l02",
+          "expected": "left",
+          "dx": 39,
+          "score": 0.167,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l02",
+          "b": "walk-r03",
+          "expected": "right",
+          "dx": -29,
+          "score": 0.189,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r03",
+          "b": "walk-l03",
+          "expected": "left",
+          "dx": 29,
+          "score": 0.191,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l03",
+          "b": "walk-r04",
+          "expected": "right",
+          "dx": -35,
+          "score": 0.15,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r04",
+          "b": "walk-l04",
+          "expected": "left",
+          "dx": 35,
+          "score": 0.151,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l04",
+          "b": "walk-r05",
+          "expected": "right",
+          "dx": -30,
+          "score": 0.174,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r05",
+          "b": "walk-l05",
+          "expected": "left",
+          "dx": 30,
+          "score": 0.173,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l05",
+          "b": "walk-r06",
+          "expected": "right",
+          "dx": -39,
+          "score": 0.175,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r06",
+          "b": "walk-l06",
+          "expected": "left",
+          "dx": 39,
+          "score": 0.177,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l06",
+          "b": "walk-r07",
+          "expected": "right",
+          "dx": -41,
+          "score": 0.168,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r07",
+          "b": "walk-l07",
+          "expected": "left",
+          "dx": 41,
+          "score": 0.165,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l07",
+          "b": "walk-r08",
+          "expected": "right",
+          "dx": -30,
+          "score": 0.168,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r08",
+          "b": "walk-l08",
+          "expected": "left",
+          "dx": 30,
+          "score": 0.171,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l08",
+          "b": "walk-r09",
+          "expected": "right",
+          "dx": -20,
+          "score": 0.228,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r09",
+          "b": "walk-l09",
+          "expected": "left",
+          "dx": 20,
+          "score": 0.231,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-l09",
+          "b": "walk-r10",
+          "expected": "right",
+          "dx": -23,
+          "score": 0.209,
+          "strong": true,
+          "matched": true
+        },
+        {
+          "a": "walk-r10",
+          "b": "walk-l10",
+          "expected": "left",
+          "dx": 23,
+          "score": 0.212,
+          "strong": true,
+          "matched": true
+        }
+      ],
       "moving": {
         "available": true,
         "frames": 918,
@@ -13494,6 +14367,7 @@
   "caveats": [
     "Runtime presents are not independent panel FPS.",
     "Walk captures are classified against the trial\u2019s own map/world references; non-world windows are excluded from moving_hold (moving_hold_all keeps the raw pool).",
+    "World movement is verified separately by directional phase-correlation segments (strong = |dx|>=8; matched = scroll direction follows the pressed dpad direction).",
     "This is one save/scene family; interior, combat, dialogue, save/load and endurance are not covered."
   ]
 }

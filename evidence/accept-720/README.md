@@ -41,6 +41,14 @@ one ambiguous `accept-a3/walk-r05` window. `moving_hold` excludes those; `moving
 (raw pool) is kept in `summary.json` (b2 raw: 34.19 fps). This is a real game-scripted state
 change, not a defect, but it means b2's raw moving number was inflated.
 
+**Movement verification (independent).** Consecutive clean world windows are compared by
+phase correlation over the central band: a dpad-left hold must scroll the scene right (dx>0)
+and dpad-right must scroll it left (dx<0). Across the six trials **86/86 strong segments
+(|dx| ≥ 8 px) scroll in the pressed direction** (9 weak sub-8 px segments near route start are
+excluded; `summary.json → checks.motion`). Magnitudes track accumulated travel (e.g. a1 ±43…±91 px,
+a2 growing to ±176 px), so the world genuinely moves with injected input — the ~100 k-pixel
+per-window diffs are movement plus animation, not animation alone.
+
 Pairs (720 − 1080, both orders; clean-window moving):
 
 | Pair | Order | Δ hold-moving fps | Δ p95 ms | Δ idle fps | Δ SwapPSS idle |
