@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""Frozen §16 stationary/moving gulch sequence. No whole-game/default acceptance.
+"""Frozen device batches (roadmap §16). No whole-game/default acceptance.
 
---resume continues an interrupted batch: already-collected trials are adopted
-from the manifest/host receipts, a finished-or-running device trial is collected
-without relaunch (wol_owned_probe --collect-only), and remaining trials run fresh.
+Protocols:
+  accept720  §16.3 alternating UpRender-size A/B pairs on route-gulch.
+  sparse     §16.5 sparse TransferMemory pairs under the fixed 720 trace-off profile.
+
+--resume continues an interrupted batch: already-collected trials are adopted from
+the manifest/host receipts, a finished-or-running device trial is collected without
+relaunch (wol_owned_probe --collect-only), and remaining trials run fresh.
 """
 from pathlib import Path
 import argparse
@@ -15,7 +19,8 @@ import time
 
 ELF='b60057eaeafa738e9b48cf2b68b356545ee5ffde2c57bb84a5da5722e5935158'
 SECTION='49bd16718ed0dc46f16599255791c7603e8aa2b5f04898784a39d6cacb9d0722'
-ORDER=('accept-a1','accept-b1','accept-b2','accept-a2','accept-a3','accept-b3')
+ROUTE_HOST='evidence/accept-720/route-gulch.json'
+ROUTE_DEVICE='/mnt/UDISK/accept-720-route-gulch.json'
 COMMON={
     'WOL_ALLOC_TRACE':'0','WOL_UPRENDER_TRACE':'0','WOL_RT_ORIGIN':'0',
     'WOL_GPU_RESIDENCY':'0','WOL_ROMFS_COW':'0','WOL_UPLOAD_SKIP':'0',
@@ -24,6 +29,18 @@ COMMON={
     'WOL_PBO_UPLOAD':'0','WOL_ASTC_POSTCOPY':'0','WOL_GPU_TIMELINE':'0',
     'WOL_UNIFORM_CACHE':'0','WOL_COPY_EQUAL':'0','WOL_COPY_GPU':'0',
     'WOL_REFRESH_DIRECT':'0','WOL_PAIR_RING':'0','T2_TRANSFER_SPARSE_COPY':'0',
+}
+ORDER=('accept-a1','accept-b1','accept-b2','accept-a2','accept-a3','accept-b3')
+PROTOCOLS={
+    'accept720':dict(order=ORDER,out='evidence/accept-720',fixed={},
+        variant_key='WOL_UPRENDER_720',
+        variant_for=lambda label:'1' if label.startswith('accept-b') else '0',
+        probe_args='--settled-watchdog 5'),
+    'sparse':dict(order=('sparse-a1','sparse-b1','sparse-b2','sparse-a2','sparse-a3','sparse-b3'),
+        out='evidence/transfer-sparse-repeat',fixed={'WOL_UPRENDER_720':'1'},
+        variant_key='T2_TRANSFER_SPARSE_COPY',
+        variant_for=lambda label:'1' if label.startswith('sparse-b') else '0',
+        probe_args='--settled-watchdog 5 --vma-swap'),
 }
 
 
@@ -37,26 +54,29 @@ def plan_trial(host_receipt,host_dir,device_dir):
 def main():
     repo=Path(__file__).resolve().parent.parent
     ap=argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('--out',type=Path,default=Path('evidence/accept-720'))
+    ap.add_argument('--protocol',choices=sorted(PROTOCOLS),default='accept720')
+    ap.add_argument('--out',type=Path)
     ap.add_argument('--ssh-target',default='tsps')
     ap.add_argument('--resume',action='store_true')
-    a=ap.parse_args();out=repo/a.out
+    a=ap.parse_args();proto=PROTOCOLS[a.protocol]
+    order=proto['order'];out=repo/(a.out or proto['out'])
     out.mkdir(parents=True,exist_ok=True)
     manifest=out/'batch.json'
     if a.resume:
         if not manifest.exists():raise RuntimeError('nothing to resume; no manifest')
         result:dict=json.loads(manifest.read_text())
+        if result.get('protocol','accept720')!=a.protocol:raise RuntimeError('manifest protocol differs')
         if result.get('elf_sha256')!=ELF or result.get('section_sha256')!=SECTION:
             raise RuntimeError('manifest identity differs from the frozen protocol')
         if result.get('complete'):raise RuntimeError('batch already complete; nothing to resume')
         result.setdefault('resumes',[]).append(dict(t_ns=time.monotonic_ns(),
             source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()))
     else:
-        if manifest.exists() or any((out/label).exists() for label in ORDER):
+        if manifest.exists() or any((out/label).exists() for label in order):
             raise RuntimeError('existing trials/manifest: refuse silent reuse (use --resume)')
-        result:dict=dict(order=list(ORDER),elf_sha256=ELF,section_sha256=SECTION,
+        result:dict=dict(protocol=a.protocol,order=list(order),elf_sha256=ELF,section_sha256=SECTION,
                     source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                    route_sha256=hashlib.sha256((repo/'evidence/accept-720/route-gulch.json').read_bytes()).hexdigest(),
+                    route_sha256=hashlib.sha256((repo/ROUTE_HOST).read_bytes()).hexdigest(),
                     trials=[],complete=False,whole_game_accepted=False)
     def record():manifest.write_text(json.dumps(result,indent=2)+'\n')
     def remote(command):
@@ -64,7 +84,7 @@ def main():
         return subprocess.run(ssh+[command],text=True,capture_output=True,check=True,timeout=80).stdout
     record();baseline_save=None;baseline_env=None
     trial_by_label={t['label']:t for t in result['trials']}
-    for label in ORDER:
+    for label in order:
         host=out/label
         host_receipt=(host/'receipt.json').exists()
         device_dir=bool(remote('test -d /mnt/UDISK/roadmap-v2-%s && printf yes || true'%label).strip())
@@ -72,7 +92,8 @@ def main():
         if action=='fail-partial':raise RuntimeError(label+' partial host directory without receipt; inspect manually')
         trial:dict=trial_by_label.get(label) or {}
         if not trial:
-            trial=dict(label=label,env=dict(COMMON,WOL_UPRENDER_720='1' if label.startswith('accept-b') else '0'))
+            env=dict(COMMON,**proto['fixed'],**{proto['variant_key']:proto['variant_for'](label)})
+            trial=dict(label=label,env=env)
             result['trials'].append(trial);trial_by_label[label]=trial
         if action=='skip':
             trial.setdefault('status','collected-not-yet-scene-reviewed');record()
@@ -83,7 +104,7 @@ def main():
             command=[sys.executable,str(repo/'tools/wol_owned_probe.py'),label,'--elf',ELF,
                      '--layout','/mnt/UDISK/wol-allocfix16-layout.json','--out',str(out),
                      '--env',json.dumps(trial['env']),'--ssh-target',a.ssh_target,
-                     '--probe-args','--settled-watchdog 5 --route /mnt/UDISK/accept-720-route-gulch.json']
+                     '--probe-args',proto['probe_args']+' --route '+ROUTE_DEVICE]
             if action=='collect':command.append('--collect-only')
             hostlog=out/(label+'-host.log')
             mode='a' if hostlog.exists() else 'x'
@@ -96,7 +117,7 @@ def main():
                 raise RuntimeError(label+' failed; diagnose preserved artifacts before another trial')
         receipt=json.loads((host/'receipt.json').read_text())
         effective=json.loads((host/'effective-env.json').read_text())
-        normalized={k:v for k,v in effective.items() if k not in ('WOL_UPRENDER_720','COTM_RUN_ID')}
+        normalized={k:v for k,v in effective.items() if k not in (proto['variant_key'],'COTM_RUN_ID')}
         if baseline_save is None:baseline_save=receipt['control_save_hashes'];baseline_env=normalized
         if receipt['control_save_hashes']!=baseline_save or receipt['section_sha256']!=SECTION or normalized!=baseline_env:
             trial['status']='identity-mismatch';record()
