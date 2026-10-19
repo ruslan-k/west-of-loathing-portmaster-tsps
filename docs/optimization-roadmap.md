@@ -501,3 +501,21 @@ The same run provides the first live stall capture: the opt-in watchdog fired at
 Nothing was reclaimed, discarded or swapped off; both arms remain the same default-OFF diagnostic ELF.
 
 **Phase timeline (`vmaswap-b2`):** the 72 MiB zero-filled mapping exists already at the startup sample (before CONTINUE) and is byte-identical in character through precleanup: 0.2 MiB resident, 63.9 MiB swapped, first/last 64 bytes all-zero - something zero-filled it once during the initial load and never touched it again. SwapPss by phase: **startup 623.8 → menu 619.8 → game-idle 556.0 → precleanup 508.2 MiB**, i.e. the initial load itself parks more in swap than steady gameplay. The 193.5 MiB texture-pool VMA carries 63.6 → 45.9 MiB of swap with 0xFF-filled head bytes. Next instrument: a bounded host-side mmap logger (default OFF) that records size+caller for host mappings ≥32 MiB, then a guarded release only for a proven-cold owner; nothing is discarded on the current evidence.
+
+### 15.14 TransferMemory backing copy: the cold 72 MiB owner is named, and its sparse-copy A/B
+
+The fully-cold 72.0 MiB anonymous mapping from [15.13] is the runtime's own guest **TransferMemory backing copy**: a bounded host-allocation log (`hmmap-b1`, LD_PRELOAD shim, default OFF) shows `wol-horizon+0x53afc` calling `mmap(64 MiB, ANON)` and `memory.h transfer_create_locked` memcpy-ing the whole region; the 72 MiB VMA is that copy merged with an adjacent 8 MiB mapping. The equality gate that ships in the runtime settles the content question directly:
+
+```
+T2_TRANSFER_SPARSE_COPY index=0 source=0x1078b00000 bytes=67108864 copied-bytes=0 skipped-bytes=67108864
+```
+
+The transferred region is **entirely zero**, so the sparse copy (`T2_TRANSFER_SPARSE_COPY=1`) commits nothing. Matched pair (same ELF `273b4638`, 720 both arms, only that gate differs):
+[evidence/transfer-sparse](../evidence/transfer-sparse/README.md).
+
+- Cold 72.0 MiB VMA: 64.1 MiB SwapPss in every control phase (as in all five earlier runs) - gone in the candidate; no ≥64 MiB VMA carries swap.
+- **SwapPss (MiB) control -> candidate**: startup 582.3 -> 557.5; game-idle 526.4 -> 495.8; precleanup 488.5 -> **454.8** (-33.7).
+- Ledger accounting removes the copy contribution exactly; the rest is phase-level respread (guest arena +76.8, second arena -47.0), so only the net deltas are claimed.
+- Presents 4882 vs 4877 over the identical route; KMS frames near-identical (world diff mean 0.1/255).
+
+The gate stays **opt-in and default OFF**; nothing else changed. The remaining swap is dominated by the guest arenas.

@@ -1,0 +1,163 @@
+{
+  "schema": 1,
+  "scope": "same-ELF A/B pair: guest TransferMemory copy mode at 720; single variable T2_TRANSFER_SPARSE_COPY",
+  "elf": "273b4638cae6dd4d0cbe7d1b4a91eac9e3f68c6b758fb7ef2729a2c28e31af13",
+  "arms": {
+    "control": {
+      "label": "transfer-a1",
+      "sparse": "0",
+      "checks": 87,
+      "cleanup": true,
+      "warnings": [],
+      "phases": {
+        "startup": {
+          "totals": {
+            "vmas": 417,
+            "rss_mib": 315.9,
+            "pss_mib": 314.9,
+            "swap_pss_mib": 582.3
+          },
+          "cold72": [
+            {
+              "start": "0x7f77800000",
+              "end": "0x7f7c000000",
+              "size_mib": 72.0,
+              "perms": "rw-p",
+              "path": "[anon rw-p]",
+              "rss_mib": 0.0,
+              "pss_mib": 0.0,
+              "swap_mib": 64.1,
+              "sample_head": {
+                "kind": "all-zero",
+                "first16": "00000000000000000000000000000000",
+                "last16": "00000000000000000000000000000000"
+              },
+              "sample_tail": {
+                "kind": "all-zero",
+                "first16": "00000000000000000000000000000000",
+                "last16": "00000000000000000000000000000000"
+              },
+              "sampled_bytes": 128
+            }
+          ]
+        },
+        "game-idle": {
+          "totals": {
+            "vmas": 436,
+            "rss_mib": 404.1,
+            "pss_mib": 403.0,
+            "swap_pss_mib": 526.4
+          },
+          "cold72": [
+            {
+              "start": "0x7f77800000",
+              "end": "0x7f7c000000",
+              "size_mib": 72.0,
+              "perms": "rw-p",
+              "path": "[anon rw-p]",
+              "rss_mib": 0.0,
+              "pss_mib": 0.0,
+              "swap_mib": 64.1,
+              "sample_head": {
+                "kind": "all-zero",
+                "first16": "00000000000000000000000000000000",
+                "last16": "00000000000000000000000000000000"
+              },
+              "sample_tail": {
+                "kind": "all-zero",
+                "first16": "00000000000000000000000000000000",
+                "last16": "00000000000000000000000000000000"
+              },
+              "sampled_bytes": 128
+            }
+          ]
+        },
+        "precleanup": {
+          "totals": {
+            "vmas": 454,
+            "rss_mib": 458.3,
+            "pss_mib": 457.2,
+            "swap_pss_mib": 488.5
+          },
+          "cold72": [
+            {
+              "start": "0x7f77800000",
+              "end": "0x7f7c000000",
+              "size_mib": 72.0,
+              "perms": "rw-p",
+              "path": "[anon rw-p]",
+              "rss_mib": 0.0,
+              "pss_mib": 0.0,
+              "swap_mib": 64.1,
+              "sample_head": {
+                "kind": "all-zero",
+                "first16": "00000000000000000000000000000000",
+                "last16": "00000000000000000000000000000000"
+              },
+              "sample_tail": {
+                "kind": "all-zero",
+                "first16": "00000000000000000000000000000000",
+                "last16": "00000000000000000000000000000000"
+              },
+              "sampled_bytes": 128
+            }
+          ]
+        }
+      }
+    },
+    "candidate": {
+      "label": "transfer-b1",
+      "sparse": "1",
+      "checks": 87,
+      "cleanup": true,
+      "warnings": [],
+      "phases": {
+        "startup": {
+          "totals": {
+            "vmas": 414,
+            "rss_mib": 272.0,
+            "pss_mib": 271.0,
+            "swap_pss_mib": 557.5
+          },
+          "cold72": []
+        },
+        "game-idle": {
+          "totals": {
+            "vmas": 438,
+            "rss_mib": 368.3,
+            "pss_mib": 367.3,
+            "swap_pss_mib": 495.8
+          },
+          "cold72": []
+        },
+        "precleanup": {
+          "totals": {
+            "vmas": 446,
+            "rss_mib": 431.3,
+            "pss_mib": 430.2,
+            "swap_pss_mib": 454.8
+          },
+          "cold72": []
+        }
+      }
+    }
+  },
+  "sparse_receipt": "T2_TRANSFER_SPARSE_COPY index=0 source=0x1078b00000 bytes=67108864 copied-bytes=0 skipped-bytes=67108864",
+  "findings": [
+    "The transferred 64 MiB guest region is entirely zero: the sparse receipt copied 0 bytes and skipped all 67,108,864.",
+    "The deterministic cold 72.0 MiB VMA (64.1 MiB SwapPss in every control phase and every earlier run) is eliminated by sparse backing: no >=64 MiB VMA carries swap in the candidate.",
+    "SwapPss (MiB) by phase, control -> candidate: startup 582.3 -> 557.5 (-24.8); game-idle 526.4 -> 495.8 (-30.6); precleanup 488.5 -> 454.8 (-33.7).",
+    "Phase-level redistribution is visible (guest arena +76.8, second arena -47.0 at precleanup): the pair controls the copy contribution exactly but not the arena swap respread, so the net deltas are the published numbers.",
+    "Presents over the identical route: 4882 (control) vs 4877 (candidate); no performance signal from the one-time page scan.",
+    "KMS world/map/title frames are bright and near-identical: world diff mean 0.1/255 luma, <=0.1% of pixels differ by >16."
+  ],
+  "not_proven": [
+    "zero-swap steady state (total remains 454.8 MiB at precleanup)",
+    "battle/interior scenes",
+    "any default change: the gate stays opt-in"
+  ],
+  "next_steps": [
+    "Attribute remaining guest-arena swap with a lowered allocation-trace threshold (<=256 KiB).",
+    "Decide with the owner whether T2_TRANSFER_SPARSE_COPY should become the packaged default after a repeat pair."
+  ]
+}
