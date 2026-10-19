@@ -37,3 +37,6 @@ evidence/**/reference-guide-owner.jpg
 evidence/**/wol-gln-*.pam
 evidence/**/wol-gln-*.png
 evidence/**/white-wol-gln-*.png
+
+# built fixture artifacts (source is tools/fixtures/t2_sparse_copy_fixture.c)
+*.aarch64
