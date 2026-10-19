@@ -1,4 +1,4 @@
-# Scene coverage attempts — guide-map travel and the town approach (nav1–nav4)
+# Scene coverage attempts — guide-map travel and the town approach (nav1–nav5b)
 
 Purpose (§16.3 step 3): extend beyond the gulch moving/map/pause coverage of `../accept-720/`
 toward interior, dialogue and battle scenes. Profile: frozen ELF
@@ -27,13 +27,47 @@ next to this README; each run's captures, receipt and log are in its subdirector
   closed and the scene changed: the captures show a different, recognizable area — the
   **B.S. Horsery building (closed double doors)**, a windmill, cacti and an armadillo critter
   (the Boring Springs approach), ~294–341 k px different from both the gulch world and the
-  map-over-gulch frames. A presses at the walk positions opened nothing in that run.
-- **nav4** (`route-nav-town4.json`): repeats the successful travel, then walks toward the
-  Horsery doors with six bounded A attempts — result: **pending at this checkpoint**.
+  map-over-gulch frames.
+- **nav4** (`route-nav-town4.json`): repeated the travel, walked further (the **BAR** building
+  comes into view; the player position changes across frames) and pressed A at six different
+  positions — **no interior, dialogue or shop opened**; the doors stayed static.
+- **nav5** (`route-nav-town5.json`): another door hunt; the run **died before any route input**
+  with a runtime fail-closed guard stop (see below).
+- **nav5b** (`route-nav-town5.json`, identical repeat): reproducibility probe — **pending**.
+
+## nav5 runtime guard stop — fact sheet
+
+- `STOP status=NVN_COMMAND_RECORD_SIZE pc=main.text.seg+0xaf2c0c detail=0x0` →
+  `WOL_RUNTIME_EXIT status=24`. The guard lives in `native/nvn_commands.h`
+  (`nvn_command_decode`: prefix must satisfy `80 <= bytes <= sizeof(*r)` and `bytes % 16 == 0`,
+  and the decoded shape must equal the declared size; `detail=0x0` means the record prefix read
+  as **bytes=0**).
+- Timing: **~0.9 s after entering gameplay** (31 frames after the `game-idle` stage marker),
+  before the first route action; final frame gaps were normal (28–29 ms), then frames stopped
+  outright (a hard stop, not a decay).
+- Memory at the moment was **not** under stress: Pss 492 MB, SwapPss 445 MB, MemAvailable
+  73 MB, major faults flat (12,280), Mali commit 243 MB — measured by the 2 s ledger.
+- The runtime log preserved the full `MOMO_THREAD` census (threads parked on
+  `sdk.text.seg+0xa9d5c` keys) and the `NVN_COMMANDS_RECORDED` state of the active command
+  buffer (handle 2105, 410 commands, `replay-pending=1`) at the failure.
+- Two seconds before death the log shows SDK SVC bursts (`id=0x1a/0x1b`) from threads 0/5 —
+  the command record/replay path was active when the decode hit the zero-size record.
+- The 5 s settled watchdog caught the event and recorded `presentation-stall`
+  (frame 2104, age 5.099 s). Its bounded proc diagnostics reported
+  `diagnostic_error: /proc/<pid>/stat missing` — expected pairing, because the runtime had
+  already exited; the log's STOP line + census are the primary evidence.
+- Saves restored, Spruce recovered, zero cleanup warnings.
+- History scan: this exact guard (`NVN_COMMAND_RECORD_SIZE`) appears in **none** of the
+  collected repo logs or the spike run logs; related fail-closed NVN guards
+  (`NVN_COMMAND_RECORD_STORAGE`, `NVN_COMMAND_ARENA_OVERLAP`, `NVN_TEXTURE_SWIZZLE_REQUIRED`,
+  `NVN_GUEST_POINTER`) each appear a handful of times across the older history. This is the
+  17th run of this exact ELF in the current series (16 clean) — treat as a rare intermittent
+  event until nav5b answers reproducibility.
 
 ## Status
 
 Moving world + map/return + pause are covered by `../accept-720/`. The town approach was
-reached in nav3. Interior/dialogue/battle remain **not yet captured**; if the nav4 door
-attempts fail, the correct owner action per §16.3 is to supply a known interior/battle save
-or route rather than widening blind input scripts.
+reached (nav3/nav4: Horsery + BAR, player movement confirmed); **interior, dialogue and battle
+are not yet captured**, and the door-entry attempts failed. Per §16.3 the correct next input is
+an owner-supplied known interior/battle save or route rather than wider blind input scripts.
+The nav5 guard stop is a separate runtime-integrity observation under investigation (nav5b).

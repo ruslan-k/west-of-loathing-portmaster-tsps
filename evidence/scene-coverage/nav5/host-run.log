@@ -1,0 +1,32 @@
+STARTED nav5 30903
+No active framebuffers found on planes
+No active framebuffers found on planes
+No active framebuffers found on planes
+No active framebuffers found on planes
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav5-title.png (FB ID: 163, 1280x720)
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav5-title.png (FB ID: 160, 1280x720)
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav5-title.png (FB ID: 160, 1280x720)
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav5-title.png (FB ID: 163, 1280x720)
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav5-title.png (FB ID: 160, 1280x720)
+TITLE_READY {"is_title": true, "mismatch": 0.036427732079905996, "best_offset": [0, 0], "samples": 851, "scope": "known title sign only; not game-state proof", "t_ns": 43406003549031}
+ALIVE 30903 ONLINE 4-7
+
+SENT 30903 /tmp/cotm-input-KeMH2a/buttons.sock 1 0
+Screenshot saved to /mnt/UDISK/wol-goal-20261015/nav5-continue-request.png (FB ID: 163, 1280x720)
+ALIVE 30903
+Screenshot saved to /mnt/UDISK/roadmap-v2-nav5/world-ready.png (FB ID: 161, 1280x720)
+LEDGER_DONE 54 /mnt/UDISK/roadmap-v2-nav5/ledger.jsonl
+Screenshot saved to /mnt/UDISK/roadmap-v2-nav5/restored-menu.png (FB ID: 160, 1280x720)
+FINAL {"label": "nav5", "owner_save_hashes": {"permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2", "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"}, "stages": [{"name": "startup", "t_ns": 43343855367643, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "menu", "t_ns": 43406564144187, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "continue-load", "t_ns": 43426581889165, "settled_watchdog_context": false, "watchdog_budget_s": 30.0}, {"name": "game-idle", "t_ns": 43453699178070, "settled_watchdog_context": true, "watchdog_budget_s": 5.0}], "cleanup_verified": true, "probe_sha256": "da099bd5e6be0ffa157526be7cf3f54d7c337cc4da953c015002a30e12a5d62a", "session_sha256": "13d9cc4f5546924900f18d36120c1a2745c4c663371abadd5cd186d9ff01f646", "launcher_sha256": "fa30af838b22e01b7a5eeeb7c4f34c4b5eaf3f67c7a984eee0ba87ba90581f3a", "layout_sha256": "c21c41900e37f2054408308d61dec93846632d17d2dadf63a89afbed41c454cd", "ordinary_title_only": false, "draw_trace": false, "phase_labels_are_requests_not_scene_classifications": true, "heavy_guest_page_sampling": false, "present_watchdog_s": 30.0, "settled_watchdog_s": 5.0, "progress_checks": 39, "control_save_hashes": {"permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2", "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"}, "runtime_sha256": "b60057eaeafa738e9b48cf2b68b356545ee5ffde2c57bb84a5da5722e5935158", "section_sha256": "49bd16718ed0dc46f16599255791c7603e8aa2b5f04898784a39d6cacb9d0722", "last_progress_observation": {"frame": 2104, "ns": 43454627327098, "age_s": 4.095231778, "budget_s": 5.0}, "gameplay_readiness": [{"t_ns": 43453685874578, "has_game_hud": true, "mismatch": 0.0, "best_offset": [0, 0], "scope": "known gameplay settings-gear HUD, not scene/battle identity or physical input"}], "observed_gameplay_hud": true, "failure": {"kind": "presentation-stall", "observation": {"frame": 2104, "ns": 43454627327098, "age_s": 5.099473829}, "diagnostic_error": "[Errno 2] No such file or directory: '/proc/30903/stat'"}, "ledger_exit": 0, "restored_save_hashes": {"permaflags.json": "84dfc75cb39eed6ece636e02b017a734d90c3f662eb65bf8dbfe2b3e6ed9a4e2", "save-Wynona Carson-639274980123448959.json": "de8f055868d0136d76914f1bf84104d640e3651acee66b774014c7550937a6b2"}, "menu_rgb_signal_verified": true, "cleanup_warnings": [], "menu_pids": [31455]}
+Traceback (most recent call last):
+  File "/mnt/UDISK/wol_roadmap_probe.py", line 530, in <module>
+    main()
+  File "/mnt/UDISK/wol_roadmap_probe.py", line 442, in main
+    stage('game-idle',settled=True);pause(30)
+  File "/mnt/UDISK/wol_roadmap_probe.py", line 287, in pause
+    check_progress();time.sleep(min(1,max(0,deadline-time.monotonic())))
+  File "/mnt/UDISK/wol_roadmap_probe.py", line 276, in check_progress
+    receipt['last_progress_observation']=dict(require_progress(tail,time.monotonic_ns(),budget),budget_s=budget)
+  File "/mnt/UDISK/wol_present_watchdog.py", line 56, in require_progress
+    raise PresentationStall(observation)
+wol_present_watchdog.PresentationStall: presentation progress missing/stale: {'frame': 2104, 'ns': 43454627327098, 'age_s': 5.099473829}
