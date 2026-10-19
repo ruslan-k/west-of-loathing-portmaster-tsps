@@ -15,6 +15,7 @@ recipe=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$output/source"
 cp -a "$source_root/native" "$source_root/framework" "$output/source/"
 source_root="$output/source"
+python3 "$recipe/runtime/neutralize_source.py" "$source_root"
 git -C "$source_root" init -q
 git -C "$source_root" apply --check "$recipe/runtime/wol-adapter.patch"
 git -C "$source_root" apply "$recipe/runtime/wol-adapter.patch"

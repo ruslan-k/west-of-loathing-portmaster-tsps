@@ -14,6 +14,9 @@ class PboLifecycle(unittest.TestCase):
         code=text.split('/* WOL_PBO_UPLOAD_BEGIN */',1)[1].split('/* WOL_PBO_UPLOAD_END */',1)[0]
         pre=r'''
 #include <stdio.h>
+#include <stdarg.h> /* release-profile logging helper, stubbed for the standalone probe */
+static int diag_printf(const char *fmt,...){char b[256];va_list a;va_start(a,fmt);int r=vsnprintf(b,sizeof(b),fmt,a);va_end(a);(void)r;return 0;}
+#include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
 #include <stdlib.h>

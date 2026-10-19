@@ -4,9 +4,15 @@ import os,subprocess,tempfile,unittest
 from pathlib import Path
 from test_wol_memory_handheld import added_header
 
+AW_RELEASE_STUB='#ifndef AW_RELEASE_H\n#define AW_RELEASE_H\n#include <stdlib.h>\nstatic inline int aw_release_mode(void){const char *e=getenv("AW_RELEASE");return e&&e[0]==\'1\'&&!e[1];}\n#endif\n'
+
+
 class GpuTimelineContract(unittest.TestCase):
     def test_default_off_no_wait_recycle_and_disjoint(self):
         code=r'''
+#include <stdio.h>
+#include <stdarg.h> /* release-profile logging helper, stubbed for the standalone probe */
+static int diag_printf(const char *fmt,...){va_list a;va_start(a,fmt);int r=vprintf(fmt,a);va_end(a);return r;}
 #define _GNU_SOURCE
 #include <stdint.h>
 #include <stdlib.h>
@@ -39,7 +45,7 @@ int main(int argc,char **argv){
 }
 '''
         with tempfile.TemporaryDirectory() as d:
-            p=Path(d);(p/'test.c').write_text(code)
+            p=Path(d);(p/'test.c').write_text(code);(p/'aw_release.h').write_text(AW_RELEASE_STUB)
             subprocess.run(['cc','-std=gnu11','-O2','-Wall','-Wextra','-Werror',str(p/'test.c'),'-o',str(p/'test')],check=True)
             subprocess.run([str(p/'test')],check=True)
             r=subprocess.run([str(p/'test'),'on'],check=True,capture_output=True,text=True)

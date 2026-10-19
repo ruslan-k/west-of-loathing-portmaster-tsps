@@ -20,6 +20,9 @@ class UniformCacheTests(unittest.TestCase):
         self.assertIn('wol_uniform_cache_error(wol_gl_error);',render)
         pre=r'''
 #include <stdio.h>
+#include <stdarg.h> /* release-profile logging helper, stubbed for the standalone probe */
+static int diag_printf(const char *fmt,...){char b[256];va_list a;va_start(a,fmt);int r=vsnprintf(b,sizeof(b),fmt,a);va_end(a);(void)r;return 0;}
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>

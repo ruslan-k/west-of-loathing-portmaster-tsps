@@ -1,6 +1,6 @@
-# legacy_runtime source reference
+# Upstream source reference
 
-The owner supplied `legacy_runtime.zip`. Its release source documentation identifies version 1.0.16 and runtime source commit `803b22b445c247c53849cef064f2b814d4ba3c24`; framework commit `7c0c07d795e1a7ede88b6a57c98756a8d01dddec`.
+The owner supplied a separately supplied GPL-3.0 source archive. Its release source documentation identifies version 1.0.16 and runtime source commit `803b22b445c247c53849cef064f2b814d4ba3c24`; framework commit `7c0c07d795e1a7ede88b6a57c98756a8d01dddec`.
 
 The archive contains `sources/runtime-source.patch`, `sources/nxgl-source.patch`, `sources/SOURCE-MANIFEST.json`, build recipes, component sources and a GPL-3.0 license. It is not necessary to recover those sources from decompiled pseudocode.
 

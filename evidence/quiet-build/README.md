@@ -4,15 +4,22 @@ Ordinary play must not write diagnostic volumes. The accepted `b60057ea…` runt
 per-frame line, a per-syscall trace line and a per-upload receipt; on a full SD card that is a
 real hazard — measured at **~1.5 KB/frame, ~2.6–2.9 MB/min, ~160 MB/hour** (see `../log-volume/`).
 
-**HEAD correction (f4c9b23, 2026-10-19):** the final published/deployed quiet overlay intentionally
-**restores** the bounded `WOL_SPRITE_SCAN` path (up to twelve full-target `glReadPixels` operations)
-because the diagnostic path currently consumes a pending `glGetError()`; removing the scan
-exposed a subsequent fail-closed error in `zero_texture_refresh`. The bounded
-`WOL_PAIR_PIXELS` readbacks also remain in the overlay. The paragraphs below describing
-scan suppression refer to the initial, superseded quiet-build candidate, **not** to the final
-`ab132760…` runtime. This is a GL error-ownership/correctness issue, not a measured
-steady-state FPS opportunity; see roadmap §19.2 Q2 / §19.3 P0-3. No gameplay smoke run of the
-final quiet build has been recorded here.
+**GL correctness caveat:** the bounded `WOL_SPRITE_SCAN` path (at most twelve full-target
+`glReadPixels` calls) and `WOL_PAIR_PIXELS` checks remain enabled: the former consumes a pending
+`glGetError()` and disabling it previously surfaced a fail-closed error later. See roadmap §19.2
+Q2; no performance gain from removing these is claimed.
+
+**Current package/device build:** `ac5b33e05133771a014e0f382fc1a5d2bff0ea5406820ce3b3c914fad4574d9f`
+(1,975,008 B). The source diff was regenerated against a deterministic normalized *copy* of
+all 435 pinned upstream files; manifest validation still checks the originals first. The earlier
+`fef4f783…` quiet candidate accidentally removed a diagnostic tag from some message formats;
+the corrected candidate preserves literal format tags (standalone C fixture tests 94/94 green).
+It was launched twice via Spruce principal: the second 130-s KMS screenshot shows the visible
+WoL title menu, without obvious corruption. Runtime env: `AW_RELEASE=1`, `WOL_QUIET=1`,
+`WOL_UPRENDER_720=1`, `T2_READBACK_OFF=2`; `STOP`=0; 52,151 B log growth in 175 s including
+boot. Both tests exited their exact owned process and read back MainUI present, game absent.
+Gameplay/save/load on this exact hash remain unverified; old frame/FPS acceptance numbers are
+not transferred to it.
 
 ## What changed
 
@@ -65,7 +72,7 @@ or guard behaviour touched.
 - Build `build_horizon.sh` in `pmjs-arm64-spruce-local:20261002-gcc10`: **0 errors**, all accepted
   feature markers present (`WOL_UPRENDER_720`, `T2_TRANSFER_SPARSE_COPY`, `NVN_COMMAND_RECORD_SIZE`,
   `WOL_ROMFS_COW`, …).
-- Deployed ELF **`fef4f7831407e21459c51cce17e19a8474de014d2e737f695117b5f02e5525b9`** (1 966 864 B).
+- Previous quiet candidate ELF **`fef4f7831407e21459c51cce17e19a8474de014d2e737f695117b5f02e5525b9`** (1,966,864 B), superseded by the corrected package above.
 - Rollbacks kept on device: `backups/wol-horizon.ab132760-quiet1.bak`,
   `backups/wol-horizon.a38ff2eb-quiet2.bak`, `backups/wol-horizon.b60057ea-accepted.bak`.
 - The 720 UpRender default is unchanged; game behaviour, shader substitution and memory handling

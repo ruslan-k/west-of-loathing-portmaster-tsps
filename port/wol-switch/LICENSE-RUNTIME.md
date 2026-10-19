@@ -15,6 +15,8 @@ This binary contains **no game data**: no NSO segments, NPDM, RomFS content, tex
 saves or keys. At runtime it reads the owner's own `*.seg` files and `wol-romfs.section` from the
 game directory. The string constants it embeds are diagnostic names and SHA-256 identity pins.
 
-Deployed build: `fef4f7831407e21459c51cce17e19a8474de014d2e737f695117b5f02e5525b9`
-(1,966,864 bytes). The previously accepted build `b60057ea…` differs only by the release-profile
-logging gates documented in [`../../evidence/quiet-build/README.md`](../../evidence/quiet-build/README.md).
+Packaged build: `ac5b33e05133771a014e0f382fc1a5d2bff0ea5406820ce3b3c914fad4574d9f`
+(1,975,008 bytes). The original source is manifest-checked before a reproducible
+name-normalization step is applied to the build copy; the upstream commit identifiers
+remain in `docs/upstream-source.md`. On-device smoke has reached the title menu and
+returned to Spruce; a fresh full owner gameplay/save acceptance remains open.

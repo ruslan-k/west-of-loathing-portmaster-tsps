@@ -56,14 +56,17 @@ textures, shaders or anything else extracted from the game. They are the owner's
 - 720 UpRender size-only profile by default (`WOL_UPRENDER_720=1`): measured **+9.04 / +9.99 / +6.19
   presents/s** in paired moving-world A/B runs, P95 improved 9.9–13.8 ms, process SwapPSS 35.6–45.2 MiB
   lower. Owner-accepted in real battle/cave play (32.1/31.7 fps vs 28.3/28.1 on the old profile).
-- Quiet release profile: no per-frame trace, no dumps beside the game. Measured on hardware: **49 KB per session, ~1.5 KB/min** of steady play, against ~2.7 MB/min for the accepted diagnostic build (≈1800× less). Bounded GL-readback/error coupling remains unqualified; see roadmap §19.
+- Quiet release profile: corrected packaged ELF `ac5b33e…` reached the title menu in a
+  principal-flow KMS capture with no STOP, then returned to Spruce MainUI. The log grew
+  52,151 B over 175 s including boot; a separate earlier candidate measured ~1.5 KB/min
+  after startup. Bounded GL-readback/error coupling remains; see roadmap §19.
 - Saves live in `save-laboratory/` beside the game, not in the runtime's memory.
 
 ## Known limits (honest list)
 
-- The bundled quiet ELF `ab132760…` has **not yet passed** an independent post-change
-  normal-launch gameplay smoke test. The measured 720 battle/moving performance comes from the
-  earlier accepted `b60057ea…` build; keep an owner backup and verify/rollback first.
+- The bundled quiet ELF `ac5b33e…` has passed a normal principal-flow **title-menu**
+  KMS smoke test, not a full gameplay/save acceptance. Earlier 720 battle/moving performance
+  comes from `b60057ea…`; do not attribute its FPS figures to the new executable.
 
 - Strict performance certification is **not** claimed: moving P95 is 34.4–37.9 ms (goal ≤33.33) and one
   arm measured 29.02 presents/s. It is an accepted *experimental* profile, not a 30 fps guarantee.

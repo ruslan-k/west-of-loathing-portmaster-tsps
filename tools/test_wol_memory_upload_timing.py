@@ -24,6 +24,9 @@ class UploadTiming(unittest.TestCase):
         source=added_file(patch,'nvn_textures.h')
         funcs=c_function(source,'wol_upload_clock(')+'\n'+c_function(source,'wol_texture_upload(')
         pre=r'''
+#include <stdio.h>
+#include <stdarg.h> /* release-profile logging helper, stubbed for the standalone probe */
+static int diag_printf(const char *fmt,...){va_list a;va_start(a,fmt);int r=vprintf(fmt,a);va_end(a);return r;}
 #include <stdint.h>
 #include <inttypes.h>
 #include <stdio.h>

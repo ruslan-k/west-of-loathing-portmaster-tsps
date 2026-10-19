@@ -1025,4 +1025,26 @@ no `MainUI` process (device likely off or on another screen) and the SD card at 
 - **DONE, docs:** §19 added to the authoritative roadmap with current binary status, quiet GL-error/readback dependency, packaged-vs-root launcher parity, prepared RomFS warning, finite sparse decision and explicit stop gates. Earlier sections are retained as historical results.
 - **DONE, docs:** evidence/quiet-build/README.md now states that the final f4c9b23 sprite scan remained enabled; the root launcher comment was corrected without changing any exported values or code path.
 - **DONE, docs:** port/README.md now warns that the accepted section is owner-prepared (not an arbitrary raw extract), that file-presence checks cannot prove identity and that the bundled quiet ELF lacks a post-change gameplay smoke test.
-- **NOT DONE:** no TSPS run, rebuilt ELF, runtime binary change, physical button check, game-data upload or save modification was performed in this pass. Do not mark P0-1, P0-2 or P0-3 as verified from documentation commits alone.
+- **NOT DONE in that audit:** no TSPS run, rebuilt ELF, runtime binary change, physical button check, game-data upload or save modification was performed. The later checkpoint below supersedes that static-only state.
+
+### 19.7 Subsequent execution checkpoint — quiet release and resource stop rule
+
+The successor ELF `ac5b33e05133771a014e0f382fc1a5d2bff0ea5406820ce3b3c914fad4574d9f`
+was built from the 435-file manifest-pinned source (originals verified before a deterministic
+name-normalization on a copy), the public overlay applied with zero source differences, and
+94 data-free tests passed. It is installed and matches the packaged `port/wol-switch/wol-horizon`.
+Two bounded Spruce-principal runs reached a visible KMS title menu with no STOP, release env
+`AW_RELEASE=1`, 720 default ON, ~52 KB log growth in 175 s including startup, and clean
+return to MainUI. A full gameplay/save/physical-input acceptance on this exact hash is still
+**open**, as is the GL-error/readback coupling; an earlier candidate's measured combat FPS
+must not be inherited by this binary.
+
+**Decision on further optimization:** §19.1/19.5 remains in force. No new general memory or FPS
+mechanism is presently justified by the measured stable ~975–995 MiB Pss+SwapPss over the
+observed battle and aftermath windows: the apparent swap increase was mostly RAM-to-swap
+migration, not a demonstrated leak. Do not run swapoff/decommit/clock-forcing experiments.
+The applicable work now is *release quality*: root/port launcher parity, bounded log retention,
+prepared-section offline validation, GL error ownership, save/load and physical controller/audio
+coverage. Only after a reproducible 720 gameplay stall on the new ELF should §19.3 P2-7 be
+reopened. Sparse TransferMemory remains OFF until its lifecycle evidence exists; lack of that
+evidence is a reason to keep OFF, not an invitation to broaden reclaim.

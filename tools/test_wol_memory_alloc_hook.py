@@ -16,6 +16,9 @@ class AllocHookTests(unittest.TestCase):
         added='\n'.join(l[1:] for l in part.splitlines() if l.startswith('+') and not l.startswith('+++'))
         code=added[added.index('/* WOL_ALLOC_TRACE=1:'):]
         prefix=r'''
+#include <stdio.h>
+#include <stdarg.h> /* release-profile logging helper, stubbed for the standalone probe */
+static int diag_printf(const char *fmt,...){char b[256];va_list a;va_start(a,fmt);int r=vsnprintf(b,sizeof(b),fmt,a);va_end(a);(void)r;return 0;}
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
