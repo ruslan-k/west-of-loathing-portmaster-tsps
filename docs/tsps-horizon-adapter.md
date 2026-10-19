@@ -1,5 +1,11 @@
 # TSPS native Horizon adapter — development and measured evidence
 
+> **Historical development log (kept for provenance).** The current, authoritative status is
+> [evidence/release-720/README.md](../evidence/release-720/README.md) (owner-accepted 720
+> profile) and [roadmap §18](optimization-roadmap.md) (post-acceptance audit and the open
+> acceptance rows). Statements below such as "not a playable release", "35-second diagnostic
+> launcher" and the gfx265 checkpoint describe the state at their date, not today's build.
+
 ## Current checkpoint: gfx265 (2026-10-15)
 
 Real menu and Boring Springs frames are now verified. The PC/Cactus Bill skinned bodies, multi-stream UV binding, per-material mesh UV and WANTED stencil mask are repaired. The mip-repacked owner bundle has matching Sprite metadata/launcher defaults. Dynamic-map UI metadata now restores the paper extent, but marker/title placement is still unresolved. This is an experimental development build, not a fully validated release.

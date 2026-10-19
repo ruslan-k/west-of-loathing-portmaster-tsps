@@ -940,3 +940,21 @@ The one [nav5 failure](../evidence/scene-coverage/README.md) is `NVN_COMMAND_REC
 
 **Final answer to “have we tried everything?”** No finite project can exhaust all rendering, scheduling and allocator approaches. But the repository has already tested the plausible cheap/high-payoff ones with more care than typical ports. There is **no untried, presently evidence-backed large safe RAM saving** and no reason to embark on another broad optimization campaign.
 
+### 18.9 Execution status — 2026-10-19 (agent pass, no device run)
+
+| §18 item | Status | Evidence |
+| --- | --- | --- |
+| **P0 launcher parity** | **DONE.** The checked-in launcher carries the accepted `WOL_UPRENDER_720` default (unset→1, explicit 0/1 preserved), `bash -n` clean, no `WOL_GUEST_RT720`/TV-mode/`NX_PC_BENCH` additions. | commit `bcd87d1`; `tools/test_wol_memory_roadmap.py` |
+| **P0 source parity** | **DONE — gap was in the audit, not the tree.** The manifest-pinned baseline *already contains* `T2_TRANSFER_SPARSE_COPY`; applying the published overlay to it reproduces the measured native tree with **0 differences** (42 files, `memory.h` → `68974762…`). No sparse diff needed isolating. | `evidence/source-parity/README.md` |
+| **P0 rebuild** | **DONE.** `sha256sum -c` 435/435 OK, `git apply` OK, full AArch64 compile/link OK in the documented `pmjs-arm64-spruce-local:20261002-gcc10` container. New ELF `484275f7…` (1,974,840 B) vs deployed receipt `b60057ea…` (1,974,880 B); all accepted feature markers present in **both**. Byte-identity is explicitly not promised by the recipe, so a rebuild must re-run the acceptance basis. | `evidence/source-parity/rebuild.md` |
+| **P0 CI coverage** | **PARTIAL.** Data-free suite extended: launcher default/override matrix, no-TV/no-guest-patch assertions, overlay structure contract, fixture source-identity checks (11 tests in `test_wol_memory_roadmap`, full suite green). A full overlay-build job stays owner-local by design (§18.7.3). | commit `bcd87d1` |
+| **P1 docs status** | **DONE.** README leads with the accepted 720 status and links release-720 / this section; `runtime/README.md` no longer claims the overlay "reaches shader capture only"; the adapter development log is marked historical. | commits `cae2a67` + this pass |
+| **P2 evidence hygiene** | **OPEN (owner decision).** Device SD card is at **100 % (≈395 MiB free)** while the port's own `logs/` hold 146 MiB / 115 files. No deletion performed: retained evidence is audit material. Future runs should compress/filter repetitive logs (§18.7.5). | device check 2026-10-19 |
+| **R2 release acceptance** | **OPEN — owner play required:** SAVE→QUIT→cold relaunch→LOAD, formal physical-control audit, town-building interiors (cave visit stands in). | `evidence/release-720/README.md` |
+| **R3 rare NVN stop** | **OPEN, classified rare-unresolved:** one `NVN_COMMAND_RECORD_SIZE` event in 18 frozen-ELF runs, not reproduced in the identical repeat; the release build already retains the low-overhead on-failure receipt (STOP + full thread census). Reopen on a second independent occurrence. | `evidence/scene-coverage/README.md` |
+| **R4 sparse lifecycle** | **BLOCKED on R2 scenes**, but its source prerequisite is now satisfied (rebuild proven): the remaining work is 720-ON battle/save-load OFF/ON pairs. | `evidence/transfer-sparse-repeat/README.md` |
+| **R5 perf experiments** | **NOT TRIGGERED** — no fresh verified slow 720 scene; per §18.6 these stay unscheduled. | — |
+
+No device runs were performed in this pass. Observed device state at check time: no `wol-horizon` and
+no `MainUI` process (device likely off or on another screen) and the SD card at 100 %.
+
