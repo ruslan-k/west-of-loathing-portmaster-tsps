@@ -1,0 +1,146 @@
+{
+  "upstream": {
+    "repository": "https://github.com/wild1walker/portmaster-unity",
+    "commit": "913debc122b8234a3db56939a4728d9438972ce2",
+    "libhybris_commit": "7079712a42ea2754adf747e70c6cc75764c8596e"
+  },
+  "mono_release": {
+    "repository": "https://github.com/wild1walker/portmaster-cuphead",
+    "release": "2026.10.26.10",
+    "asset_sha256": "1c05883bdcdeb7e31e558245ecdc9ca8d6cbf591972f3be138ff654fc252f7f3"
+  },
+  "files": {
+    "bounded_run.py": {
+      "bytes": 3052,
+      "sha256": "92efd07a36cab90b1bd7a3688f4a1076d3d6fe9a18f7169f0b8566a9bd89595b"
+    },
+    "lib/libMonoPosixHelper.so": {
+      "bytes": 262528,
+      "sha256": "dbe5979a645cfa1e539bd1dd49932e9e4271e0b009c386e298b813c3b1e2a455"
+    },
+    "lib/libil2cpp.so": {
+      "bytes": 250080,
+      "sha256": "a8e31d63f61d9852afa47e5f6642db880f101c7327816708dcfe7a85d747ac3d"
+    },
+    "lib/libmonobdwgc-2.0.so": {
+      "bytes": 3568520,
+      "sha256": "01e0633b74705419a6079bc36183bfd0189d9d7166aed8bc23bf06e2b47ab411"
+    },
+    "licenses/LICENSE": {
+      "bytes": 70307,
+      "sha256": "dda12a98c1979cf3d94df1cff45d27a4cb3f04a60c76f76902ac54cac03ec0ce"
+    },
+    "licenses/LICENSE.archspec.txt": {
+      "bytes": 12531,
+      "sha256": "ecdbf532e5c18408d8bcf996b901edb0d058401409f07e5fef10e46faadd5465"
+    },
+    "licenses/LICENSE.astc-encoder-py.txt": {
+      "bytes": 1070,
+      "sha256": "3b56c875b28d7c51b2ce020b8eaff68f8b796335523cd9c5a14cf02ead1dc4d0"
+    },
+    "licenses/LICENSE.attrs.txt": {
+      "bytes": 1110,
+      "sha256": "fcbbc497f38ae89a7d0dc9a29516d9e50a375c2235e77218a3d6d29a64ebd309"
+    },
+    "licenses/LICENSE.bdwgc.txt": {
+      "bytes": 4236,
+      "sha256": "7768f0cfc1dba5a8efc1d6a69921be65cd04962a419475e43a6d4725deffa657"
+    },
+    "licenses/LICENSE.brotli.txt": {
+      "bytes": 1085,
+      "sha256": "63a74605a2c379a308c753d33fce4c892a2d7907e078aff3a32901f13db592c5"
+    },
+    "licenses/LICENSE.dotnet-runtime.txt": {
+      "bytes": 68756,
+      "sha256": "c91c4b8bf01a0f6f2182a6094dcbcff9a4dba798856a929bb2053886262fa401"
+    },
+    "licenses/LICENSE.etcpak.txt": {
+      "bytes": 1063,
+      "sha256": "fd8d3cae0a5f33252c4ec5c9164b0042b4091ae445821d22041e54de59fd30a4"
+    },
+    "licenses/LICENSE.fsspec.txt": {
+      "bytes": 1514,
+      "sha256": "6fac42790adb599c2e7a8050752cccf2161c2f4352ceaf150313f6cdf5a82384"
+    },
+    "licenses/LICENSE.libhybris.txt": {
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    "licenses/LICENSE.libogg.txt": {
+      "bytes": 7922,
+      "sha256": "f409a312dcc4e46da2404f4a3dd481a31900d83f61bc783dda1d8dec244a212c"
+    },
+    "licenses/LICENSE.libopenh264.txt": {
+      "bytes": 6234,
+      "sha256": "d12d3238ad65404dfce51272820407f23d7f465147e4803d95275ca1c11d009e"
+    },
+    "licenses/LICENSE.libopus.txt": {
+      "bytes": 10956,
+      "sha256": "4cad6f3c9b341747885d79c1b456c21eca443344adba250ee0c96c4fb0349ea0"
+    },
+    "licenses/LICENSE.libvorbis.txt": {
+      "bytes": 4670,
+      "sha256": "1cf12d3edb6353bdf16ac2f0e8cf36120a8517b384e69d9d2d7004a2181a3335"
+    },
+    "licenses/LICENSE.libvpx.txt": {
+      "bytes": 5136,
+      "sha256": "4469c2da1f814103c87fc1f7566c970086492c3c7c27607fc09c250fc547305b"
+    },
+    "licenses/LICENSE.lz4.txt": {
+      "bytes": 1496,
+      "sha256": "add684f4c8c34376b24d5f27d634260bc1e18cd39d0520bda8861a943c9a594d"
+    },
+    "licenses/LICENSE.mono-cecil.txt": {
+      "bytes": 1132,
+      "sha256": "5e5dd26da1def1b49235aad64236c82fc2afe38de078a73a412694fef6bba48e"
+    },
+    "licenses/LICENSE.mono-class-libraries.txt": {
+      "bytes": 79497,
+      "sha256": "4cc1526040d990e3fe92b427480b955ddf319d3bfa48d09663644cfc37a9c7d1"
+    },
+    "licenses/LICENSE.mono.txt": {
+      "bytes": 76061,
+      "sha256": "6400eff208ce248fe202f1bbabcfb128a09fadb5316547f18cc0f3dd1eacc4a4"
+    },
+    "licenses/LICENSE.openssl.txt": {
+      "bytes": 6548,
+      "sha256": "bd7fb9ce3586c01003ff505d69fade885b68b0f8a1cdd7ce43630f8ed3dc119a"
+    },
+    "licenses/LICENSE.pillow.txt": {
+      "bytes": 70308,
+      "sha256": "fdb0390d84fdf9bf38de86b2502c9fd6820e478ca6908c411e83b832df99e74b"
+    },
+    "licenses/LICENSE.portmaster-cuphead.txt": {
+      "bytes": 1068,
+      "sha256": "c9a315f8116c85578c4bf8715b8d066a814dd1142d32aa602c3aa09dd789d105"
+    },
+    "licenses/LICENSE.portmaster-unity.txt": {
+      "bytes": 14570,
+      "sha256": "da7926439d189ed9bca522b9ffcb26d24388556a58a61a6c0357a99b8ea0d080"
+    },
+    "licenses/LICENSE.pyfmodex.txt": {
+      "bytes": 1074,
+      "sha256": "2060035e39006fff141af595183d9fd86953609c926a97b6f23dd215d7db101f"
+    },
+    "licenses/LICENSE.texture2ddecoder.txt": {
+      "bytes": 1063,
+      "sha256": "086b795760b0f2aaddfe6d0a6ebf9d946d175acf3495c709e5ca5a5ddd3004c7"
+    },
+    "licenses/LICENSE.tpk-ar.txt": {
+      "bytes": 1068,
+      "sha256": "a33f85b3cecb03afa60362c51c08e2e20f002125e3c29a030d5aeb65ad53726b"
+    },
+    "licenses/LICENSE.unity-donor.txt": {
+      "bytes": 448,
+      "sha256": "68a6690d7d029f1838466f3d450c8644855597fe3a92f613e7226f301664c1ff"
+    },
+    "licenses/LICENSE.unitypy.txt": {
+      "bytes": 1068,
+      "sha256": "41363f05b2470e105ad36cc5ccc6c787c4414cab0528cedc05d41fa20d679681"
+    },
+    "ua_host": {
+      "bytes": 7770352,
+      "sha256": "2408581859254d93d7a0f2eca9828a63dfe21af63593f7013c3d3aeb20a21b50"
+    }
+  }
+}

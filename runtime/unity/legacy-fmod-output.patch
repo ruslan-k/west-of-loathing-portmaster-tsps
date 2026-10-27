@@ -1,0 +1,260 @@
+diff --git a/runtime/host/build.sh b/runtime/host/build.sh
+index 88e0a12..9636d46 100755
+--- a/runtime/host/build.sh
++++ b/runtime/host/build.sh
+@@ -23,7 +23,7 @@ if [ "$ARCH" = arm64 ]; then
+     O=out/arm64
+     F="-O2 -g -Wall -I../jni/include -I../jni $NOSTEAM"
+     OBJS=
+-    for f in ua_host input pointer osk frames framerate gcbudget quality glhooks hitches prof threads futex gltrace glopt glmemo gpuidle glpass glrename glrec glrec_fg msaafix display display_sdl fbdev $STEAM plugins plugstubs mono64 unityhooks; do gcc $F -c $f.c -o $O/$f.o; OBJS="$OBJS $O/$f.o"; done
++    for f in ua_host legacy_audio input pointer osk frames framerate gcbudget quality glhooks hitches prof threads futex gltrace glopt glmemo gpuidle glpass glrename glrec glrec_fg msaafix display display_sdl fbdev $STEAM plugins plugstubs mono64 unityhooks; do gcc $F -c $f.c -o $O/$f.o; OBJS="$OBJS $O/$f.o"; done
+     # No __gnu_Unwind_Find_exidx export: that is ARM EHABI. AArch64 unwinds with .eh_frame, and the
+     # unwinders linked into the Android libraries find our modules through the loader'"'"'s
+     # dl_iterate_phdr (docs/arm64.md): no flags for that. ioctl is exported (fbdev.c interposes the
+@@ -54,6 +54,7 @@ docker run --rm -e STEAM -e NOSTEAM -v "$PWD/..":/w -w /w/host ua-host-armhf bas
+   set -e
+   F="-O2 -g -Wall -march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=hard -funwind-tables -I../jni/include -I../jni $NOSTEAM"
+   arm-linux-gnueabihf-gcc $F -c ua_host.c -o out/ua_host.o
++  arm-linux-gnueabihf-gcc $F -c legacy_audio.c -o out/legacy_audio.o
+   arm-linux-gnueabihf-gcc $F -c input.c -o out/input.o
+   arm-linux-gnueabihf-gcc $F -c pointer.c -o out/pointer.o
+   arm-linux-gnueabihf-gcc $F -c osk.c -o out/osk.o
+@@ -83,7 +84,7 @@ docker run --rm -e STEAM -e NOSTEAM -v "$PWD/..":/w -w /w/host ua-host-armhf bas
+   arm-linux-gnueabihf-gcc $F -c plugstubs.c -o out/plugstubs.o
+   arm-linux-gnueabihf-gcc $F -c mono64.c -o out/mono64.o
+   arm-linux-gnueabihf-gcc $F -c unityhooks.c -o out/unityhooks.o
+-  arm-linux-gnueabihf-g++ -o out/ua_host out/ua_host.o out/input.o out/pointer.o out/osk.o out/frames.o out/framerate.o out/gcbudget.o out/quality.o out/glhooks.o out/hitches.o out/prof.o out/threads.o out/futex.o out/gltrace.o out/glopt.o out/glmemo.o out/gpuidle.o out/glpass.o out/glrename.o out/glrec.o out/glrec_fg.o out/msaafix.o \
++  arm-linux-gnueabihf-g++ -o out/ua_host out/ua_host.o out/legacy_audio.o out/input.o out/pointer.o out/osk.o out/frames.o out/framerate.o out/gcbudget.o out/quality.o out/glhooks.o out/hitches.o out/prof.o out/threads.o out/futex.o out/gltrace.o out/glopt.o out/glmemo.o out/gpuidle.o out/glpass.o out/glrename.o out/glrec.o out/glrec_fg.o out/msaafix.o \
+     out/display.o out/display_sdl.o out/fbdev.o ${STEAM:+out/steamstub.o} out/plugins.o out/plugstubs.o out/mono64.o out/unityhooks.o ../loader/out/libsoloader.a ../android/out/libandroidshims.a \
+     ../jni/out/libfakejni.a ../media/out/libuamedia.a -Wl,--export-dynamic-symbol=__gnu_Unwind_Find_exidx -Wl,--dynamic-list=exports.list \
+     -lSDL2 -lz -ldl -lpthread -lm
+diff --git a/runtime/host/ua_host.c b/runtime/host/ua_host.c
+index d1bd58c..ae55f86 100644
+--- a/runtime/host/ua_host.c
++++ b/runtime/host/ua_host.c
+@@ -15,6 +15,7 @@
+ #include "../jni/unityplayer.h"
+ void up_media_init(void);                  /* ../jni/up_media.c */
+ #include "input.h"
++#include "legacy_audio.h"
+ #include "frames.h"
+ #include "framerate.h"
+ #include "gcbudget.h"
+@@ -619,6 +620,7 @@ int main(int argc, char **argv)
+     gcbudget_init();
+     quality_init(pj_quality);
+     cfg.on_frame = on_frame;
++    cfg.on_audio = legacy_audio_write;
+     cfg.sdk_int = sdk_int;
+     static const char *const releases[] = { "4.4.4", "4.4W", "5.0", "5.1.1", "6.0.1", "7.0", "7.1.2", "8.0.0", "8.1.0", "9",
+                                             "10", "11", "12", "12", "13", "14", "15" };
+@@ -659,6 +661,7 @@ int main(int argc, char **argv)
+     sigaction(SIGSEGV, &sa, NULL); sigaction(SIGBUS, &sa, NULL);
+     up_quit();      // also when the game asked to quit (Application.Quit: nativeRender returned false)
+     up_wait();
++    legacy_audio_close();
+     fprintf(stderr, "[host] Unity stopped\n");
+     // Unity has saved and shut down; the libraries' exit handlers (Mono's thread cleanup, static
+     // destructors) have nothing left to do but can block on threads that are gone
+diff --git a/runtime/host/legacy_audio.c b/runtime/host/legacy_audio.c
+new file mode 100644
+--- /dev/null
++++ b/runtime/host/legacy_audio.c
+@@ -0,0 +1,80 @@
++// The Java FMOD/AudioTrack path is separate from OpenSL ES and needs its own host sink.
++#include "legacy_audio.h"
++#include <SDL2/SDL.h>
++#include <stdio.h>
++
++static SDL_AudioDeviceID g_device;
++static int g_rate, g_acquired, g_failed;
++static Uint32 g_report;
++static uint64_t g_frames, g_nonzero_blocks;
++
++void legacy_audio_close(void)
++{
++    if (g_device) SDL_CloseAudioDevice(g_device);
++    if (g_frames) fprintf(stderr, "[audio] legacy FMOD closed: frames=%llu nonzero-blocks=%llu\n",
++                         (unsigned long long)g_frames, (unsigned long long)g_nonzero_blocks);
++    if (g_acquired) SDL_QuitSubSystem(SDL_INIT_AUDIO);
++    g_device = 0;
++    g_rate = g_acquired = g_failed = 0;
++    g_frames = g_nonzero_blocks = 0;
++}
++
++void legacy_audio_write(void *user, const int16_t *pcm, int frames, int rate)
++{
++    (void)user;
++    if (!pcm || rate < 8000 || rate > 192000 || frames <= 0 || frames > rate) return;
++    Uint32 bytes = (Uint32)frames * 2 * sizeof *pcm;
++    if (g_device && g_rate != rate) { SDL_CloseAudioDevice(g_device); g_device = 0; }
++    if (!g_device && !g_failed) {
++        if (!g_acquired) {
++            if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0) g_failed = 1;
++            else g_acquired = 1;
++        }
++        if (!g_failed) {
++            SDL_AudioSpec want = {0}, have;
++            want.freq = rate;
++            want.format = AUDIO_S16SYS;
++            want.channels = 2;
++            want.samples = 512;
++            g_device = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
++            if (!g_device) g_failed = 1;
++            else {
++                g_rate = rate;
++                g_report = SDL_GetTicks();
++                fprintf(stderr, "[audio] legacy FMOD -> SDL %s: %d Hz, stereo s16, %u frames\n",
++                        SDL_GetCurrentAudioDriver(), have.freq, have.samples);
++                SDL_PauseAudioDevice(g_device, 0);
++            }
++        }
++        if (g_failed) fprintf(stderr, "[audio] legacy FMOD output failed: %s\n", SDL_GetError());
++    }
++    if (!g_failed) {
++        Uint32 start = SDL_GetTicks();
++        // Block like AudioTrack.write; bound both queued audio and waits on a stalled device.
++        while (SDL_GetQueuedAudioSize(g_device) > bytes * 3) {
++            if (SDL_GetTicks() - start >= 500) {
++                fprintf(stderr, "[audio] legacy FMOD output stalled; disabling the sink\n");
++                g_failed = 1;
++                break;
++            }
++            SDL_Delay(1);
++        }
++        if (!g_failed && SDL_QueueAudio(g_device, pcm, bytes) != 0) {
++            fprintf(stderr, "[audio] legacy FMOD queue failed: %s\n", SDL_GetError());
++            g_failed = 1;
++        }
++    }
++    if (g_failed) {
++        if (g_device) { SDL_CloseAudioDevice(g_device); g_device = 0; }
++        SDL_Delay((Uint32)frames * 1000 / rate + 1);
++        return;
++    }
++    g_frames += frames;
++    for (int i = 0; i < frames * 2; i++) if (pcm[i]) { g_nonzero_blocks++; break; }
++    if (SDL_GetTicks() - g_report >= 5000) {
++        fprintf(stderr, "[audio] legacy FMOD: frames=%llu nonzero-blocks=%llu queued=%u\n",
++                (unsigned long long)g_frames, (unsigned long long)g_nonzero_blocks,
++                SDL_GetQueuedAudioSize(g_device));
++        g_report = SDL_GetTicks();
++    }
++}
+diff --git a/runtime/host/legacy_audio.h b/runtime/host/legacy_audio.h
+new file mode 100644
+--- /dev/null
++++ b/runtime/host/legacy_audio.h
+@@ -0,0 +1,6 @@
++#ifndef LEGACY_AUDIO_H
++#define LEGACY_AUDIO_H
++#include <stdint.h>
++void legacy_audio_write(void *user, const int16_t *pcm, int frames, int rate);
++void legacy_audio_close(void); /* only after up_wait has joined the FMOD producer */
++#endif
+diff --git a/runtime/host/test/test_audio_wiring.py b/runtime/host/test/test_audio_wiring.py
+new file mode 100644
+--- /dev/null
++++ b/runtime/host/test/test_audio_wiring.py
+@@ -0,0 +1,27 @@
++#!/usr/bin/env python3
++"""The legacy Java FMOD path must have a real sink in the shipped host."""
++from pathlib import Path
++import unittest
++
++HOST = Path(__file__).resolve().parents[1]
++
++class AudioWiring(unittest.TestCase):
++    def test_host_connects_legacy_fmod_before_start(self):
++        source = (HOST / 'ua_host.c').read_text()
++        self.assertTrue('cfg.on_audio = legacy_audio_write;' in source,
++                        'legacy FMOD PCM is discarded because no output callback is connected')
++        self.assertLess(source.index('cfg.on_audio = legacy_audio_write;'), source.index('up_start(&cfg)'))
++
++    def test_audio_closes_only_after_fmod_thread_stops(self):
++        source = (HOST / 'ua_host.c').read_text()
++        self.assertIn('legacy_audio_close();', source)
++        self.assertLess(source.index('up_wait();'), source.index('legacy_audio_close();'))
++
++    def test_both_architectures_link_sink(self):
++        source = (HOST / 'build.sh').read_text()
++        self.assertIn('ua_host legacy_audio input', source)
++        self.assertIn('-c legacy_audio.c -o out/legacy_audio.o', source)
++        self.assertIn('out/ua_host.o out/legacy_audio.o', source)
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/runtime/host/test/test_legacy_audio.c b/runtime/host/test/test_legacy_audio.c
+new file mode 100644
+--- /dev/null
++++ b/runtime/host/test/test_legacy_audio.c
+@@ -0,0 +1,69 @@
++// Real SDL queue tests (dummy backend); the silent mode opens the target PCM without game or tone.
++#include "../legacy_audio.c"
++#include <assert.h>
++#include <string.h>
++
++int main(int argc, char **argv)
++{
++    int16_t pcm[512] = {0};
++    if (argc > 1 && !strcmp(argv[1], "silent")) {
++        for (int i = 0; i < 94; i++) legacy_audio_write(NULL, pcm, 256, 24000);
++        assert(g_device != 0 && !g_failed && g_frames == 94 * 256 && g_nonzero_blocks == 0);
++        SDL_Delay(80);
++        assert(SDL_GetQueuedAudioSize(g_device) == 0);
++        legacy_audio_close();
++        assert(SDL_WasInit(SDL_INIT_AUDIO) == 0);
++        puts("PASS target silent PCM drained and closed");
++        return 0;
++    }
++    SDL_setenv("SDL_AUDIODRIVER", "dummy", 1);
++    legacy_audio_write(NULL, NULL, 256, 24000);
++    legacy_audio_write(NULL, pcm, -1, 24000);
++    legacy_audio_write(NULL, pcm, 256, 0);
++    assert(g_device == 0 && g_frames == 0);
++    puts("PASS invalid input does not initialize output");
++    for (int i = 0; i < 512; i++) pcm[i] = (int16_t)(i - 256);
++    Uint32 start = SDL_GetTicks();
++    for (int i = 0; i < 20; i++) legacy_audio_write(NULL, pcm, 256, 24000);
++    assert(g_device != 0 && g_rate == 24000 && !g_failed);
++    assert(g_frames == 20 * 256 && g_nonzero_blocks == 20);
++    assert(SDL_GetTicks() - start >= 100);
++    assert(SDL_GetQueuedAudioSize(g_device) <= 4 * sizeof pcm);
++    puts("PASS real SDL queue receives PCM with bounded backlog and pacing");
++    SDL_Delay(80);
++    assert(SDL_GetQueuedAudioSize(g_device) == 0);
++    puts("PASS queued PCM drains");
++    legacy_audio_write(NULL, pcm, 256, 48000);
++    assert(g_device != 0 && g_rate == 48000 && !g_failed);
++    puts("PASS rate change reopens output");
++    legacy_audio_close();
++    assert(g_device == 0 && SDL_WasInit(SDL_INIT_AUDIO) == 0);
++    puts("PASS close releases SDL audio ownership");
++    legacy_audio_close();
++    puts("PASS repeated close is safe");
++    SDL_setenv("SDL_AUDIODRIVER", "not-a-real-driver", 1);
++    start = SDL_GetTicks();
++    for (int i = 0; i < 6; i++) legacy_audio_write(NULL, pcm, 256, 24000);
++    assert(g_failed && g_device == 0 && SDL_GetTicks() - start >= 50);
++    puts("PASS failed output is paced instead of busy-spinning");
++    legacy_audio_close();
++    SDL_setenv("SDL_AUDIODRIVER", "dummy", 1);
++    legacy_audio_write(NULL, pcm, 256, 24000);
++    assert(g_device != 0 && !g_failed);
++    legacy_audio_close();
++    puts("PASS fresh lifecycle can recover after failure");
++    legacy_audio_write(NULL, pcm, 256, 24000);
++    SDL_PauseAudioDevice(g_device, 1);
++    start = SDL_GetTicks();
++    for (int i = 0; i < 6; i++) legacy_audio_write(NULL, pcm, 256, 24000);
++    assert(g_failed && g_device == 0 && SDL_GetTicks() - start < 1000);
++    puts("PASS stalled output has a bounded wait and releases its device");
++    legacy_audio_close();
++    legacy_audio_write(NULL, pcm, 256, 24000);
++    SDL_CloseAudioDevice(g_device);
++    legacy_audio_write(NULL, pcm, 256, 24000);
++    assert(g_failed && g_device == 0);
++    puts("PASS SDL queue error disables output safely");
++    legacy_audio_close();
++    return 0;
++}

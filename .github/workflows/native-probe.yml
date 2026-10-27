@@ -12,8 +12,12 @@ jobs:
           python-version: "3.12"
       - name: Install parser dependencies
         run: python3 -m pip install lz4 capstone UnityPy
+      - name: Current Unity package and bounded-run contracts
+        run: python3 -m unittest -v test_unity_port test_bounded_run
       - name: Validate data-free overlay syntax
-        run: git apply --numstat runtime/wol-adapter.patch
+        run: |
+          git apply --numstat runtime/wol-adapter.patch
+          git apply --numstat runtime/unity/legacy-fmod-output.patch
       - name: Read-only memory profiler and staged selection tests
         run: |
           python3 -m unittest discover -s tools -p 'test_wol_memory*.py' -v

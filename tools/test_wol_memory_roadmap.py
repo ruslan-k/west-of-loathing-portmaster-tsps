@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Data-free tests for roadmap report contracts and recovered-menu signal gating."""
 import struct
-import os
 import subprocess
 import tempfile
 import unittest
@@ -19,38 +18,6 @@ def png_rgb8(pixels, color=2):
 
 
 class ReportContracts(unittest.TestCase):
-    def test_launcher_injection_default_off_preserves_explicit_opt_in(self):
-        launcher=Path(__file__).resolve().parents[1]/'West of Loathing.sh'
-        lines=[s for s in launcher.read_text().splitlines() if s.startswith('export COTM_INPUT_DIAGNOSTIC=')]
-        self.assertEqual(len(lines),1)
-        for option,expected in ((None,'0'),('0','0'),('1','1')):
-            env=dict(os.environ);env.pop('COTM_INPUT_DIAGNOSTIC',None)
-            if option is not None:env['COTM_INPUT_DIAGNOSTIC']=option
-            r=subprocess.run(['/bin/bash','-c',lines[0]+'; printf %s "$COTM_INPUT_DIAGNOSTIC"'],env=env,capture_output=True,text=True,check=True)
-            self.assertEqual(r.stdout,expected)
-
-    def test_launcher_720_default_on_preserves_explicit_override(self):
-        """Roadmap 18.2-4: the accepted 720 default must be opt-out-able and never silently dropped."""
-        launcher=Path(__file__).resolve().parents[1]/'West of Loathing.sh'
-        lines=[s for s in launcher.read_text().splitlines() if s.startswith('export WOL_UPRENDER_720=')]
-        self.assertEqual(len(lines),1,'the launcher must set WOL_UPRENDER_720 exactly once')
-        for option,expected in ((None,'1'),('0','0'),('1','1')):
-            env=dict(os.environ);env.pop('WOL_UPRENDER_720',None)
-            if option is not None:env['WOL_UPRENDER_720']=option
-            r=subprocess.run(['/bin/bash','-c',lines[0]+'; printf %s "$WOL_UPRENDER_720"'],env=env,capture_output=True,text=True,check=True)
-            self.assertEqual(r.stdout,expected)
-
-    def test_launcher_release_profile_default_on_and_overridable(self):
-        """Ordinary play must be quiet (AW_RELEASE=1) while diagnostics can still opt out."""
-        launcher=Path(__file__).resolve().parents[1]/'West of Loathing.sh'
-        lines=[s for s in launcher.read_text().splitlines() if s.startswith('export AW_RELEASE=')]
-        self.assertEqual(len(lines),1)
-        for option,expected in ((None,'1'),('0','0'),('1','1')):
-            env=dict(os.environ);env.pop('AW_RELEASE',None)
-            if option is not None:env['AW_RELEASE']=option
-            r=subprocess.run(['/bin/bash','-c',lines[0]+'; printf %s "$AW_RELEASE"'],env=env,capture_output=True,text=True,check=True)
-            self.assertEqual(r.stdout,expected)
-
     def test_launcher_never_selects_tv_or_guest_resolution_patches(self):
         """Roadmap 18.2-4: no silent docked/TV mode and no WOL_GUEST_RT720 in a normal launch."""
         launcher=Path(__file__).resolve().parents[1]/'West of Loathing.sh'

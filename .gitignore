@@ -41,6 +41,23 @@ evidence/**/white-wol-gln-*.png
 # built fixture artifacts (source is tools/fixtures/t2_sparse_copy_fixture.c)
 *.aarch64
 
-# The distributed port ships our own GPL-3.0 runtime build (port/README.md).
-# Game-derived binaries remain ignored by the rules above.
-!port/wol-switch/wol-horizon
+# Generated owner-local Unity packages are fail-closed; only the reviewed generic runtime and notices ship.
+*.apk
+*.obb
+*.dll
+*.exe
+*.so
+*.so.*
+**/bin/
+**/obj/
+/port/westofloathing/*
+!/port/westofloathing/ua_host
+!/port/westofloathing/bounded_run.py
+!/port/westofloathing/runtime-manifest.json
+!/port/westofloathing/lib/
+!/port/westofloathing/lib/libil2cpp.so
+!/port/westofloathing/lib/libmonobdwgc-2.0.so
+!/port/westofloathing/lib/libMonoPosixHelper.so
+!/port/westofloathing/licenses/
+!/port/westofloathing/licenses/**
+build-update*.log
