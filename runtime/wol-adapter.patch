@@ -4521,8 +4521,7 @@
 +        wol_gpu_residency_report(nvn_present.frames);
 +        wol_vtx_census_report(nvn_present.frames);
          zero_gpu_cost_report(nvn_present.frames);
--        printf("NVN_PROFILE_REPLAY_CPU frame=%u cpu-ms=%.3f cpu-samples=%u submits=%u scope=thread-cpu-per-frame includes-counters=1\n",
-+        diag_printf("NVN_PROFILE_REPLAY_CPU frame=%u cpu-ms=%.3f cpu-samples=%u submits=%u scope=thread-cpu-per-frame includes-counters=1\n",
+         printf("NVN_PROFILE_REPLAY_CPU frame=%u cpu-ms=%.3f cpu-samples=%u submits=%u scope=thread-cpu-per-frame includes-counters=1\n",
              nvn_present.frames,nvn_profile.replay_cpu_samples==nvn_profile.replay_submits?nvn_profile.replay_cpu_ns*ms:-1.0,
              nvn_profile.replay_cpu_samples,nvn_profile.replay_submits);
          for(unsigned ordinal=0;ordinal<NVN_COUNTER_PROFILE_SLOTS;ordinal++) {
