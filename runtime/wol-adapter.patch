@@ -13028,3 +13028,44 @@
          }
          if(slot==256)stop("NVN_PROGRAM_CAPACITY",nvn_caller,slot,21);
          nvn_programs[slot]=(struct nvn_program){.object=a[0],.id=zero_next_object_id(),.live=1};*result=1;return 1;
+--- a/native/nvn_replay.h
++++ b/native/nvn_replay.h
+@@ -446,15 +446,22 @@
+                             (unsigned long long)r.args[0],(unsigned long long)r.args[1],nvn_replay.last_frame,nvn_render.target?nvn_render.target->b.gl_name:0,nvn_render.target?nvn_render.target->b.flags:0);
+                 }
+                 uint64_t ops_t0=0,ops_c0=0;int ops_on=0;
+-                static int ops_cfg,ops_ena;static uint64_t ops_end,ops_gap,ops_h,ops_ch,ops_n;
++                static int ops_cfg,ops_ena;static uint64_t ops_cnt[2],ops_wall[2],ops_cpu[2];static unsigned ops_frame=0xffffffffu;
+                 if(!ops_cfg){const char *o=getenv("WOL_OP_SPLIT");ops_ena=o&&!strcmp(o,"1");ops_cfg=1;}
+                 if(ops_ena&&(r.op==NI_nvnCommandBufferDrawArrays||r.op==NI_nvnCommandBufferReportCounter)){
+-                    ops_on=1;ops_t0=nvn_nanoseconds();nvn_cpu_nanoseconds(&ops_c0);if(ops_end)ops_gap+=ops_t0-ops_end;}
++                    ops_on=1;ops_t0=nvn_nanoseconds();nvn_cpu_nanoseconds(&ops_c0);}
+                 nvn_replay_record(&r);
+                 if(ops_on){uint64_t t1=nvn_nanoseconds(),c1=0;unsigned ok=nvn_cpu_nanoseconds(&c1);
+-                    ops_h+=t1-ops_t0;if(ok&&c1>=ops_c0)ops_ch+=c1-ops_c0;ops_end=t1;
+-                    if(!(++ops_n&63)){printf("WOL_OP_SPLIT n=%llu handler=%.3f gap=%.3f cpu=%.3f ms\n",(unsigned long long)ops_n,ops_h/64e6,ops_gap/64e6,ops_ch/64e6);
+-                        ops_h=ops_gap=ops_ch=0;}}
++                    unsigned k=r.op==NI_nvnCommandBufferDrawArrays?0:1;
++                    ops_cnt[k]++;ops_wall[k]+=t1-ops_t0;if(ok&&c1>=ops_c0)ops_cpu[k]+=c1-ops_c0;
++                    /* WOL_OP_V2: per-class count/sum/mean, units explicit, one line per frame. */
++                    if(ops_frame!=nvn_replay.last_frame){ops_frame=nvn_replay.last_frame;
++                        if(ops_cnt[0]||ops_cnt[1])
++                            printf("WOL_OP_V2 frame=%u arr_n=%llu arr_sum_ms=%.3f arr_mean_ms=%.3f arr_cpu_mean_ms=%.3f rc_n=%llu rc_sum_ms=%.3f rc_mean_ms=%.3f rc_cpu_mean_ms=%.3f\n",
++                                ops_frame,(unsigned long long)ops_cnt[0],ops_wall[0]/1e6,ops_cnt[0]?ops_wall[0]/1e6/ops_cnt[0]:0.0,ops_cnt[0]?ops_cpu[0]/1e6/ops_cnt[0]:0.0,
++                                (unsigned long long)ops_cnt[1],ops_wall[1]/1e6,ops_cnt[1]?ops_wall[1]/1e6/ops_cnt[1]:0.0,ops_cnt[1]?ops_cpu[1]/1e6/ops_cnt[1]:0.0);
++                        ops_cnt[0]=ops_cnt[1]=ops_wall[0]=ops_wall[1]=ops_cpu[0]=ops_cpu[1]=0;}
++                }
+                 if(is_draw && wol_gpu_timer.active)wol_gpu_timer.draws++;
+                 wol_gpu_pass_boundary(0,r.op==NI_nvnCommandBufferSetRenderTargets);
+                 if(nvn_phase.enabled){unsigned k=r.op==NI_nvnCommandBufferCopyBufferToTexture?NPH_COPY:NPH_OTHER;
+--- a/native/nvn_async_frame.h
++++ b/native/nvn_async_frame.h
+@@ -32,7 +32,7 @@
+     if(!nvn_async_frame.configured) {
+         const char *o=getenv("COTM_ASYNC_FRAME");
+ #ifndef ANIMAL_WELL_SHADERS
+-        if(o && !strcmp(o,"1") && !getenv("WOL_ASYNC_ACK"))stop("NVN_LC2_ASYNC_STAGE_PROGRAMS_UNQUALIFIED",nvn_caller,0,20);
++        {const char *ack=getenv("WOL_ASYNC_ACK");if(o && !strcmp(o,"1") && !(ack && !strcmp(ack,"1")))stop("NVN_LC2_ASYNC_STAGE_PROGRAMS_UNQUALIFIED",nvn_caller,0,20);}
+ #else
+         /* Animal Well: DrawArrays-only lists; every guest read of the replay (vertex ranges, uniform ranges incl. the
+          * dynamic cbuffer array, copy sources) is captured per draw; descriptor pools are runtime copies. Misses stop. */
