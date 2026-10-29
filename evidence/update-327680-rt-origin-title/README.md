@@ -53,3 +53,14 @@ Cleanup ran through the standard harness: port stopped, MainUI PID back,
 Conclusion: blind taps cannot load a save. The gameplay census needs a real
 navigation contract (title screen -> Continue -> slot -> confirm), which means
 capturing the actual menu frames first instead of guessing button sequences.
+
+## Second run without any input (`opt-origin-g2`)
+
+385 allocations, again exactly four 1920x1080 with the same callers/parents.
+The guest does not auto-load a save: it idles on the title, so no dynamic 1080p
+camera target exists until a save is actually loaded.
+
+Also corrected: the site `0x13965a0 -> bl 0x18f0b80` is an IL2CPP metadata-init
+call (`ldr w8,[x20,#0x18]; cmp w8,#N; b.ls`), not a RenderTexture constructor.
+The v24 RT producer therefore has to be identified from the parents recorded
+during an actual gameplay run.
