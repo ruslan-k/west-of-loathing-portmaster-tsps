@@ -55,3 +55,27 @@ run `shot-a7` and `wol-horizon` was alive (`(8979, 'wol-horizon')`); it was gone
 (`rc=22` time limit, MainUI back). The capture was taken at ~50 s, inside that window, so the
 440-colour frame belongs to the runtime, not to the SpruceOS menu. Screen identity as the
 title versus an early in-game frame is still unconfirmed.
+
+## Stability and the scene-content confound (run `stab-a1`)
+
+Eight consecutive profile windows of the same release build:
+
+```
+frame=1081 39.567 ms   frame=1201 39.772   frame=1321 40.422   frame=1441 40.165
+frame=1141 41.115 ms   frame=1261 39.904   frame=1381 40.389   frame=1501 39.759
+replay 24.2-24.8 ms, present 1.66-1.80 ms
+```
+
+- **~40 ms -> ~25 frames/s, and it is stable**, not the 29.1 ms of `split-a6`. That single fast
+  window is an outlier and must not be quoted as the frame rate.
+- The confound is scene content: `split-a6` reported `draws-mean=7.00` per command list, this run
+  reports `draws-mean=61.8`. The fast window was a *lighter scene*, not a faster runtime. Any
+  claim about fps has to name what was on screen.
+- `ordinal=1` here: `wall-ms=8.42` on `cpu-ms=0.141` across 60 sample sets - the same shape as
+  before. Roughly **8 ms of wall time spent waiting with ~0.1 ms of CPU** inside the draw list.
+
+## Where that leaves the 30 fps target
+
+Frame 40 ms, target 33.3 ms, gap ~6.7 ms. The serialized wait inside the draw list is 8.0-8.4 ms.
+Overlapping it with the guest's next frame is arithmetically enough to reach ~31-32 ms, i.e. just
+over 30 frames/s - and it is the only measured block of the right size.
