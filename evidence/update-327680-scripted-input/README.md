@@ -32,3 +32,27 @@ phase varies between runs.
 
 Not claimed: that the menu ignores input. Every press fired before the input path was live, so
 there is no evidence either way about the game's response.
+
+## Repeating schedule: presses fire, the title does not move
+
+`start_ms:hold_ms:mask:period_ms` (w21 `5edbf1e5`) fixes the timing half of the problem: with
+periods the schedule lands no matter how the worker cadence wanders during load.
+
+```
+script-a5: 43 presses fired, mask 0x400 (START) and 0x1 pinned, draws stay 7.00
+script-a6: 49 presses fired, masks 0x1 0x2 0x4 0x8 0x400 cycling, draws stay 7.00
+```
+
+So the hook works end to end as far as the HID sample: the buttons are set, the worker publishes
+them, the guest sample carries them (`connected-pad-required=1`, and the TSPS pad is present).
+
+**The title still sits at 7 draws through every mask tried.** That moves the blocker from timing to
+identity: either the bit assignment for this title is none of the five tried, or the title advances
+on something other than a face button (stick), or the guest's npad poll is not the path this menu
+reads.
+
+## What the next attempt needs
+
+One real human press on the title with `COTM_INPUT_DIAGNOSTIC` logging (or the existing pad trace)
+to see which bit actually moves it - two minutes of a person's time that replaces guessing five
+masks. Everything after that is scripted.
