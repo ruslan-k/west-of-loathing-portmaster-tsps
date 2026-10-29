@@ -8008,7 +8008,7 @@
                  }
                  if((j+1==list->count && (next!=list->last || r.next)) ||
                     (j+1<list->count && (next==list->last || !r.next)) ||
-@@ -318,26 +431,41 @@
+@@ -318,26 +431,50 @@
  #ifdef ANIMAL_WELL_SHADERS
                  {   static int pc;static unsigned pf;if(!pc){const char *o=getenv("AW_DRAW_PROBE");pf=o?(unsigned)strtoul(o,NULL,10):0;pc=1;}
                      if(pf && nvn_replay.last_frame+1==pf){uint64_t tg[2]={0,0};if(r.op==NI_nvnCommandBufferSetRenderTargets)memcpy(tg,r.payload,16);
@@ -8027,7 +8027,16 @@
 +                            nvn_render.program?nvn_render.program->sources[0]:0,nvn_render.program?nvn_render.program->sources[1]:0,
 +                            (unsigned long long)r.args[0],(unsigned long long)r.args[1],nvn_replay.last_frame,nvn_render.target?nvn_render.target->b.gl_name:0,nvn_render.target?nvn_render.target->b.flags:0);
 +                }
++                uint64_t ops_t0=0,ops_c0=0;int ops_on=0;
++                static int ops_cfg,ops_ena;static uint64_t ops_end,ops_gap,ops_h,ops_ch,ops_n;
++                if(!ops_cfg){const char *o=getenv("WOL_OP_SPLIT");ops_ena=o&&!strcmp(o,"1");ops_cfg=1;}
++                if(ops_ena&&(r.op==NI_nvnCommandBufferDrawArrays||r.op==NI_nvnCommandBufferReportCounter)){
++                    ops_on=1;ops_t0=nvn_nanoseconds();nvn_cpu_nanoseconds(&ops_c0);if(ops_end)ops_gap+=ops_t0-ops_end;}
                  nvn_replay_record(&r);
++                if(ops_on){uint64_t t1=nvn_nanoseconds(),c1=0;unsigned ok=nvn_cpu_nanoseconds(&c1);
++                    ops_h+=t1-ops_t0;if(ok&&c1>=ops_c0)ops_ch+=c1-ops_c0;ops_end=t1;
++                    if(++ops_n<=64){printf("WOL_OP_SPLIT n=%llu handler=%.3f gap=%.3f cpu=%.3f ms\n",(unsigned long long)ops_n,ops_h/64e6,ops_gap/64e6,ops_ch/64e6);
++                        ops_h=ops_gap=ops_ch=0;}}
 +                if(is_draw && wol_gpu_timer.active)wol_gpu_timer.draws++;
 +                wol_gpu_pass_boundary(0,r.op==NI_nvnCommandBufferSetRenderTargets);
                  if(nvn_phase.enabled){unsigned k=r.op==NI_nvnCommandBufferCopyBufferToTexture?NPH_COPY:NPH_OTHER;
