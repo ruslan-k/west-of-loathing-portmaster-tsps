@@ -49,3 +49,9 @@ counters above are being produced. What I have **not** confirmed is whether the
 image is the game's title or the SpruceOS menu - that needs a human eye or a
 comparison against a known game capture, and the numbers alone cannot tell the two
 apart.
+
+Resolution of the "menu or game?" doubt: the harness sampled the process table at 55.4 s of
+run `shot-a7` and `wol-horizon` was alive (`(8979, 'wol-horizon')`); it was gone by 76.7 s
+(`rc=22` time limit, MainUI back). The capture was taken at ~50 s, inside that window, so the
+440-colour frame belongs to the runtime, not to the SpruceOS menu. Screen identity as the
+title versus an early in-game frame is still unconfirmed.
