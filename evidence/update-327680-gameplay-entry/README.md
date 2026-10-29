@@ -34,3 +34,24 @@ Confirm which screen that is (no OCR on the host) and whether it is gameplay or
 an intermediate menu; the dynamic 1080p camera targets only exist once a save is
 actually loaded, and only then does the v23 `forceWidth/forceHeight` experiment
 become measurable.
+
+## Entry attempts with the traced candidate (`opt-origin-g8`)
+
+With the diagnostic floor at 16 MiB the boot is healthy (306 -> 438
+`NVN_TEXTURE_REAL` allocations). Taps were delivered on `/dev/input/event4`:
+
+| Injected | Result |
+| --- | --- |
+| BTN_SOUTH (304) x2, 4 s apart | screen unchanged (distance 1.4 to the title), +118 streamed textures |
+| BTN_EAST (305) x2 | same: title stays, only asset streaming grows |
+| BTN_START (315) | run had already reached `TIME_LIMIT`; capture matched the post-exit Spruce frame |
+
+`native/t2_face_position.h` documents that SDL "a" is **BTN_EAST** and that a
+face swap flips A/B, so the evdev code for the in-game confirm button is not
+simply "304". Before another entry attempt, read the guest-side input
+diagnostic (`COTM_INPUT_DIAGNOSTIC=1`) to see which hid bit each injected code
+actually produces, then tap the one that maps to Switch A.
+
+Harness fix that removed a recurring false start: the probe now refreshes
+`device-manifest.json` from the device before every run, so the identity assert
+can no longer fail against a stale local copy.
