@@ -25,6 +25,7 @@ extern pid_t waitpid(pid_t,int*,int);
 #define LC2_MAIN_BASE 0x8005000ULL
 #define PROT_READ 1
 #define PROT_EXEC 4
+#define PROT_WRITE 2
 static uint8_t object[256];
 static int stopped;
 static char stop_name[64];
@@ -52,6 +53,8 @@ static uint64_t pc0(void){return LC2_MAIN_BASE+wol_up24_sites[0].offset;}
 static uint32_t op0(void){return wol_up24_sites[0].opcode;}
 static uint64_t pc1(void){return LC2_MAIN_BASE+wol_up24_sites[1].offset;}
 static uint32_t op1(void){return wol_up24_sites[1].opcode;}
+static uint64_t site_pc(unsigned i){return LC2_MAIN_BASE+wol_up24_sites[i].offset;}
+static uint32_t site_op(unsigned i){return wol_up24_sites[i].opcode;}
 int main(void){
  dims(1920,1080);
  {  /* default off: no site, no register change */
@@ -94,6 +97,19 @@ int main(void){
   if(wol_up24_handle(pc0()+4,op0(),&c))return 16;
  }
  dims(1920,1080);
+ {  /* Screen width/height results: only the exact 1920/1080 is rewritten */
+  uint32_t w0=1920,h0=1080,other=1600;
+  ucontext_t c={0};c.uc_mcontext.regs[19]=(uintptr_t)object;
+  c.uc_mcontext.regs[0]=w0;c.uc_mcontext.pc=site_pc(2);
+  if(!wol_up24_handle(site_pc(2),site_op(2),&c))return 30;
+  uint32_t got=0;memcpy(&got,object+0x60,4);if(got!=1280||c.uc_mcontext.regs[0]!=1280)return 31;
+  c.uc_mcontext.regs[0]=h0;c.uc_mcontext.pc=site_pc(3);
+  if(!wol_up24_handle(site_pc(3),site_op(3),&c))return 32;
+  memcpy(&got,object+0x64,4);if(got!=720||c.uc_mcontext.regs[0]!=720)return 33;
+  c.uc_mcontext.regs[0]=other;c.uc_mcontext.pc=site_pc(2);
+  if(!wol_up24_handle(site_pc(2),site_op(2),&c))return 34;
+  memcpy(&got,object+0x60,4);if(got!=other)return 35;
+ }
  {  /* build site is observation-only: never registered while the rewrite is on */
   if(wol_up24_site(pc1(),op1()))return 22;
   if(wol_up24_handle(pc1(),op1(),0))return 23;

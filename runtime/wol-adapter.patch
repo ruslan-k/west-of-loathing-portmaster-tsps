@@ -12264,18 +12264,24 @@
 +}
 --- /dev/null
 +++ b/native/wol_uprender_v24.h
-@@ -0,0 +1,81 @@
-+/* Update v327680 (metadata v24) UpRender component observation.
+@@ -0,0 +1,107 @@
++/* Update v327680 (metadata v24) UpRender / Screen observation.
 + *
-+ * Two pinned sites of UpRender.UpdateTexture:
-+ *   0x13963d8  ldp w8,w9,[x19,#0x20]  -> the component's aspect pair (16:9)
-+ *   0x13965a0  bl  0x18f0b80          -> camera render-target creation
-+ * The build site is observation only: it prints the size the component
-+ * computed ([owner+0x68], [owner+0x6c]) right before it reaches the builder,
-+ * so any clamp is justified by measurement instead of by a guess.
++ * Measured on device: the guest answers Unity's Screen::get_width/height with
++ * 1920x1080 although the panel is 1280x720, so UpRender sizes its camera target
++ * and the guest builds a 1080p swapchain, which the runtime then crops to
++ * 0,0,1280,720 - two thirds of every rendered frame are discarded.
 + *
-+ * WOL_UPRENDER24_TRACE=1 observes, WOL_UPRENDER24_720=1 rewrites the aspect
-+ * site. Both default OFF and both pinned to the exact main.text.seg hash.
++ * Four pinned sites of UpRender.UpdateTexture:
++ *   0x13963d8  ldp w8,w9,[x19,#0x20]  the component's aspect pair (16:9)
++ *   0x13965a0  bl  0x18f0b80          camera-target build (observation only)
++ *   0x13963e8  str w0,[x19,#0x60]     stores Screen::get_width() result
++ *   0x13963fc  str w0,[x19,#0x64]     stores Screen::get_height() result
++ *
++ * WOL_UPRENDER24_TRACE=1 observes. WOL_UPRENDER24_SCREEN=1 rewrites only the
++ * width/height results, 1920x1080 -> 1280x720, keeping every other value and
++ * the original store. Both switches default OFF and are pinned to the exact
++ * main.text.seg hash; any other revision fails closed.
 + */
 +#define WOL_UP24_MAIN_SHA256 "f8400de0497ef15644a2e4ec6e3fa067576c061def0a57803ba2046bdb20e589"
 +#define WOL_UP24_MAIN_BYTES 35439544U
@@ -12285,9 +12291,11 @@
 +#define WOL_UP24_TARGET_WIDTH 1280U
 +#define WOL_UP24_TARGET_HEIGHT 720U
 +/* mode bit0 = trace, bit1 = rewrite */
-+static const struct {uint64_t offset;uint32_t opcode;unsigned mode;} wol_up24_sites[] = {
-+    {0x13963d8U, 0x29442668U, 3U}, /* ldp w8,w9,[x19,#0x20] */
-+    {0x13965a0U, 0x94156978U, 1U}, /* bl 0x18f0b80: build camera target */
++static const struct {uint64_t offset;uint32_t opcode;unsigned mode;unsigned field;} wol_up24_sites[] = {
++    {0x13963d8U, 0x29442668U, 3U, 0x20U}, /* aspect pair */
++    {0x13965a0U, 0x94156978U, 1U, 0U},    /* camera-target build */
++    {0x13963e8U, 0xb9006260U, 3U, 0x60U}, /* Screen width result */
++    {0x13963fcU, 0xb9006660U, 3U, 0x64U}, /* Screen height result */
 +};
 +static unsigned wol_up24_trace, wol_up24_patch, wol_up24_events;
 +static int wol_up24_mem = -1;
@@ -12312,6 +12320,22 @@
 +    if(!action) return 0;
 +    __typeof__(ctx->uc_mcontext.regs[0]) *r = ctx->uc_mcontext.regs;
 +    uint64_t owner = r[19];
++    if(action == 2) {
++        /* build site: report the computed camera-target size, then replay the BL. */
++        uint32_t w = 0, h = 0;
++        unsigned readable = wol_up24_read(owner, 0x68, &w) && wol_up24_read(owner, 0x6c, &h);
++        int32_t imm = (int32_t)(op & 0x03ffffffU);
++        if(imm & 0x02000000) imm -= 0x04000000;
++        uint64_t target = pc + (int64_t)imm * 4;
++        if(!accessible(target, 4, PROT_EXEC)) stop("WOL_UP24_BUILDER_TARGET", pc, target, 24);
++        r[30] = pc + 4;
++        ctx->uc_mcontext.pc = target;
++        if(wol_up24_events++ < 64)
++            printf("WOL_UPRENDER24 site=build owner=0x%llx computed=%ux%u readable=%u target=0x%llx builder_arg=0x%llx\n",
++                   (unsigned long long)owner, w, h, readable, (unsigned long long)target,
++                   (unsigned long long)r[0]);
++        return 1;
++    }
 +    if(action == 1) {
 +        uint32_t pair[2] = {0, 0}, before[2];
 +        if(owner > UINT64_MAX - 40 || wol_up24_mem < 0) stop("WOL_UP24_OWNER_UNREADABLE", pc, owner, 24);
@@ -12331,19 +12355,21 @@
 +                   (unsigned)(before[0] != pair[0] || before[1] != pair[1]));
 +        return 1;
 +    }
-+    /* site=build: report the computed camera-target size, then replay the BL. */
-+    uint32_t w = 0, h = 0;
-+    unsigned readable = wol_up24_read(owner, 0x68, &w) && wol_up24_read(owner, 0x6c, &h);
-+    int32_t imm = (int32_t)(op & 0x03ffffffU);
-+    if(imm & 0x02000000) imm -= 0x04000000;
-+    uint64_t target = pc + (int64_t)imm * 4;
-+    if(!accessible(target, 4, PROT_EXEC)) stop("WOL_UP24_BUILDER_TARGET", pc, target, 24);
-+    r[30] = pc + 4;
-+    ctx->uc_mcontext.pc = target;
++    /* Screen width/height result: the original instruction stores w0 into owner+field. */
++    unsigned field = wol_up24_sites[action - 1].field;
++    uint32_t value = (uint32_t)r[0], before = value;
++    if(wol_up24_patch) {
++        if(action == 3 && value == WOL_UP24_WIDTH) value = WOL_UP24_TARGET_WIDTH;
++        if(action == 4 && value == WOL_UP24_HEIGHT) value = WOL_UP24_TARGET_HEIGHT;
++    }
++    r[0] = value;
++    if(owner > UINT64_MAX - 0x80 || !accessible(owner + field, 4, PROT_READ | PROT_WRITE))
++        stop("WOL_UP24_STORE_TARGET", pc, owner, 24);
++    memcpy((void *)(uintptr_t)(owner + field), &value, 4);
++    ctx->uc_mcontext.pc = pc + 4;
 +    if(wol_up24_events++ < 64)
-+        printf("WOL_UPRENDER24 site=build owner=0x%llx computed=%ux%u readable=%u target=0x%llx builder_arg=0x%llx\n",
-+               (unsigned long long)owner, w, h, readable, (unsigned long long)target,
-+               (unsigned long long)r[0]);
++        printf("WOL_UPRENDER24 site=%s owner=0x%llx screen=%u used=%u\n",
++               action == 4 ? "height" : "width", (unsigned long long)owner, before, value);
 +    return 1;
 +}
 --- a/native/zero_advent_mali_contract.h
