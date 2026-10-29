@@ -12948,3 +12948,83 @@
  #else
          /* Animal Well: DrawArrays-only lists; every guest read of the replay (vertex ranges, uniform ranges incl. the
           * dynamic cbuffer array, copy sources) is captured per draw; descriptor pools are runtime copies. Misses stop. */
+--- a/native/nvn_shaders.h
++++ b/native/nvn_shaders.h
+@@ -28,7 +28,7 @@
+ static struct {unsigned attribute_count;struct {char name[64];uint32_t location;} attributes[16];} nvn_compilation;
+ struct nvn_alpha_program {GLuint name;GLint locations[64],clip_control;};
+ struct nvn_program {
+-    uint64_t object,id;GLuint name;unsigned live,linked,sources[2],stage_mask,compute_only;
++    uint64_t object,id;GLuint name;unsigned live,linked,sources[2],stage_mask,compute_only,async_pin;
+     GLint view_proj,view,mod_color,add_color,texture,alpha_ref,alpha_func,clip_control;
+     GLint wave_lookup,wave_inverse_rows,wave_chroma,wave_viewport,wave_target_height;unsigned wave_contract;
+     GLint momo_tmp_sprite;
+@@ -1873,7 +1873,7 @@
+     if(id==NI_nvnProgramFinalize || id==NI_nvnProgramSetDebugLabel) {
+         struct nvn_program *p=nvn_program_find(a[0]);
+         if(id==NI_nvnProgramSetDebugLabel)nvn_debug_label(a[1]);
+-        if(id==NI_nvnProgramFinalize){nvn_alpha_delete(p);p->live=0;}
++        if(id==NI_nvnProgramFinalize){if(__atomic_load_n(&p->async_pin,__ATOMIC_ACQUIRE))stop("NVN_PROGRAM_PINNED_DESTROY",nvn_caller,__atomic_load_n(&p->async_pin,__ATOMIC_RELAXED),20);nvn_alpha_delete(p);p->live=0;}
+         return 1;
+     }
+     if(id==NI_nvnProgramInitialize) {
+--- a/native/nvn_async_frame.h
++++ b/native/nvn_async_frame.h
+@@ -18,6 +18,7 @@
+     uint8_t *arena;size_t arena_used,arena_capacity;
+     struct nvn_command_list lists[16];unsigned list_count;
+     unsigned draw_cursor,live,started;
++    unsigned pins[256],npins;   /* programs this snapshot names; AsyncPin keeps them alive until retire */
+     uint64_t serial,queue_object;
+     uint64_t lookups,misses;
+ };
+@@ -64,8 +65,9 @@
+ }
+ static void nvn_redirect_advance_draw(void){if(nvn_redirect_current)nvn_redirect_current->draw_cursor++;}
+ static void nvn_snapshot_reset(struct nvn_snapshot *s){s->count=0;s->arena_used=0;s->list_count=0;s->draw_cursor=0;s->lookups=s->misses=0;s->last_hit=UINT_MAX;s->draws=0;s->draw_start[0]=0;memset(s->buckets,0xff,sizeof(s->buckets));}
++static void nvn_snapshot_unpin(struct nvn_snapshot *s){for(unsigned i=0;i<s->npins;i++){struct nvn_program *p=&nvn_programs[s->pins[i]];if(s->pins[i]<256)__atomic_sub_fetch(&p->async_pin,1,__ATOMIC_ACQ_REL);}s->npins=0;}
+ static struct nvn_snapshot *nvn_snapshot_alloc(void) {
+-    for(unsigned i=0;i<4;i++)if(!nvn_async_frame.pool[i].live){struct nvn_snapshot *s=&nvn_async_frame.pool[i];nvn_snapshot_reset(s);s->live=1;s->started=0;return s;}
++    for(unsigned i=0;i<4;i++)if(!nvn_async_frame.pool[i].live){struct nvn_snapshot *s=&nvn_async_frame.pool[i];nvn_snapshot_reset(s);s->npins=0;s->live=1;s->started=0;return s;}
+     return NULL;
+ }
+ #ifdef ANIMAL_WELL_SHADERS
+@@ -236,6 +238,7 @@
+                     nvn_snapshot_capture(s,range.address+stream_start,span,0,0,nvn_gpu_pointer(range.address+stream_start,span,PROT_READ));
+                 }
+                 struct nvn_program *p=st.program;
++                if(p&&p->live){__atomic_add_fetch(&p->async_pin,1,__ATOMIC_ACQ_REL);if(s->npins<256)s->pins[s->npins++]=(unsigned)(p-nvn_programs);}
+ #ifdef ANIMAL_WELL_SHADERS
+                 /* Native (guest) program objects carry no uniform table here: it lives in the linked pair. Capture from
+                  * the static binding tables of both stages instead (every constant-buffer range a stage reads). */
+--- a/native/nvn_gl_worker.h
++++ b/native/nvn_gl_worker.h
+@@ -39,7 +39,7 @@
+         nvn_bridge_depth=0;
+         pthread_mutex_lock(&nvn_gl_worker.mutex);
+         if(job->type==NGJ_SYNC){job->done=1;}
+-        else {if(job->type==NGJ_FRAME)job->snapshot->live=0;free(job);}
++        else {if(job->type==NGJ_FRAME){nvn_snapshot_unpin(job->snapshot);job->snapshot->live=0;}free(job);}
+         nvn_gl_worker.jobs++;pthread_cond_broadcast(&nvn_gl_worker.finished);
+     }
+     return NULL;
+@@ -81,7 +81,7 @@
+         struct nvn_gl_job *j=nvn_gl_queue.ring[(nvn_gl_queue.head+i)%NVN_GL_RING];
+         /* Drop only a frame that has not started, together with ITS present;
+          * a present whose frame is already executing must still run. */
+-        if(j->type==NGJ_FRAME){j->snapshot->live=0;nvn_gl_queue.dropped++;free(j);dropping=1;continue;}
++        if(j->type==NGJ_FRAME){nvn_snapshot_unpin(j->snapshot);j->snapshot->live=0;nvn_gl_queue.dropped++;free(j);dropping=1;continue;}
+         if(j->type==NGJ_PRESENT&&dropping){free(j);dropping=0;continue;}
+         nvn_gl_queue.ring[(nvn_gl_queue.head+kept)%NVN_GL_RING]=j;kept++;
+     }
+--- a/native/nvn_shaders.h
++++ b/native/nvn_shaders.h
+@@ -1882,7 +1882,7 @@
+         unsigned slot=256;
+         for(unsigned i=0;i<256;i++) {
+             if(nvn_programs[i].live&&nvn_programs[i].object==a[0])stop("NVN_PROGRAM_ALREADY_LIVE",nvn_caller,a[0],24);
+-            if(!nvn_programs[i].live&&slot==256)slot=i;
++            if(!nvn_programs[i].live&&slot==256&&!__atomic_load_n(&nvn_programs[i].async_pin,__ATOMIC_ACQUIRE))slot=i;
+         }
+         if(slot==256)stop("NVN_PROGRAM_CAPACITY",nvn_caller,slot,21);
+         nvn_programs[slot]=(struct nvn_program){.object=a[0],.id=zero_next_object_id(),.live=1};*result=1;return 1;
