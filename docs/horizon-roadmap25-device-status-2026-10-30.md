@@ -25,12 +25,23 @@ Two separable facts the old instrumentation could not produce:
    ~10.1 ms per frame. This is the missing ~9.8 ms almost exactly.
 2. **`DrawArrays` is real CPU work**: 1.835 ms CPU per call, ~5.5 ms per frame.
 
-## H-M0 — memory receipts — **PARTIAL**
+## H-M0 — memory receipts — **DONE, and it is a wall**
 
-Collected at exit: `VmRSS 755 544 kB`, `VmSwap 257 584 kB`. **No CMA time series** in this run: the
-harness does not sample `CmaFree` during the run, only at preflight (`129 060 kB`). The per-frame CMA
-budget that §25.4 requires is therefore **not proven**; adding sampling is a harness change, not a
-runtime change.
+Host-side sampling every 3 s during the gameplay run `mem0` (95 points, ELF `21e23b58`), preflight
+`CmaFree 129 188 kB`:
+
+| Metric | min | median | max |
+|---|---:|---:|---:|
+| `CmaFree` | **12 kB** | 2 448 kB | 129 380 kB |
+| `MemAvailable` | **34 812 kB** | 77 284 kB | 748 664 kB |
+| `SwapFree` | 955 248 kB | 1 277 712 kB | 2 037 628 kB |
+
+**66 of 95 samples are below the 65 536 kB admission gate**, and swap shrinks by ~1.08 GB during the
+run. The 65 536 kB preflight is admission only, exactly as §25.4 warned: after startup the device has
+effectively no contiguous CMA left. An extra async frame, buffer snapshot or pinned GL program cannot
+be added on top of this — this is the hard wall in front of H-A1 and H-R1, independent of FPS.
+
+Raw samples: `evidence/horizon-roadmap25-device-status/mem0-samples.txt`.
 
 ## H-P1 — attribute the actual wait — **NARROWED, not closed**
 
