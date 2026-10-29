@@ -42,3 +42,22 @@ that touches the aspect pair must be dropped.
 Cleanup: `production_hashes_unchanged: 131`, MainUI back, no runtime process.
 The diagnostic candidate stays installed (explicit user preference); the last
 known-good gameplay runtime is `b506d04e4cd7e4e02d5d85c6c161e00a65692e9dec6875f04d0b72cb7c19641b`.
+
+## Where the remaining lever is
+
+The runtime already scales a guest surface: `nvn_low_composition.h` keeps a
+1920x1080 *logical* texture and reports `logical=1920x1080 storage=640x360`
+(lines 159-196), with `t->host_scaled`, `host_width/host_height` and a
+`scaled=%u` column in `WOL_PRESENT_SRC`. That machinery is gated to the MegaMan
+contract (`MEGAMAN_RENDER_640`, `COTM_LOW_COMPOSITION`) and refuses anything that
+does not match that game's exact format/flags/uniform.
+
+For this title the equivalent move is host-side and does not touch the guest:
+allocate the three window images with smaller storage (e.g. 1280x720) while
+keeping the logical 1920x1080 the guest resolves against, then let the existing
+scaled present upscale. Fragment work drops 2.25x; the guest's coordinates, crop
+and UI layout stay untouched.
+
+Not measured yet: whether the scaled path is correct for this title's format
+(0x25 RGBA8), MSAA, and depth, and whether the present-side upscale costs more
+than the fragment saving. This is a hypothesis with code pointers, not a result.
