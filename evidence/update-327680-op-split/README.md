@@ -34,3 +34,27 @@ whole run instead of only the first 64), then compare against `NVN_PROFILE` at t
 Until that exists, no renderer change is justified.
 
 Run artifacts: `opsplit2-lines.txt` (device log extract). `production_hashes_unchanged: 131`.
+
+## Second sample: rolling 64-op windows across the whole run (ELF `fa1b1b64`)
+
+`opsplit2` only printed the first 64 ops; this run prints every 64, so late windows fall inside
+gameplay. 31 windows:
+
+```
+late windows (n>=1500)  handler/64 median 3.234 ms   cpu/64 median 1.081 ms   gap/64 median 3.123 ms
+per op                  handler 50.5 us              cpu 16.9 us
+```
+
+- The handler cost of `DrawArrays`/`ReportCounter` is **tens of microseconds**, and only ~17 us of it
+  is thread CPU. Even at three such ops per frame that is ~0.15 ms, not 6.84 ms.
+- The `DrawArrays 6.838 ms / 3 calls` figure in the op ledger is therefore dominated by the interval
+  **between** ops (gap), not by work inside them - exactly the risk flagged in roadmap §25.2.
+- `gap` is wildly variable (2.6 ms to 306 ms per 64 ops), i.e. the wait is bursty and lands on whichever
+  op happens to follow it.
+
+## Consequence
+
+There is no handler-level CPU hotspot to optimise in these two classes. The remaining 9.8 ms is
+submission/wait time, and the only legal levers there are synchronisation-overlap ones - which
+`COTM_ASYNC_FRAME` currently refuses by design (`NVN_LC2_ASYNC_STAGE_PROGRAMS_UNQUALIFIED`).
+No renderer change is justified by this evidence.

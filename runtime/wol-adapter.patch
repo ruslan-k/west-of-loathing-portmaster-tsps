@@ -8035,7 +8035,7 @@
                  nvn_replay_record(&r);
 +                if(ops_on){uint64_t t1=nvn_nanoseconds(),c1=0;unsigned ok=nvn_cpu_nanoseconds(&c1);
 +                    ops_h+=t1-ops_t0;if(ok&&c1>=ops_c0)ops_ch+=c1-ops_c0;ops_end=t1;
-+                    if(++ops_n<=64){printf("WOL_OP_SPLIT n=%llu handler=%.3f gap=%.3f cpu=%.3f ms\n",(unsigned long long)ops_n,ops_h/64e6,ops_gap/64e6,ops_ch/64e6);
++                    if(!(++ops_n&63)){printf("WOL_OP_SPLIT n=%llu handler=%.3f gap=%.3f cpu=%.3f ms\n",(unsigned long long)ops_n,ops_h/64e6,ops_gap/64e6,ops_ch/64e6);
 +                        ops_h=ops_gap=ops_ch=0;}}
 +                if(is_draw && wol_gpu_timer.active)wol_gpu_timer.draws++;
 +                wol_gpu_pass_boundary(0,r.op==NI_nvnCommandBufferSetRenderTargets);
