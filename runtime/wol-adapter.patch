@@ -8022,10 +8022,10 @@
 +                    static int cfg,on;
 +                    if(!cfg){const char *o=getenv("WOL_DRAWARRAYS_TRACE");on=o&&!strcmp(o,"1");cfg=1;}
 +                    if(on&&r.op==NI_nvnCommandBufferDrawArrays)
-+                        printf("WOL_DRAWARRAYS target=%ux%u prog=%u/%u count=%llu first=%llu frame=%u\n",
++                        printf("WOL_DRAWARRAYS target=%ux%u prog=%u/%u count=%llu first=%llu frame=%u id=%u flags=0x%x\n",
 +                            nvn_render.target?nvn_render.target->b.width:0,nvn_render.target?nvn_render.target->b.height:0,
 +                            nvn_render.program?nvn_render.program->sources[0]:0,nvn_render.program?nvn_render.program->sources[1]:0,
-+                            (unsigned long long)r.args[0],(unsigned long long)r.args[1],nvn_replay.last_frame);
++                            (unsigned long long)r.args[0],(unsigned long long)r.args[1],nvn_replay.last_frame,nvn_render.target?nvn_render.target->b.gl_name:0,nvn_render.target?nvn_render.target->b.flags:0);
 +                }
                  nvn_replay_record(&r);
 +                if(is_draw && wol_gpu_timer.active)wol_gpu_timer.draws++;

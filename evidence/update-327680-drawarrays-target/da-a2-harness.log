@@ -1,0 +1,51 @@
+PREFLIGHT {'pid': 1795, 'comm': 'MainUI', 'start': 841, 'ppid': 1734, 'pgid': 968, 'sid': 968, 'exe': '/mnt/sdcard/mmcblk1p1/spruce/flip/bin/MainUI'} {'MemAvailable': 717412, 'SwapFree': 2065884, 'CmaFree': 130212}
+HANDOFF {'term_pid': 1795, 'start': 841, 'command_sha256': '50c09790de45c5f4d02236495e7c01d457e94f9d8e2e4b232df270dce6ede28b'}
+CAPTURE {'path': '/mnt/UDISK/wol-da-a2-5.png', 'elapsed': 5.126330205239356, 'rc': 0, 'text': 'Screenshot saved to /mnt/UDISK/wol-da-a2-5.png (FB ID: 160, 1280x720)\n'}
+SAMPLE 14.6 {'MemAvailable': 319976, 'SwapFree': 2063596, 'CmaFree': 88} [(1210, 'runtime.sh'), (1605, 'principal.sh'), (3846, 'principal.sh'), (4169, 'wol-horizon')] ree-MiB=2015 swap-total-MiB=2017 vmrss-MiB=488 vmswap-MiB=0 level=0
+ALSA lib pcm.c:8692:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8692:(snd_pcm_recover) underrun occurred
+
+SAMPLE 29.8 {'MemAvailable': 214296, 'SwapFree': 2001900, 'CmaFree': 6852} [(1210, 'runtime.sh'), (1605, 'principal.sh'), (3846, 'principal.sh'), (4169, 'wol-horizon')] 3180000 size=0x80000 changed=0x40000 alias-mapped=0x32751000 regions=0xb1
+MAP_PHYSICAL_MEMORY address=0x3531c0000 size=0x80000 changed=0x40000 alias-mapped=0x32791000 regions=0xb1
+
+SAMPLE 49.1 {'MemAvailable': 49140, 'SwapFree': 1586412, 'CmaFree': 3464} [(1210, 'runtime.sh'), (1605, 'principal.sh'), (3846, 'principal.sh'), (4169, 'wol-horizon')] RAYS target=1920x1080 prog=0/0 count=7 first=0 frame=195 id=0 flags=0x9
+MAP_PHYSICAL_MEMORY address=0x39b4c0000 size=0x940000 changed=0x900000 alias-mapped=0x4b499000 regions=0xb1
+
+SAMPLE 83.0 {'MemAvailable': 50100, 'SwapFree': 1289868, 'CmaFree': 436} [(1210, 'runtime.sh'), (1605, 'principal.sh'), (3846, 'principal.sh'), (4169, 'wol-horizon')] int=0x40 type=0x6 command=0x1 data_bytes=0x0 pid=0x0 object=0x8 occurrence=0x2
+IPC handle=0x40e endpoint=0x40 type=0x6 command=0x0 data_bytes=0x0 pid=0x0 object=0x8 occurrence=0x1
+
+CAPTURE {'path': '/mnt/UDISK/wol-da-a2-100.png', 'elapsed': 101.92581124324352, 'rc': 0, 'text': 'Screenshot saved to /mnt/UDISK/wol-da-a2-100.png (FB ID: 163, 1280x720)\n'}
+SAMPLE 120.0 {'MemAvailable': 59564, 'SwapFree': 1042952, 'CmaFree': 2464} [(1210, 'runtime.sh'), (1605, 'principal.sh'), (3846, 'principal.sh'), (4169, 'wol-horizon')] x18 pid=0x0 object=0xa occurrence=0x2
+WOL_SCRIPT_PRESS t=116201 mask=0x3
+WOL_SCRIPT_PRESS t=116251 mask=0x2
+WOL_SCRIPT_PRESS t=116400 mask=0x12
+WOL_SCRIPT_PRESS t=116450 mask=0x10
+
+SAMPLE 141.9 {'MemAvailable': 44864, 'SwapFree': 1030844, 'CmaFree': 12924} [(1210, 'runtime.sh'), (1605, 'principal.sh'), (3846, 'principal.sh'), (4169, 'wol-horizon')] x2
+WOL_SCRIPT_PRESS t=140400 mask=0x12
+WOL_SCRIPT_PRESS t=140450 mask=0x10
+IPC handle=0x435 endpoint=0x3f type=0x6 command=0x8 data_bytes=0x8 pid=0x0 object=0x0 occurrence=0x10000
+
+SAMPLE 166.4 {'MemAvailable': 52984, 'SwapFree': 850548, 'CmaFree': 16} [(1210, 'runtime.sh'), (1605, 'principal.sh'), (3846, 'principal.sh'), (4169, 'wol-horizon')] ac000000000ffffffff0000243f0000803e0000a0c05555b54000000000ffffffff0000883e0000443f00004040abaaaac000000000ffffffff0000243f0000803e0000c0c00000a04000000000ffffffff0000603e00003c3f
+
+CAPTURE {'path': '/mnt/UDISK/wol-da-a2-180.png', 'elapsed': 181.60160303208977, 'rc': 0, 'text': 'Screenshot saved to /mnt/UDISK/wol-da-a2-180.png (FB ID: 163, 1280x720)\n'}
+SAMPLE 195.4 {'MemAvailable': 80852, 'SwapFree': 902772, 'CmaFree': 104} [(1210, 'runtime.sh'), (1605, 'principal.sh'), (3846, 'principal.sh'), (4169, 'wol-horizon')] rget=1280x720 prog=0/0 count=7 first=0 frame=850 id=0 flags=0x8
+WOL_DRAWARRAYS target=1280x720 prog=0/0 count=7 first=0 frame=850 id=0 flags=0x8
+WOL_SCRIPT_PRESS t=192255 mask=0x2
+
+SAMPLE 210.9 {'MemAvailable': 76784, 'SwapFree': 907124, 'CmaFree': 148} [(1210, 'runtime.sh'), (1605, 'principal.sh'), (3846, 'principal.sh'), (4169, 'wol-horizon')] id=0 flags=0x8
+WOL_DRAWARRAYS target=1280x720 prog=0/0 count=7 first=0 frame=1223 id=0 flags=0x8
+WOL_DRAWARRAYS target=1920x1080 prog=0/0 count=7 first=0 frame=1223 id=0 flags=0x9
+
+SAMPLE 226.4 {'MemAvailable': 74388, 'SwapFree': 911220, 'CmaFree': 1552} [(1210, 'runtime.sh'), (1605, 'principal.sh'), (3846, 'principal.sh'), (4169, 'wol-horizon')]  id=0 flags=0x9
+WOL_DRAWARRAYS target=1280x720 prog=0/0 count=7 first=0 frame=1590 id=0 flags=0x8
+WOL_DRAWARRAYS target=1280x720 prog=0/0 count=7 first=0 frame=1590 id=0 flags=0x8
+
+CAPTURE {'path': '/mnt/UDISK/wol-da-a2-240.png', 'elapsed': 242.02789897099137, 'rc': 0, 'text': 'Screenshot saved to /mnt/UDISK/wol-da-a2-240.png (FB ID: 161, 1280x720)\n'}
+SAMPLE 242.0 {'MemAvailable': 49696, 'SwapFree': 915828, 'CmaFree': 48} [(1210, 'runtime.sh'), (1605, 'principal.sh'), (3846, 'principal.sh'), (4169, 'wol-horizon')] id=0 flags=0x8
+WOL_DRAWARRAYS target=1280x720 prog=0/0 count=7 first=0 frame=1965 id=0 flags=0x8
+WOL_DRAWARRAYS target=1920x1080 prog=0/0 count=7 first=0 frame=1965 id=0 flags=0x9
+
+FINAL True {'procs': [{'pid': 1210, 'comm': 'runtime.sh', 'start': 615, 'ppid': 1204, 'pgid': 968, 'sid': 968, 'exe': '/bin/bash'}, {'pid': 1605, 'comm': 'principal.sh', 'start': 805, 'ppid': 1210, 'pgid': 968, 'sid': 968, 'exe': '/bin/bash'}, {'pid': 5016, 'comm': 'MainUI', 'start': 35502, 'ppid': 4993, 'pgid': 968, 'sid': 968, 'exe': '/mnt/sdcard/mmcblk1p1/spruce/flip/bin/MainUI'}], 'mem': {'MemAvailable': 679704, 'SwapFree': 2033524, 'CmaFree': 118100}, 'tail': 'try=sdk.text.seg+0x342f20\nWOL_KEY_OWNER key=0x340a64714 mutex-word=0x433 owner-handle=0x433 owner-thread=0x19 waiter=0x18\nMOMO_THREAD index=0x19 handle=0x433 state=0x2 core=0x1 last-svc=0x1d at=sdk.text.seg+0x393de0 waiting-key=0x0 waiting-mutex=0x0 entry=sdk.text.seg+0x342f20\nMOMO_THREAD index=0x1a handle=0x437 state=0x2 core=0x1 last-svc=0x18 at=sdk.text.seg+0x393dac waiting-key=0x0 waiting-mutex=0x0 entry=sdk.text.seg+0x342f20\nMOMO_THREAD index=0x1b handle=0x438 state=0x2 core=0x1 last-svc=0xb at=sdk.text.seg+0x393d08 waiting-key=0x0 waiting-mutex=0x0 entry=sdk.text.seg+0x342f20\nMOMO_THREAD index=0x1c handle=0x439 state=0x2 core=0x1 last-svc=0x1c at=sdk.text.seg+0x393dd8 waiting-key=0x3413a8970 waiting-mutex=0x0 entry=sdk.text.seg+0x342f20\nWOL_KEY_OWNER key=0x3413a8970 mutex-word=0x0 owner-handle=0x0 owner-thread=0xffffffff waiter=0x1c\nMOMO_THREAD index=0x1d handle=0x43c state=0x2 core=0x2 last-svc=0x21 at=sdk.text.seg+0x393e00 waiting-key=0x0 waiting-mutex=0x0 entry=sdk.text.seg+0x342f20\nMOMO_THREAD index=0x1e handle=0x1c3e state=0x2 core=0x1 last-svc=0xb at=sdk.text.seg+0x393d08 waiting-key=0x0 waiting-mutex=0x0 entry=sdk.text.seg+0x342f20\nSTOP status=TIME_LIMIT pc=0x7f88178f90 detail=0x0 query_memory_calls=0xed tls_trap_reads=0x0\nGUEST_FRAMES lr=unmapped\nVmPeak:\t 2877244 kB\nVmSize:\t 2828756 kB\nVmLck:\t       0 kB\nVmPin:\t       0 kB\nVmHWM:\t  779176 kB\nVmRSS:\t  675532 kB\nVmData:\t 1713888 kB\nVmStk:\t     136 kB\nVmExe:\t    1056 kB\nVmLib:\t   96572 kB\nVmPTE:\t    4088 kB\nVmSwap:\t 1107232 kB\nWOL_WATCHDOG_EXIT reason=runtime-exit rc=22 elapsed=242.154\nWOL_RUNTIME_EXIT status=22\n', 'log_bytes': 1181027, 'handoff': False}
+CLEANUP {'procs': [{'pid': 1210, 'comm': 'runtime.sh', 'start': 615, 'ppid': 1204, 'pgid': 968, 'sid': 968, 'exe': '/bin/bash'}, {'pid': 1605, 'comm': 'principal.sh', 'start': 805, 'ppid': 1210, 'pgid': 968, 'sid': 968, 'exe': '/bin/bash'}, {'pid': 5016, 'comm': 'MainUI', 'start': 35502, 'ppid': 4993, 'pgid': 968, 'sid': 968, 'exe': '/mnt/sdcard/mmcblk1p1/spruce/flip/bin/MainUI'}], 'production_hashes_unchanged': 131, 'cpu_restored': True, 'kms': 'Screenshot saved to /mnt/UDISK/wol-da-a2-recovered.png (FB ID: 163, 1280x720)\n'}
+EVIDENCE /var/home/ruslan/.hermes/cache/scratch/wol-resume-20261028
