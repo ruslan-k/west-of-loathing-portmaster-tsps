@@ -559,7 +559,27 @@
  static int laboratory_save_fd=-1;
  static void save_open(uint64_t pc) {
      if(laboratory_save_fd>=0)return;
-@@ -55,6 +62,52 @@
+@@ -46,6 +53,19 @@
+     struct line b={0};text(&b,"SAVE_OPEN isolated-directory=");text(&b,dir);emit(&b);
+ }
+ static unsigned auto_save_creation=1;
++/* WOL_HOUSE_STORAGE_OPEN_BEGIN */
++static int wol_house_romfs_fd=-1;
++#define WOL_HOUSE_ROMFS_SIZE UINT64_C(58907880)
++static void wol_house_romfs_open(uint64_t pc) {
++    if(wol_house_romfs_fd>=0)return;
++    int fd=open("wol-house.romfs",O_RDONLY|O_CLOEXEC|O_NOFOLLOW|O_NONBLOCK);
++    struct stat st;
++    if(fd<0 || fstat(fd,&st) || !S_ISREG(st.st_mode) || (uint64_t)st.st_size!=WOL_HOUSE_ROMFS_SIZE)
++        stop("HOUSE_ROMFS_UNAVAILABLE",pc,(uint64_t)errno,21);
++    wol_house_romfs_fd=fd;
++    printf("WOL_HOUSE_ROMFS_OPEN bytes=%"PRIu64" backing=separate-owner-DLC-root\n",WOL_HOUSE_ROMFS_SIZE);
++}
++/* WOL_HOUSE_STORAGE_OPEN_END */
+ static void romfs_open(uint64_t pc) {
+     if(romfs_fd>=0)return;
+     romfs_fd=open(ROMFS_SECTION_NAME,O_RDONLY|O_CLOEXEC|O_NOFOLLOW);
+@@ -55,6 +75,52 @@
      struct line b={0};text(&b,"ROMFS_OPEN verified-section=");text(&b,LC2_ROMFS_SHA256);text(&b," size=");hex(&b,ROMFS_SIZE);emit(&b);
      romfs_overlay_select();
  }
@@ -612,26 +632,55 @@
  static int filesystem_dispatch(uint8_t *buffer,struct session *s,struct ipc_request *req,enum endpoint endpoint,uint64_t pc) {
      if(endpoint==EP_FSP && req->command==1005) {
          uint32_t mode=0;ipc_reply(buffer,req->token,0,&mode,4,0,req->domain);return 1;
-@@ -71,11 +124,28 @@
-     if(endpoint==EP_STORAGE_ROMFS && req->command==0) {
+@@ -65,24 +131,61 @@
+     if(endpoint==EP_FSP && req->command==200) {
+         romfs_open(pc);ipc_child(buffer,s,req,EP_STORAGE_ROMFS,pc);return 1;
+     }
+-    if(endpoint==EP_STORAGE_ROMFS && req->command==4) {
+-        uint64_t size=romfs_size;ipc_reply(buffer,req->token,0,&size,8,0,req->domain);return 1;
++    /* WOL_HOUSE_STORAGE_FSP_BEGIN */
++    if(endpoint==EP_FSP && req->command==202 && LC2_PROGRAM_ID==0x010031b00a4e8000ULL &&
++       !strcmp(LC2_ROMFS_SHA256,"ecab0ad27889a320ae6965413a06b1d99af4aef1cda65c7665ea6015788a13d0")) {
++        if(req->send_pid || req->copies || req->input_objects || req->num_inputs || req->num_outputs ||
++           req->data_size<16 || req->data_size>32 || (req->data_size&3))
++            stop("INVALID_HOUSE_STORAGE_REQUEST",pc,req->data_size,24);
++        uint64_t data_id;memcpy(&data_id,req->data+8,8);
++        if(req->data[0]>6 || data_id!=0x010031b00a4e9001ULL)
++            stop("INVALID_HOUSE_STORAGE_ID",pc,data_id,24);
++        wol_house_romfs_open(pc);ipc_child(buffer,s,req,EP_STORAGE_HOUSE,pc);return 1;
+     }
+-    if(endpoint==EP_STORAGE_ROMFS && req->command==0) {
++    /* WOL_HOUSE_STORAGE_FSP_END */
++    /* WOL_STORAGE_SOURCE_BEGIN */
++    if(endpoint!=EP_STORAGE_ROMFS && endpoint!=EP_STORAGE_HOUSE)return 0;
++    unsigned house=endpoint==EP_STORAGE_HOUSE;
++    uint64_t storage_size=house?WOL_HOUSE_ROMFS_SIZE:romfs_size;
++    uint64_t storage_offset=house?0:ROMFS_OFFSET;
++    int storage_fd=house?wol_house_romfs_fd:romfs_fd;
++    /* WOL_STORAGE_SOURCE_END */
++    if(req->command==4) {
++        ipc_reply(buffer,req->token,0,&storage_size,8,0,req->domain);return 1;
++    }
++    if(req->command==0) {
          if(req->data_size<16)stop("INVALID_STORAGE_READ_ARGUMENTS",pc,req->data_size,24);
          uint64_t offset,size;memcpy(&offset,req->data,8);memcpy(&size,req->data+8,8);
 -        if(offset>romfs_size || size>romfs_size-offset || size>(64ULL<<20) ||
 -           (size && (req->num_outputs!=1 || size>req->outputs[0].size)))stop("INVALID_ROMFS_READ_RANGE",pc,offset,24);
-+        if(offset>romfs_size || size>romfs_size-offset || size>FILESYSTEM_ROMFS_READ_LIMIT ||
+-        struct line b={0};text(&b,"ROMFS_READ offset=");hex(&b,offset);text(&b," size=");hex(&b,size);emit(&b);
++        if(offset>storage_size || size>storage_size-offset || size>FILESYSTEM_ROMFS_READ_LIMIT ||
 +           (size && (req->num_outputs!=1 || size>req->outputs[0].size))) {
 +            /* Report every field of the refused request: the caller's pc alone does not say which clause
 +             * failed or whether the descriptor decode is the problem (measured, not assumed). */
 +            diag_printf("ROMFS_READ_REFUSED offset=0x%llx size=0x%llx romfs-size=0x%llx romfs-offset=0x%llx data-size=%zu outputs=%u output-address=0x%llx output-size=0x%llx clause=%s\n",
-+                (unsigned long long)offset,(unsigned long long)size,(unsigned long long)romfs_size,
-+                (unsigned long long)ROMFS_OFFSET,(size_t)req->data_size,(unsigned)req->num_outputs,
++                (unsigned long long)offset,(unsigned long long)size,(unsigned long long)storage_size,
++                (unsigned long long)storage_offset,(size_t)req->data_size,(unsigned)req->num_outputs,
 +                req->num_outputs?(unsigned long long)req->outputs[0].address:0ULL,
 +                req->num_outputs?(unsigned long long)req->outputs[0].size:0ULL,
-+                offset>romfs_size?"offset-past-romfs":size>romfs_size-offset?"read-past-romfs":
++                offset>storage_size?"offset-past-romfs":size>storage_size-offset?"read-past-romfs":
 +                size>FILESYSTEM_ROMFS_READ_LIMIT?"over-read-limit":req->num_outputs!=1?"outputs-not-one":"output-too-small");
 +            stop("INVALID_ROMFS_READ_RANGE",pc,offset,24);
 +        }
-         struct line b={0};text(&b,"ROMFS_READ offset=");hex(&b,offset);text(&b," size=");hex(&b,size);emit(&b);
++        struct line b={0};text(&b,house?"HOUSE_ROMFS_READ offset=":"ROMFS_READ offset=");hex(&b,offset);text(&b," size=");hex(&b,size);emit(&b);
          uint64_t done=0;uint8_t *dest=size?(uint8_t *)(uintptr_t)req->outputs[0].address:NULL;
 +        {static int configured,on;static unsigned logged;
 +         if(!configured){const char *o=getenv("WOL_ROMFS_LIFETIME");on=o&&!strcmp(o,"1");configured=1;}
@@ -639,14 +688,16 @@
 +            diag_printf("WOL_ROMFS_BUFFER seq=%u caller=0x%"PRIx64" address=0x%"PRIx64" bytes=%"PRIu64" file-offset=%"PRIu64" output-capacity=%"PRIu64" ownership=unknown free-safe=0\n",
 +                logged,pc,(uint64_t)(uintptr_t)dest,size,offset,(uint64_t)req->outputs[0].size);}}
          t2_gzram_touch((uintptr_t)dest,size); /* Frente J: pread would EFAULT on a compressed block */
-+        if(wol_romfs_read_cow(romfs_fd,ROMFS_OFFSET+offset,dest,size,pc))done=size;
++        if(!house && wol_romfs_read_cow(storage_fd,storage_offset+offset,dest,size,pc))done=size;
          while(done<size) {
-             ssize_t got=pread(romfs_fd,dest+done,size-done,ROMFS_OFFSET+offset+done);
+-            ssize_t got=pread(romfs_fd,dest+done,size-done,ROMFS_OFFSET+offset+done);
++            ssize_t got=pread(storage_fd,dest+done,size-done,storage_offset+offset+done);
              if(got<0 && errno==EINTR)continue;
-@@ -83,6 +153,7 @@
+             if(got<=0)stop("ROMFS_READ_FAILED",pc,offset+done,21);
              done+=(uint64_t)got;
          }
-         romfs_overlay_apply(dest,offset,size);
+-        romfs_overlay_apply(dest,offset,size);
++        if(!house)romfs_overlay_apply(dest,offset,size);
 +        wol_romfs_reads++;wol_romfs_read_bytes+=size;
          ipc_reply(buffer,req->token,0,NULL,0,0,req->domain);return 1;
      }
@@ -1145,7 +1196,7 @@
      EP_FRIENDS_CREATOR, EP_FRIENDS_SERVICE, EP_FRIENDS_NOTIFICATIONS, EP_FRIENDS_DAEMON,
      EP_ZERO_CONTROLLER, EP_ZERO_APP_STORAGE, EP_ZERO_APP_ACCESSOR, EP_AW_STUB, EP_AW_AUDOUT_LIST,
 -    EP_AUDOUT_MANAGER, EP_AUDOUT, EP_SAVE_DIR };
-+    EP_AUDOUT_MANAGER, EP_AUDOUT, EP_SAVE_DIR, EP_PL_STUB };
++    EP_AUDOUT_MANAGER, EP_AUDOUT, EP_SAVE_DIR, EP_PL_STUB, EP_STORAGE_HOUSE };
  static void endpoint_destroy(enum endpoint endpoint,unsigned state);
  static void nv_destroy(unsigned state);
  static void bsd_destroy(unsigned state);
@@ -1335,7 +1386,7 @@
          if(req.command==9){value=app_state.foreground?1:2;size=1;}
          if(size){ipc_reply(buffer,req.token,0,&value,size,0,req.domain);return;}
      }
-@@ -697,6 +815,39 @@
+@@ -697,6 +815,40 @@
      if(endpoint==EP_AOC && req.command==8) {
          ipc_event(buffer,&req,&app_state.aoc_event,0,pc);return;
      }
@@ -1353,6 +1404,7 @@
 +            stop("INVALID_AOC_REQUEST",pc,handle,24);
 +        uint64_t process;memcpy(&process,req.data+(wide?8:0),8);
 +        if(process)stop("INVALID_AOC_PROCESS",pc,process,24);
++        wol_house_romfs_open(pc);
 +        uint32_t count=1;
 +        if(req.command==3) {
 +            int32_t offset,capacity;memcpy(&offset,req.data,4);memcpy(&capacity,req.data+4,4);

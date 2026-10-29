@@ -1,0 +1,16 @@
+{
+  "before": {
+    "dlc_horsearmor": "0",
+    "dlc_house": "0",
+    "dlc_ost": "0",
+    "dlc_hell": "0"
+  },
+  "after": {
+    "dlc_horsearmor": "0",
+    "dlc_house": "1",
+    "dlc_ost": "0",
+    "dlc_hell": "0"
+  },
+  "before_sha256": "d82d80c6e713853253172d41af3bf7a0d5008c6209711d866681cb60d368800d",
+  "after_sha256": "605ce9b5e092a3c95e0052dbf9b320b67d3ad94e495f905c4768b098bd91bdb5"
+}

@@ -1,0 +1,16 @@
+{
+  "raw_bytes": 58907880,
+  "raw_sha256": "e04ecb656771280d4847c7af527871f8714b0f68103772c2db9cd9ed3fcec7e7",
+  "files": [
+    {
+      "path": "house",
+      "bytes": 58817355,
+      "sha256": "611c0a7afbbe035a267f0837a02ecc49a1739a3119439c2194055f26eb25686b"
+    },
+    {
+      "path": "house.manifest",
+      "bytes": 89868,
+      "sha256": "6ece252b62c8629361a6ee6742e32f51651c286383c166949079dcab9319805b"
+    }
+  ]
+}

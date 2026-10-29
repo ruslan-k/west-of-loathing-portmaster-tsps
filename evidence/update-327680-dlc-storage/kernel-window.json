@@ -1,0 +1,9 @@
+{
+  "boot": "6f8a8622-b50b-47fa-96e3-a95959c1c882",
+  "start_uptime_s": 3106.05,
+  "end_uptime_s": 3649.75,
+  "dmesg_oldest_uptime_s": 0.0,
+  "dmesg_newest_uptime_s": 3708.26211,
+  "window_lines": 179,
+  "critical_memory_gpu_lines": []
+}

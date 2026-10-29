@@ -1,6 +1,8 @@
 # Update v327680 diagnostic checkpoint — not a release
 
-The working native-Unity installation and its saves were not replaced. These runs use a separate Horizon/NVN candidate with isolated saves. The current candidate is **not playable**: enabling genuine DLC enumeration exposes an unimplemented FSP command 202 before the title screen.
+The working native-Unity installation and its saves were not replaced. These runs use a separate Horizon/NVN candidate with isolated saves. **At this checkpoint** the candidate was not playable: enabling genuine DLC enumeration exposed an unimplemented FSP command 202 before the title screen.
+
+**Follow-up:** [aoc-w4 fixes FSP202 and verifies the game's real DLC bundle reads/recognition](../update-327680-dlc-storage/README.md). This page retains the earlier run outcomes; inventory and full DLC-play acceptance are still unresolved.
 
 ## Source and artifact identities
 

@@ -33,6 +33,8 @@ struct request {
 static uint32_t read32(const void *p){uint32_t v;memcpy(&v,p,4);return v;}
 static void put32(void *p,uint32_t v){memcpy(p,&v,4);}
 static uint8_t response[16];static size_t response_size;
+/* File availability is exercised by test_wol_memory_aoc_storage. */
+static void wol_house_romfs_open(uint64_t pc){(void)pc;}
 static void stop(const char *status,uint64_t pc,uint64_t detail,int code){
     (void)pc;(void)detail;puts(status);exit(code);
 }
