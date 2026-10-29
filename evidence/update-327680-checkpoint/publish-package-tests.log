@@ -1,0 +1,18 @@
+test_canonical_launcher_parity (test_unity_port.PromotedPort.test_canonical_launcher_parity) ... ok
+test_generic_bridge_is_not_a_game_il2cpp_library (test_unity_port.PromotedPort.test_generic_bridge_is_not_a_game_il2cpp_library) ... ok
+test_only_current_port_is_shipped (test_unity_port.PromotedPort.test_only_current_port_is_shipped) ... ok
+test_owner_package_inputs_are_ignored (test_unity_port.PromotedPort.test_owner_package_inputs_are_ignored) ... ok
+test_redistributable_runtime_manifest (test_unity_port.PromotedPort.test_redistributable_runtime_manifest) ... ok
+test_zero_budget_selects_normal_launch (test_unity_port.PromotedPort.test_zero_budget_selects_normal_launch) ... ok
+test_already_exited_children_are_reported_without_traceback (test_bounded_run.BoundTest.test_already_exited_children_are_reported_without_traceback) ... ok
+test_bad_budget_launches_nothing (test_bounded_run.BoundTest.test_bad_budget_launches_nothing) ... ok
+test_bad_run_id_is_rejected_before_launch (test_bounded_run.BoundTest.test_bad_run_id_is_rejected_before_launch) ... ok
+test_deadline_reaps_only_own_child (test_bounded_run.BoundTest.test_deadline_reaps_only_own_child) ... ok
+test_identity_guard_is_not_stripped_in_optimized_python (test_bounded_run.BoundTest.test_identity_guard_is_not_stripped_in_optimized_python) ... ok
+test_generates_owned_image_and_shader_stub_declared (test_horizon_prepare.HorizonPrepareTests.test_generates_owned_image_and_shader_stub_declared) ... ok
+test_rejects_syscall_names_in_service_acl (test_horizon_prepare.HorizonPrepareTests.test_rejects_syscall_names_in_service_acl) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 15.528s
+
+OK

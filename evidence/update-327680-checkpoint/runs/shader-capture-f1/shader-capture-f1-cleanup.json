@@ -1,0 +1,34 @@
+{
+  "procs": [
+    {
+      "pid": 1209,
+      "comm": "runtime.sh",
+      "start": 636,
+      "ppid": 1203,
+      "pgid": 965,
+      "sid": 965,
+      "exe": "/bin/bash"
+    },
+    {
+      "pid": 1617,
+      "comm": "principal.sh",
+      "start": 826,
+      "ppid": 1209,
+      "pgid": 965,
+      "sid": 965,
+      "exe": "/bin/bash"
+    },
+    {
+      "pid": 18452,
+      "comm": "MainUI",
+      "start": 380586,
+      "ppid": 18429,
+      "pgid": 965,
+      "sid": 965,
+      "exe": "/mnt/sdcard/mmcblk1p1/spruce/flip/bin/MainUI"
+    }
+  ],
+  "production_hashes_unchanged": 131,
+  "cpu_restored": true,
+  "kms": "Screenshot saved to /mnt/UDISK/wol-shader-capture-f1-recovered.png (FB ID: 160, 1280x720)\n"
+}

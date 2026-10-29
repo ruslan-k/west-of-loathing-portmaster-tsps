@@ -17,4 +17,17 @@ class HorizonPrepareTests(unittest.TestCase):
             self.assertIn('LC2_NVN_LOOKUP_POINTER',g)
             self.assertTrue((out/'wol-romfs.section').exists())
             self.assertTrue((out/'megaman_lc2_contract.h').exists())
+    def test_rejects_syscall_names_in_service_acl(self):
+        import json
+        with tempfile.TemporaryDirectory(dir=os.environ.get('TMPDIR')) as t:
+            tmp=pathlib.Path(t)
+            npdm=json.loads((BASE/'wol-npdm.json').read_text())
+            npdm['service_access']=['svcSetMemoryPermission']
+            metadata=tmp/'npdm.json';metadata.write_text(json.dumps(npdm))
+            out=tmp/'image'
+            p=subprocess.run(['python3',str(ROOT/'prepare_horizon_image.py'),str(BASE/'wol-base/exefs'),str(metadata),str(BASE/'wol-romfs.json'),str(out)],capture_output=True,text=True)
+            self.assertNotEqual(p.returncode,0,p.stdout+p.stderr)
+            self.assertIn('invalid NPDM service',p.stderr)
+            self.assertFalse(out.exists())
+
 if __name__=='__main__': unittest.main()

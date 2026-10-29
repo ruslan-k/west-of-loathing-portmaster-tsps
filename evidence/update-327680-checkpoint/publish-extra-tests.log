@@ -1,0 +1,29 @@
+test_world_allowlist_does_not_admit_character_or_ui (test_wol_m4_wave2.Wave2Tests.test_world_allowlist_does_not_admit_character_or_ui) ... ok
+test_runtime_assigned_map_sprites_are_ui_even_without_serialized_reference (test_wol_sprite_metadata.DynamicMapUiTests.test_runtime_assigned_map_sprites_are_ui_even_without_serialized_reference) ... ok
+test_dynamic_background_and_icon_dimensions_are_not_promoted (test_wol_sprite_metadata.MapPixelCoordinateTests.test_dynamic_background_and_icon_dimensions_are_not_promoted) ... ok
+test_external_map_texture_reference_is_refused (test_wol_sprite_metadata.MapPixelCoordinateTests.test_external_map_texture_reference_is_refused) ... ok
+test_real_pipeline_strips_map_mips_without_baseline_or_extra_promotion (test_wol_sprite_metadata.MapPixelCoordinateTests.test_real_pipeline_strips_map_mips_without_baseline_or_extra_promotion) ... ok
+test_shared_texture_is_preserved_once (test_wol_sprite_metadata.MapPixelCoordinateTests.test_shared_texture_is_preserved_once) ... ok
+test_world_maps_and_unrelated_ui_are_not_exempted (test_wol_sprite_metadata.MapPixelCoordinateTests.test_world_maps_and_unrelated_ui_are_not_exempted) ... ok
+test_keep_id_preserves_exact_texture_and_dependent_sprite_contract (test_wol_sprite_metadata.RepackSelectionTests.test_keep_id_preserves_exact_texture_and_dependent_sprite_contract) ... ok
+test_local_geometry_and_baked_uvs_unchanged (test_wol_sprite_metadata.SpriteMetadataTests.test_local_geometry_and_baked_uvs_unchanged) ... ok
+test_normalized_rect_unchanged_after_dimension_halving (test_wol_sprite_metadata.SpriteMetadataTests.test_normalized_rect_unchanged_after_dimension_halving) ... ok
+test_ui_pixel_rect_tracks_padding_and_preserves_size (test_wol_sprite_metadata.SpriteMetadataTests.test_ui_pixel_rect_tracks_padding_and_preserves_size) ... ok
+test_unmodified_texture_leaves_sprite_identical (test_wol_sprite_metadata.SpriteMetadataTests.test_unmodified_texture_leaves_sprite_identical) ... ok
+test_altered_pixels_are_rejected (test_wol_map_pixel_space.PixelSpaceVerifierTests.test_altered_pixels_are_rejected) ... ok
+test_bad_image_size_is_rejected (test_wol_map_pixel_space.PixelSpaceVerifierTests.test_bad_image_size_is_rejected) ... ok
+test_halved_dimensions_are_rejected (test_wol_map_pixel_space.PixelSpaceVerifierTests.test_halved_dimensions_are_rejected) ... ok
+test_no_strip_accepts_original_chain (test_wol_map_pixel_space.PixelSpaceVerifierTests.test_no_strip_accepts_original_chain) ... ok
+test_single_mip_preserves_original_dimensions_and_pixels (test_wol_map_pixel_space.PixelSpaceVerifierTests.test_single_mip_preserves_original_dimensions_and_pixels) ... ok
+test_two_mips_are_valid_when_explicitly_requested (test_wol_map_pixel_space.PixelSpaceVerifierTests.test_two_mips_are_valid_when_explicitly_requested) ... ok
+test_unrequested_extra_mips_are_rejected (test_wol_map_pixel_space.PixelSpaceVerifierTests.test_unrequested_extra_mips_are_rejected) ... ok
+test_cli_writes_report_and_flags_between_arm_change (test_wol_frame_parity.ParityTests.test_cli_writes_report_and_flags_between_arm_change) ... ok
+test_identical_frames_report_no_difference (test_wol_frame_parity.ParityTests.test_identical_frames_report_no_difference) ... ok
+test_one_level_dither_is_counted_but_not_visible (test_wol_frame_parity.ParityTests.test_one_level_dither_is_counted_but_not_visible) ... ok
+test_stable_mask_excludes_pixels_that_vary_between_repeats (test_wol_frame_parity.ParityTests.test_stable_mask_excludes_pixels_that_vary_between_repeats) ... ok
+test_visible_blob_is_localised_to_its_own_bbox (test_wol_frame_parity.ParityTests.test_visible_blob_is_localised_to_its_own_bbox) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 0.178s
+
+OK

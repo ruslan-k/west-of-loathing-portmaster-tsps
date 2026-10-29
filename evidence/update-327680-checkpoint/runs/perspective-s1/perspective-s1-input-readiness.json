@@ -1,0 +1,150 @@
+{
+  "identity": {
+    "pid": 13695,
+    "start": "112056",
+    "label": "perspective-s1",
+    "elf": "e8ef9552f06c996b7965f167ef090ba2d993bff1cdaafca14b5ab98aaa358c19"
+  },
+  "observations": [
+    {
+      "title": false,
+      "capture_error": "no active KMS framebuffer during startup"
+    },
+    {
+      "title": false,
+      "mismatch": 0.4574468085106383,
+      "offset": [
+        10,
+        16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.4574468085106383,
+      "offset": [
+        10,
+        16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.4574468085106383,
+      "offset": [
+        10,
+        16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.4574468085106383,
+      "offset": [
+        10,
+        16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.4574468085106383,
+      "offset": [
+        10,
+        16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.5904255319148937,
+      "offset": [
+        -12,
+        -16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.5904255319148937,
+      "offset": [
+        -12,
+        -16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.5904255319148937,
+      "offset": [
+        -12,
+        -16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.3882978723404255,
+      "offset": [
+        -6,
+        -8
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.4127659574468085,
+      "offset": [
+        0,
+        0
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.3893617021276596,
+      "offset": [
+        -10,
+        2
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.4106382978723404,
+      "offset": [
+        -10,
+        -14
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.39148936170212767,
+      "offset": [
+        -10,
+        -14
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.3670212765957447,
+      "offset": [
+        12,
+        8
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.5904255319148937,
+      "offset": [
+        -12,
+        -16
+      ],
+      "samples": 940
+    }
+  ],
+  "physical_input_verified": false
+}

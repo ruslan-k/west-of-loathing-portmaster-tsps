@@ -1,0 +1,115 @@
+{
+  "identity": {
+    "pid": 15760,
+    "start": "235385",
+    "label": "accept-b1",
+    "elf": "1723e4a9f3bb03dc29fa3fba72432b4dc71c5f5d8d75c4db84c7edaf09cb062c"
+  },
+  "observations": [
+    {
+      "title": false,
+      "capture_error": "no active KMS framebuffer during startup"
+    },
+    {
+      "title": false,
+      "mismatch": 0.5425531914893617,
+      "offset": [
+        12,
+        16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.5425531914893617,
+      "offset": [
+        12,
+        16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.5425531914893617,
+      "offset": [
+        12,
+        16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.5425531914893617,
+      "offset": [
+        12,
+        16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.5425531914893617,
+      "offset": [
+        12,
+        16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.5425531914893617,
+      "offset": [
+        12,
+        16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.6914893617021277,
+      "offset": [
+        -12,
+        -16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.6914893617021277,
+      "offset": [
+        -12,
+        -16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.6914893617021277,
+      "offset": [
+        -12,
+        -16
+      ],
+      "samples": 940
+    },
+    {
+      "title": true,
+      "mismatch": 0.07021276595744681,
+      "offset": [
+        0,
+        -2
+      ],
+      "samples": 940
+    },
+    {
+      "title": true,
+      "mismatch": 0.1,
+      "offset": [
+        0,
+        -6
+      ],
+      "samples": 940
+    }
+  ],
+  "title_reference_sha256": "1d7ad3500225b25632efa2ca83e8ed82359b0b56893c1d1d8deeac624c0bdfff",
+  "physical_input_verified": false
+}

@@ -1,0 +1,34 @@
+{
+  "procs": [
+    {
+      "pid": 1212,
+      "comm": "runtime.sh",
+      "start": 634,
+      "ppid": 1206,
+      "pgid": 971,
+      "sid": 971,
+      "exe": "/bin/bash"
+    },
+    {
+      "pid": 1629,
+      "comm": "principal.sh",
+      "start": 823,
+      "ppid": 1212,
+      "pgid": 971,
+      "sid": 971,
+      "exe": "/bin/bash"
+    },
+    {
+      "pid": 30885,
+      "comm": "MainUI",
+      "start": 759488,
+      "ppid": 30847,
+      "pgid": 971,
+      "sid": 971,
+      "exe": "/mnt/sdcard/mmcblk1p1/spruce/flip/bin/MainUI"
+    }
+  ],
+  "production_hashes_unchanged": 131,
+  "cpu_restored": true,
+  "kms": "Screenshot saved to /mnt/UDISK/wol-mesh-u2-recovered.png (FB ID: 163, 1280x720)\n"
+}

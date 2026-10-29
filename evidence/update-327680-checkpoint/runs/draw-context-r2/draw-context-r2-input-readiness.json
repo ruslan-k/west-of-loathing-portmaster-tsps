@@ -1,0 +1,65 @@
+{
+  "identity": {
+    "pid": 27132,
+    "start": "723545",
+    "label": "draw-context-r2",
+    "elf": "da1538677d057c4908a7cf7096c20ad8a05e048b5d0edbc1f1961eb7a01a00f2"
+  },
+  "observations": [
+    {
+      "title": false,
+      "mismatch": 0.4574468085106383,
+      "offset": [
+        10,
+        16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.4574468085106383,
+      "offset": [
+        10,
+        16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.5904255319148937,
+      "offset": [
+        -12,
+        -16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.5904255319148937,
+      "offset": [
+        -12,
+        -16
+      ],
+      "samples": 940
+    },
+    {
+      "title": false,
+      "mismatch": 0.5904255319148937,
+      "offset": [
+        -12,
+        -16
+      ],
+      "samples": 940
+    },
+    {
+      "title": true,
+      "mismatch": 0.11702127659574468,
+      "offset": [
+        0,
+        4
+      ],
+      "samples": 940
+    }
+  ],
+  "physical_input_verified": false
+}

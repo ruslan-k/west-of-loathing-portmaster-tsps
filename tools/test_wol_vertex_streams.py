@@ -26,6 +26,8 @@ preamble = r'''
 #include <string.h>
 #include <setjmp.h>
 #include <inttypes.h>
+/* The real helper's release-aware logger is not part of this GL binding fixture. */
+#define diag_printf printf
 typedef unsigned GLuint;
 typedef int GLint;
 typedef int GLsizei;

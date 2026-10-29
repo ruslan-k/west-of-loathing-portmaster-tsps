@@ -14,6 +14,7 @@ class RomfsCowContract(unittest.TestCase):
 #include <string.h>
 #include <assert.h>
 #define HEAP_BASE 0x10000000ULL
+#define T2_ALIAS_BASE_DRM UINT64_C(0x300000000)
 static uint64_t heap_size=0x100000;
 struct region {uint64_t base,size;unsigned perm,state,attr;const char *name;};
 static struct region region={HEAP_BASE,0x100000,3,5,0,"main_heap"};
@@ -27,27 +28,74 @@ static struct {uint64_t address,size;unsigned open;} transfer_regions[16];
 int main(void) {
     uint64_t a=HEAP_BASE+4096,n=8192;
     unsetenv("T2_GUEST_ZRAM");unsetenv("MEGAMAN_LAZY_ZERO");unsetenv("T2_PAGE_CATALOGUE");
-    assert(wol_romfs_output_eligible(a,n));
-    assert(!wol_romfs_output_eligible(a,0));assert(!wol_romfs_output_eligible(a,UINT64_MAX));
-    region.attr=1;assert(!wol_romfs_output_eligible(a,n));region.attr=0;
-    region.perm=1;assert(!wol_romfs_output_eligible(a,n));region.perm=3;
-    region.name="alias_physical";assert(!wol_romfs_output_eligible(a,n));region.name="main_heap";
-    guard=1;assert(!wol_romfs_output_eligible(a,n));guard=0;
+    assert(wol_romfs_output_eligible(a,n,0));
+    assert(!wol_romfs_output_eligible(a,0,0));assert(!wol_romfs_output_eligible(a,UINT64_MAX,0));
+    region.attr=1;assert(!wol_romfs_output_eligible(a,n,0));region.attr=0;
+    region.perm=1;assert(!wol_romfs_output_eligible(a,n,0));region.perm=3;
+    region.name="alias_physical";assert(!wol_romfs_output_eligible(a,n,0));
+    assert(wol_romfs_output_eligible(a,n,1));
+    region.attr=1;assert(!wol_romfs_output_eligible(a,n,1));region.attr=0;
+    guard=1;assert(!wol_romfs_output_eligible(a,n,1));guard=0;region.name="main_heap";
+    guard=1;assert(!wol_romfs_output_eligible(a,n,0));guard=0;
     naliases=1;aliases[0].source=a+n-1;aliases[0].size=4096;
-    assert(!wol_romfs_output_eligible(a,n));aliases[0].source=a+n;
-    assert(wol_romfs_output_eligible(a,n));naliases=0;
+    assert(!wol_romfs_output_eligible(a,n,0));aliases[0].source=a+n;
+    assert(wol_romfs_output_eligible(a,n,0));naliases=0;
     transfer_regions[0].address=a;transfer_regions[0].size=n;transfer_regions[0].open=1;
-    assert(!wol_romfs_output_eligible(a,n));transfer_regions[0].open=0;
-    setenv("T2_GUEST_ZRAM","1",1);assert(!wol_romfs_output_eligible(a,n));setenv("T2_GUEST_ZRAM","0",1);
-    setenv("MEGAMAN_LAZY_ZERO","1",1);assert(!wol_romfs_output_eligible(a,n));setenv("MEGAMAN_LAZY_ZERO","0",1);
-    setenv("T2_PAGE_CATALOGUE","x",1);assert(!wol_romfs_output_eligible(a,n));unsetenv("T2_PAGE_CATALOGUE");
-    assert(wol_romfs_output_eligible(a,n));
+    assert(!wol_romfs_output_eligible(a,n,0));transfer_regions[0].open=0;
+    setenv("T2_GUEST_ZRAM","1",1);assert(!wol_romfs_output_eligible(a,n,0));setenv("T2_GUEST_ZRAM","0",1);
+    setenv("MEGAMAN_LAZY_ZERO","1",1);assert(!wol_romfs_output_eligible(a,n,0));setenv("MEGAMAN_LAZY_ZERO","0",1);
+    setenv("T2_PAGE_CATALOGUE","x",1);assert(!wol_romfs_output_eligible(a,n,0));unsetenv("T2_PAGE_CATALOGUE");
+    assert(wol_romfs_output_eligible(a,n,0));
 }
 '''
         with tempfile.TemporaryDirectory() as d:
             p=Path(d);(p/'gate.c').write_text(code)
             subprocess.run(['cc','-std=gnu11','-O2','-Wall','-Wextra','-Werror',str(p/'gate.c'),'-o',str(p/'gate')],check=True)
             subprocess.run([str(p/'gate')],check=True)
+
+    def test_source_mapping_uses_the_already_absolute_read_offset(self):
+        patch=(Path(__file__).resolve().parents[1]/'runtime/wol-adapter.patch').read_text()
+        # Exercise the real caller expression, not a second hand-written offset calculation.
+        import re
+        call=re.search(r'\+\s+int mapped=\(in_pool\?(wol_romfs_map_source\([^;]+?\)):0\);',patch)
+        assert call is not None, 'production source mapping call missing'
+        code=r'''
+#define _GNU_SOURCE
+#include <assert.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+'''+added_header('wol_romfs_cow.h')+r'''
+#define ROMFS_OFFSET 0x78000ULL
+int main(int argc,char **argv) {
+    assert(argc==2);(void)wol_romfs_cow_read;
+    int source=open(argv[1],O_CREAT|O_EXCL|O_RDWR,0600);assert(source>=0);
+    enum {N=1200000};uint8_t *original=malloc(N);assert(original);
+    for(unsigned i=0;i<N;i++)original[i]=(uint8_t)(i*71+(i>>9)+(i>>17));
+    assert(write(source,original,N)==N);
+    uint64_t offset=ROMFS_OFFSET+208,size=19000;
+    uint8_t *base=mmap(NULL,24576,3,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);assert(base!=MAP_FAILED);
+    memset(base,0xa5,24576);uint8_t *dest=base+208;
+    struct wol_romfs_cow_result result={0};
+    assert(CALL==1);
+    assert(!memcmp(dest,original+offset,size));
+    assert(base[207]==0xa5 && dest[size]==0xa5);
+    dest[4096]^=0xff;uint8_t disk;
+    assert(pread(source,&disk,1,(off_t)(offset+4096))==1);
+    assert(disk==original[offset+4096]);
+    assert(!munmap(base,24576));close(source);free(original);return 0;
+}
+'''.replace('CALL',call.group(1))
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d);(p/'mapping.c').write_text(code)
+            subprocess.run(['cc','-std=gnu11','-O2','-Wall','-Wextra','-Werror',str(p/'mapping.c'),'-o',str(p/'mapping')],check=True)
+            subprocess.run([str(p/'mapping'),str(p/'section')],check=True)
 
     def test_exact_unaligned_read_edges_private_writes_and_fail_closed(self):
         header=added_header('wol_romfs_cow.h')
@@ -67,6 +115,7 @@ int main(void) {
 '''+header+r'''
 int main(int argc,char **argv) {
     assert(argc==2);
+    (void)wol_romfs_map_source;
     char input[512];assert(snprintf(input,sizeof input,"%s/input",argv[1])>0);
     int fd=open(input,O_CREAT|O_EXCL|O_RDWR,0600);assert(fd>=0);
     enum {N=45056};uint8_t original[N];
@@ -133,7 +182,7 @@ static ssize_t fault_pwrite(int fd,const void *b,size_t n,off_t off) {
 #undef pread
 #undef pwrite
 int main(int argc,char **argv) {
-    assert(argc==2);char path[512];assert(snprintf(path,sizeof path,"%s/source",argv[1])>0);
+    assert(argc==2);(void)wol_romfs_map_source;char path[512];assert(snprintf(path,sizeof path,"%s/source",argv[1])>0);
     int fd=open(path,O_CREAT|O_EXCL|O_RDWR,0600);assert(fd>=0);
     uint8_t original[45056];memset(original,0x7a,sizeof original);assert(write(fd,original,sizeof original)==sizeof original);
     uint8_t *base=mmap(NULL,sizeof original,3,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);assert(base!=MAP_FAILED);

@@ -1,0 +1,34 @@
+{
+  "procs": [
+    {
+      "pid": 1216,
+      "comm": "runtime.sh",
+      "start": 638,
+      "ppid": 1211,
+      "pgid": 975,
+      "sid": 975,
+      "exe": "/bin/bash"
+    },
+    {
+      "pid": 1645,
+      "comm": "principal.sh",
+      "start": 831,
+      "ppid": 1216,
+      "pgid": 975,
+      "sid": 975,
+      "exe": "/bin/bash"
+    },
+    {
+      "pid": 11327,
+      "comm": "MainUI",
+      "start": 108127,
+      "ppid": 11316,
+      "pgid": 975,
+      "sid": 975,
+      "exe": "/mnt/sdcard/mmcblk1p1/spruce/flip/bin/MainUI"
+    }
+  ],
+  "production_hashes_unchanged": 131,
+  "cpu_restored": true,
+  "kms": "Screenshot saved to /mnt/UDISK/wol-torso-v1-recovered.png (FB ID: 161, 1280x720)\n"
+}
