@@ -4501,7 +4501,7 @@
          nvn_single_report(nvn_present.frames);
          nvn_gpu_frame_gate_report(nvn_present.frames,nvn_profile.frames);
          double ms=1e-6/nvn_profile.frames;
-@@ -350,24 +558,29 @@
+@@ -350,11 +558,16 @@
          printf("NVN_PROFILE_DETAIL frame=%u counter-ms=%.3f finish-ms=%.3f receipt-ms=%.3f swap-ms=%.3f elided-waits=%"PRIu64" real-final-waits=%"PRIu64"\n",
              nvn_present.frames,nvn_profile.counter_ns*ms,nvn_profile.finish_ns*ms,nvn_profile.receipt_ns*ms,nvn_profile.swap_ns*ms,
              nvn_gl_completion.skipped_waits,nvn_gl_completion.real_waits);
@@ -4520,21 +4520,6 @@
          zero_gpu_cost_report(nvn_present.frames);
          printf("NVN_PROFILE_REPLAY_CPU frame=%u cpu-ms=%.3f cpu-samples=%u submits=%u scope=thread-cpu-per-frame includes-counters=1\n",
              nvn_present.frames,nvn_profile.replay_cpu_samples==nvn_profile.replay_submits?nvn_profile.replay_cpu_ns*ms:-1.0,
-             nvn_profile.replay_cpu_samples,nvn_profile.replay_submits);
-         for(unsigned ordinal=0;ordinal<NVN_COUNTER_PROFILE_SLOTS;ordinal++) {
-             const struct nvn_counter_profile_slot *slot=&nvn_counter_profile.slots[ordinal];if(!slot->count)continue;
--            printf("NVN_COUNTER_PROFILE frame=%u ordinal=%u calls=%"PRIu64" wall-ms=%.3f wall-min-ms=%.3f wall-max-ms=%.3f cpu-ms=%.3f cpu-samples=%"PRIu64" draws-mean=%.2f zero-draw-calls=%"PRIu64" since-swap-ms=%.3f swap-samples=%"PRIu64" destination=0x%"PRIx64" target=0x%"PRIx64" target-size=%ux%u fbo=%u state-changes=%"PRIu64"\n",
-+            diag_printf("NVN_COUNTER_PROFILE frame=%u ordinal=%u calls=%"PRIu64" wall-ms=%.3f wall-min-ms=%.3f wall-max-ms=%.3f cpu-ms=%.3f cpu-samples=%"PRIu64" draws-mean=%.2f zero-draw-calls=%"PRIu64" since-swap-ms=%.3f swap-samples=%"PRIu64" destination=0x%"PRIx64" target=0x%"PRIx64" target-size=%ux%u fbo=%u state-changes=%"PRIu64"\n",
-                 nvn_present.frames,ordinal,slot->count,(double)slot->wall_ns/slot->count*1e-6,slot->wall_min*1e-6,slot->wall_max*1e-6,
-                 slot->cpu_count?(double)slot->cpu_ns/slot->cpu_count*1e-6:-1.0,slot->cpu_count,(double)slot->draws/slot->count,slot->zero_draws,
-                 slot->swap_count?(double)slot->swap_ns/slot->swap_count*1e-6:-1.0,slot->swap_count,slot->destination,slot->target,
-                 slot->width,slot->height,slot->framebuffer,slot->state_changes);
-         }
--        printf("NVN_COUNTER_PROFILE_LIMIT frame=%u lists=%"PRIu64" slots=%u overflow-calls=%"PRIu64" overflow-wall-ms=%.3f overflow-cpu-ms=%.3f overflow-cpu-samples=%"PRIu64" scope=per-command-list-ordinal cpu=thread target=tracked-state since-swap=wall-start-after-last-swap-return\n",
-+        diag_printf("NVN_COUNTER_PROFILE_LIMIT frame=%u lists=%"PRIu64" slots=%u overflow-calls=%"PRIu64" overflow-wall-ms=%.3f overflow-cpu-ms=%.3f overflow-cpu-samples=%"PRIu64" scope=per-command-list-ordinal cpu=thread target=tracked-state since-swap=wall-start-after-last-swap-return\n",
-             nvn_present.frames,nvn_counter_profile.lists,NVN_COUNTER_PROFILE_SLOTS,nvn_counter_profile.overflow,
-             nvn_counter_profile.overflow_wall_ns*1e-6,nvn_counter_profile.overflow_cpu_ns*1e-6,nvn_counter_profile.overflow_cpu_count);
-     }
 --- a/native/nvn_queue.h
 +++ b/native/nvn_queue.h
 @@ -12,20 +12,32 @@
