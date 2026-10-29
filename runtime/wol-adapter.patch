@@ -4309,7 +4309,7 @@
  #ifdef ANIMAL_WELL_SHADERS
      if(aw_fbcopy_enabled()){aw_fbcopy_open(width,height);glBindFramebuffer(GL_FRAMEBUFFER,aw_fbcopy.fbo);}
      else glBindFramebuffer(GL_FRAMEBUFFER,0);
-@@ -224,12 +315,87 @@
+@@ -224,12 +315,91 @@
          glClearColor(previous_clear[0],previous_clear[1],previous_clear[2],previous_clear[3]);
      }
      glViewport(rect->x,(int)height-rect->y-rect->h,rect->w,rect->h);
@@ -4324,7 +4324,11 @@
 +                nvn_present.frames,t->name,(unsigned long long)t->id,t->b.width,t->b.height,t->b.levels,
 +                (int)width,(int)height,nvn_window.crop[0],nvn_window.crop[1],nvn_window.crop[2],nvn_window.crop[3],
 +                (unsigned)t->host_half,(unsigned)t->host_scaled,t->draws);
-+            fflush(stdout);}}}
++            fflush(stdout);}
++        /* Frame ticks for A/B: count and monotonic time every 64 presents. */
++        if(on) {static unsigned tick;if(tick++%64==0) {struct timespec ts;clock_gettime(CLOCK_MONOTONIC,&ts);
++            printf("WOL_PRESENT_TICK n=%u t=%llu\n",nvn_present.frames,
++                (unsigned long long)ts.tv_sec*1000000000ull+(unsigned long long)ts.tv_nsec);fflush(stdout);}}}}
 +    /* WOL_PRESENT_TEST=1 (review 2026-10-13 P0 route test): write a known magenta marker directly
 +     * into the presenting texture. If it shows in the on-screen image or in the present readback,
 +     * the render-target -> window texture -> present chain is proven end to end. TEST-ONLY. */
@@ -4398,7 +4402,7 @@
      glDrawArrays(GL_TRIANGLE_STRIP,0,4);nvn_present.frames++;
      if(t2_video_needs_readback()) {
          GLint viewport[4];EGLint measured_w=0,measured_h=0;
-@@ -246,7 +412,7 @@
+@@ -246,7 +416,7 @@
          static int cfg,on;
          if(!cfg){on=getenv("MOMO_FRAME_CLOCK")!=NULL;cfg=1;}
          if(on){struct timespec now;clock_gettime(CLOCK_MONOTONIC,&now);
@@ -4407,7 +4411,7 @@
                  (unsigned long long)now.tv_sec*1000000000ull+(unsigned long long)now.tv_nsec);}
      }
      unsigned capture_requested=nvn_capture_request_consume();
-@@ -269,7 +435,15 @@
+@@ -269,7 +439,15 @@
      unsigned proof=nonblack>=32 && t->draws;
      cadence_pixel_proof=proof;
      const char *status=proof?"PIXELS":nonblack?"INCONCLUSIVE":"BLACK-SAMPLE";
@@ -4424,7 +4428,7 @@
      /* Native54 frame381 proves a black atlas background, RGB0 glyph vertices
       * and a transparent final overlay in the color layer; the normal target
       * still renders. Twelve samples were insufficient to observe this native
-@@ -279,8 +453,34 @@
+@@ -279,8 +457,34 @@
       * wall-clock/memory limits remain. This is not a release acceptance policy. */
      static unsigned black_limit;if(!black_limit){const char *o=getenv("COTM_BLACK_LIMIT");black_limit=o?(unsigned)strtoul(o,NULL,10):120;if(black_limit<120)black_limit=120;}
      nvn_present_receipt(nvn_present.black_streak>=black_limit?"BLACK":status,nonblack,maximum,t->draws);
@@ -4460,7 +4464,7 @@
          (long)getpid(),getenv("COTM_RUN_ID"),nvn_present.frames,status);
      if(nvn_video_capture_ready(capture,proof,width,height,readback.y,readback.rows,readback.bytes)) {
          uint64_t dump_started=timing?nvn_nanoseconds():0;
-@@ -290,14 +490,14 @@
+@@ -290,14 +494,14 @@
          for(unsigned y=0;y<height;y++)for(unsigned x=0;x<width;x++)memcpy(ppm+n+((size_t)y*width+x)*3,pixels+((size_t)(height-1-y)*width+x)*4,3);
          nvn_private_dump("frame-ppm",nvn_present.frames,ppm,size);free(ppm);nvn_present.proved=1;
          if(timing){timing_capture=1;timing_dump_ns=nvn_nanoseconds()-dump_started;}
@@ -4477,7 +4481,7 @@
          if(nvn_present_lean_enabled())nvn_present_lean.skipped_receipts++;else nvn_present_receipt("NOT-SAMPLED",0,0,t->draws);
          if(!single) {
              if(nvn_egl_fences.present_reader)stop("NVN_PRESENT_READER_REUSED",nvn_caller,nvn_present.frames,24);
-@@ -327,7 +527,7 @@
+@@ -327,7 +531,7 @@
          if(!cfg){const char *o=getenv("T2P_SLOW_MS");slow_ms=o?strtod(o,NULL):40.0;cfg=1;}
          uint64_t pres_now=nvn_profile.present_ns+(swap_finished-started);
          if(slow_ms>0&&last_swap&&(swap_finished-last_swap)*1e-6>slow_ms)
@@ -4486,7 +4490,7 @@
                  nvn_present.frames,(swap_finished-last_swap)*1e-6,(nvn_profile.replay_ns-l_replay)*1e-6,(nvn_profile.finish_ns-l_finish)*1e-6,
                  (pres_now-l_present)*1e-6,(nvn_profile.swap_ns-l_swap)*1e-6,(nvn_profile.readback_ns-l_read)*1e-6);
          last_swap=swap_finished;l_replay=nvn_profile.replay_ns;l_finish=nvn_profile.finish_ns;l_read=nvn_profile.readback_ns;l_swap=nvn_profile.swap_ns;l_present=pres_now;
-@@ -342,32 +542,38 @@
+@@ -342,32 +546,38 @@
      if(!nvn_present_from_job)nvn_window.acquired[index]=0;
      uint64_t now=nvn_nanoseconds();nvn_profile.present_ns+=now-started;nvn_profile.frames++;
      if(nvn_profile.start && nvn_profile.frames>=60) {
