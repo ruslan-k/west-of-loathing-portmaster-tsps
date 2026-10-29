@@ -3,6 +3,14 @@
     "bytes": 1944,
     "sha256": "a07e9858a5d7a4d4ebcd46e30086b5a9dfec0a48b0e8590f9d1e25bfe841e4ea"
   },
+  "RESULT.md": {
+    "bytes": 1687,
+    "sha256": "3daefdef4e899c1b1c437675440e174bef1f7c9c7a618e631891cc50d9c2d22b"
+  },
+  "ticks-pair.log": {
+    "bytes": 782,
+    "sha256": "01934996e18380979668e60595030c853db9c869d20ce227e27c0dfb0091deb1"
+  },
   "ticks.log": {
     "bytes": 694,
     "sha256": "3d2d166368d1a045794016bddeae68f6e8a29fc42aa7b27e6bd34497e179cf71"
