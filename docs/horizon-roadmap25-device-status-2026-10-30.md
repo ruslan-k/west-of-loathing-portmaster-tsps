@@ -99,3 +99,27 @@ allocation, not readback shadows.
 Consequence: evicting mirrors cannot lift the CMA wall. The next architectural lever must target the
 guest RAM mapping (page reclaim / on-demand commit) or the Mali allocation rate, not the shadow cache.
 The flag stays default-OFF and inert.
+
+## H-E1c — V3 frame ownership repaired — **DONE, first matched data**
+
+`WOL_OP_V3` (default OFF; ELF `f5c6f6f2`): bucket flushed **before** a new frame's first op, tagged by
+entry frame + thread, separate classes, explicit sum/mean wall and CPU. First post-reboot run
+(`v3on2`, `CmaFree 130 412 kB` at start), 4 832 V3 lines from a single worker thread:
+
+```
+frame=2414 DrawArrays    n=3 sum_wall=6.449 sum_cpu=4.713 mean_wall=2.150 mean_cpu=1.571
+frame=2414 ReportCounter n=2 sum_wall=7.455 sum_cpu=0.171 mean_wall=3.728 mean_cpu=0.086
+frame=2415 DrawArrays    n=3 sum_wall=8.723 sum_cpu=4.873 mean_wall=2.908 mean_cpu=1.624
+frame=2415 ReportCounter n=2 sum_wall=6.868 sum_cpu=0.207 mean_wall=3.434 mean_cpu=0.104
+```
+
+Two findings that differ from E1b:
+
+1. **`DrawArrays` is CPU-bound**, not cheap: ~4.7–4.9 ms of thread CPU per frame for three calls.
+   That is a real optimization target inside the handler, not a wait.
+2. **`ReportCounter` remains off-CPU**: ~6.9–7.5 ms wall at 0.17–0.21 ms CPU — a genuine block, but its
+   owner (fence vs driver backpressure) is still unnamed.
+
+`NVN_PROFILE` in the same run shows 60.338 ms/frame at frame=121 (startup period still dominates), so
+these frames are **not** the historical 71–73-draw scene; the numbers are per-op facts, not a baseline
+claim. Missing: OFF→ON pair on identical scene, unit tests for V3 rollover/terminal bucket.
