@@ -38,3 +38,18 @@ save, and the same owner lever (`forceWidth`/`forceHeight` before the
 per-allocation dimensions must come from `NVN_TEXTURE_REAL` (host side, correct)
 until the builder offset is fixed. The object-pointer join is what makes this
 census valid.
+
+## Gameplay entry attempt (failed, recorded)
+
+Run `opt-origin-g1` (/420 s budget) tried to reach gameplay with blind pad taps
+(BTN_SOUTH x2, 8 s apart) after 80 s on the title. Result: 386 textures, still
+exactly four 1920x1080, and presentation stopped after 8 frames while the KMS
+grab showed a uniform black screen. The runtime stayed alive with HID/rumble
+traffic, so this is a non-presenting guest state, not a crash.
+
+Cleanup ran through the standard harness: port stopped, MainUI PID back,
+`production_hashes_unchanged: 131`, `CmaFree` 106 376 kB.
+
+Conclusion: blind taps cannot load a save. The gameplay census needs a real
+navigation contract (title screen -> Continue -> slot -> confirm), which means
+capturing the actual menu frames first instead of guessing button sequences.
