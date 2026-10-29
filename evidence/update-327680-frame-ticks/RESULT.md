@@ -36,3 +36,27 @@ left, MainUI back.
 Repeat the pair once to see spread, then capture the title and menu at native
 resolution and compare text. Only after that does this flag deserve a launcher
 default.
+
+## RETRACTED: the scaled arm renders a black screen
+
+Physical check after the pair above, run `zrs2-shot` (same flag, 150 s):
+
+```
+WOL_PRESENT_TICK n=576      <- the guest is presenting
+kmsgrab 1280x720            <- (0,0,0), exactly 1 colour
+control capture g2-title.png <- (255,255,255), 2073 colours
+```
+
+Two captures 25 s apart are both fully black while the guest keeps presenting at
+the same rate. So `ZERO_RENDER_SCALE=2` produces no visible frame on this title:
+the extra 32% "frames" were presented into a surface that never reaches the
+scanout. The +31.7% figure above is an artifact of drawing nothing and must not
+be used.
+
+Why the earlier `zrs2-a1` looked healthy: it also presented scaled
+(`scaled=1`), but nobody looked at the screen that time. This is the same trap as
+the 0-presents CMA run, from the other side: a counter is not a picture.
+
+Status of the flag: **rejected**. The storage-scale path engages and is faster
+only because the output is black. Any further work here needs a render-path fix
+first (the scaled blit is not compositing), and it is not a launcher option.
