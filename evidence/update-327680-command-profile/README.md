@@ -36,3 +36,16 @@ before.
 
 Caveat: this run's picture was not verified with `kmsgrab`; the counters are real, the
 output is not.
+
+## Screen check (run `shot-a7`, same ELF)
+
+```
+kmsgrab 1280x720: centre pixel (198,198,198), 440 distinct colours,
+mean 100/100/100, stddev 99.2
+```
+
+Not black, not a flat fill: a real high-contrast frame is on the panel while the
+counters above are being produced. What I have **not** confirmed is whether the
+image is the game's title or the SpruceOS menu - that needs a human eye or a
+comparison against a known game capture, and the numbers alone cannot tell the two
+apart.
