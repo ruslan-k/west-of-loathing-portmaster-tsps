@@ -84,3 +84,17 @@ bypassed the fail-closed guard (`0593c9e`). Async remains default OFF.
 Trace the owner of the `ReportCounter` wait on one matched frame (H-P1): name the fence/driver call
 and its caller, with wall + thread CPU at the call site. It is the only measured span of the right
 size (~10 ms) and it is not CPU work, so it cannot be optimized away inside the handler.
+
+## Architecture attempt A1 — bounded CPU texture mirrors — **NEGATIVE (measurement)**
+
+Change: `WOL_TEX_SHADOW_MB` budget (default 0 = off) that evicts `cpu_snapshot` mirrors of the
+oldest `cpu_generation` textures before allocating a new one (ELF `59ee0cdd`).
+
+Run `shadow0` with `WOL_TEX_SHADOW_MB=192`: **zero `WOL_TEX_SHADOW_GC` events** — the budget was
+never reached, so the texture CPU mirrors stay below 192 MB and are **not** the source of
+`VmRSS 755 MB` / `VmSwap 1.08 GB`. The footprint is guest memory mapping and the shim's GPU-side
+allocation, not readback shadows.
+
+Consequence: evicting mirrors cannot lift the CMA wall. The next architectural lever must target the
+guest RAM mapping (page reclaim / on-demand commit) or the Mali allocation rate, not the shadow cache.
+The flag stays default-OFF and inert.

@@ -1,0 +1,15 @@
+MemAvailable::=689872 SwapFree::=2036924 CmaFree::=112560 
+MemAvailable::=682772 SwapFree::=2036924 CmaFree::=118380 
+MemAvailable::=682956 SwapFree::=2036924 CmaFree::=752 
+MemAvailable::=683280 SwapFree::=2036924 CmaFree::=122368 
+MemAvailable::=682964 SwapFree::=2036924 CmaFree::=112128 
+MemAvailable::=683828 SwapFree::=2036924 CmaFree::=81328 
+MemAvailable::=722684 SwapFree::=2036924 CmaFree::=94836 
+MemAvailable::=534816 SwapFree::=2036924 CmaFree::=5344 
+MemAvailable::=342900 SwapFree::=2036412 CmaFree::=4852 
+MemAvailable::=330968 SwapFree::=2036424 CmaFree::=1392 
+MemAvailable::=348500 SwapFree::=2036424 CmaFree::=184 
+MemAvailable::=348572 SwapFree::=2036424 CmaFree::=384 
+MemAvailable::=360744 SwapFree::=2036424 CmaFree::=192 
+MemAvailable::=193524 SwapFree::=1968328 CmaFree::=0 
+MemAvailable::=80216 SwapFree::=1903048 CmaFree::=4704 

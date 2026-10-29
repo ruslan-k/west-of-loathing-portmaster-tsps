@@ -13069,3 +13069,28 @@
  #else
          /* Animal Well: DrawArrays-only lists; every guest read of the replay (vertex ranges, uniform ranges incl. the
           * dynamic cbuffer array, copy sources) is captured per draw; descriptor pools are runtime copies. Misses stop. */
+--- a/native/nvn_textures.h
++++ b/native/nvn_textures.h
+@@ -530,7 +530,21 @@
+     uint64_t stride=t->b.flags&0x50?t->b.stride:row;
+     const uint8_t *raw=nvn_pointer(t->pool->address+t->b.offset,stride*height,PROT_READ);
+     unsigned changed=!t->cpu_snapshot;
+-    if(!t->cpu_snapshot){t->cpu_snapshot=malloc(bytes);if(!t->cpu_snapshot)stop("NVN_TEXTURE_CPU_SNAPSHOT_MEMORY",nvn_caller,bytes,21);}
++    if(!t->cpu_snapshot){
++        static int sh_cfg;static uint64_t sh_bytes,sh_cap;
++        if(!sh_cfg){const char *e=getenv("WOL_TEX_SHADOW_MB");sh_cap=e?strtoull(e,NULL,10)*1024ull*1024ull:0;sh_cfg=1;}
++        if(sh_cap&&sh_bytes+bytes>sh_cap){
++            /* shortcut: approximate LRU by cpu_generation, not access recency; upgrade if this proves lossy */
++            unsigned long long mg=0;
++            for(unsigned i=0;i<4096;i++)if(nvn_textures[i].live&&nvn_textures[i].cpu_snapshot&&nvn_textures[i].cpu_generation>mg)mg=nvn_textures[i].cpu_generation;
++            unsigned freed=0;
++            for(unsigned i=0;i<4096&&mg>8;i++){struct nvn_texture *q=&nvn_textures[i];
++                if(q==t||!q->live||!q->cpu_snapshot||q->cpu_generation+8>=mg)continue;
++                sh_bytes-=(uint64_t)q->b.width*q->b.height*4;free(q->cpu_snapshot);q->cpu_snapshot=NULL;freed++;}
++            if(freed)diag_printf("WOL_TEX_SHADOW_GC freed=%u have=%lluMB cap=%lluMB\n",freed,(unsigned long long)(sh_bytes>>20),(unsigned long long)(sh_cap>>20));
++        }
++        sh_bytes+=bytes;
++        t->cpu_snapshot=malloc(bytes);if(!t->cpu_snapshot)stop("NVN_TEXTURE_CPU_SNAPSHOT_MEMORY",nvn_caller,bytes,21);}
+     for(unsigned y=0;y<height;y++) {
+         if(!changed && memcmp(t->cpu_snapshot+y*row,raw+y*stride,row))changed=1;
+         if(changed)memcpy(t->cpu_snapshot+y*row,raw+y*stride,row);
