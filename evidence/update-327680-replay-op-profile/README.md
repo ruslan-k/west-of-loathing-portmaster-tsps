@@ -33,3 +33,21 @@ guest does with the 16 bytes written back, not by guessing.
 Caveat: this profile is from one run at 1280x720 on the update build; the frame timing here
 (51.9 ms) includes the profiling overhead of the per-op ledger itself, so treat the *ranking* as
 the result and the absolute ms as upper bounds.
+
+## Where inside the call the 8.5 ms must be
+
+The handler itself is a 16-byte store (`nvn_async_frame.h:191`): `{0, now}` written through
+`nvn_gpu_pointer(a[1],16,PROT_WRITE)`. That cannot cost 8.5 ms, so the time is in what the pointer
+path does underneath it:
+
+- `nvn_gpu_pointer` (`nvn_replay.h:46`) walks the 257-slot pool table and calls
+  `zero_texture_require_cpu(p, offset, size)` on every hit - the CPU-coherence hook that makes a
+  guest buffer readable/writable on the host side.
+- A counter buffer the guest polls every frame is exactly the kind of buffer whose coherence path
+  ends in a GPU sync.
+
+So the next measurement is not another profile of the whole frame: it is a counter inside
+`zero_texture_require_cpu` (how many calls actually sync, and how many ns they take), plus the
+identity of the pool that `a[1]` falls into. If that sync is the cost, the fix is to keep the
+counter buffer permanently CPU-coherent instead of re-establishing it twice per frame - and it is
+then a contained change, not a renderer rewrite.
