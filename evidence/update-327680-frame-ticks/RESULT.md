@@ -81,3 +81,21 @@ Next step is therefore not another flag but a receipt inside the scaled present:
 log the sampler's texture name, `glIsTexture`, and whether the scaled copy-back
 ran, on the same frame the presenter draws. Until that exists, every storage-scale
 number is meaningless.
+
+## Closing the lever: it is a foreign contract, not a switch
+
+Read `zero_render_scale.h` end to end. The whole path is written against the
+Momodora/Zero contract: `MOMO_SCALE_*` receipts, `zero_storage` ownership, pool
+alias scans over `flags==0xa4` offscreen chains, and attachment checks that demand
+colour and depth to be scaled together. WoL's window images are `flags=0x9`,
+present-only sources with `target-seen=0` and no scaled depth partner.
+
+That is why the output is black rather than degraded: the mechanism allocates a
+smaller storage for a surface the guest never renders into, and nothing in this
+title's render graph hands the frame over to it. Making it work here would mean
+porting the mechanism to a different render graph - new code, new failure modes -
+not enabling a documented option.
+
+Decision: the storage-scale family is closed for this title. Remaining honest
+options are the present-path cost (measure the crop/blit on the real 1080p
+swapchain) or accepting this build's rate; no further flag work.
