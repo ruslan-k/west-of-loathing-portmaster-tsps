@@ -33,3 +33,21 @@ What remains worth doing inside the runtime is the present path (22 ms), which i
 worth ~2 f/s at best.
 
 Cleanup: run finished on TIME_LIMIT, no runtime process, production untouched.
+
+## Correction (same day): 22 ms of present is CPU time, not a vsync wait
+
+I first read the 21.8 ms present as the documented Mali fbdev `eglSwapBuffers`
+vsync wait (the runtime's own comment measures 16-33 ms for that). That reading is
+wrong on its own terms: `cpu_ms` is `CLOCK_THREAD_CPUTIME_ID`, and a thread blocked
+in a vsync wait accumulates **no** CPU time. A blocking swap would show up as wall
+time with near-zero CPU.
+
+So the present path genuinely burns ~22 ms of CPU per frame, which is more than the
+whole NVN shim (10.8 ms). That is unusual for a full-screen blit and needs one more
+receipt before any change: split the present call into its parts (crop/quad setup,
+texture bind, draw, swap, fence) with the same thread-CPU clock, and print them in
+release.
+
+The guidance about `AW_FB_COPY` still stands as a separate question (it is compiled
+only under `ANIMAL_WELL_SHADERS`), but it is not the explanation for these 22 ms and
+must not be "fixed" on that assumption.
