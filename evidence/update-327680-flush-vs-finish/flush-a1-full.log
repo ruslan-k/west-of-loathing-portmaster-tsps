@@ -1,0 +1,6 @@
+NVN_PROFILE frame=61 count=60 elapsed-ms=460.401 replay-ms=60.844 present-ms=9.842 readback-ms=0.655 scope=wall-time-per-frame
+NVN_PROFILE frame=121 count=60 elapsed-ms=58.386 replay-ms=40.071 present-ms=3.326 readback-ms=0.000 scope=wall-time-per-frame
+NVN_PROFILE frame=181 count=60 elapsed-ms=35.974 replay-ms=25.928 present-ms=1.876 readback-ms=0.000 scope=wall-time-per-frame
+NVN_PROFILE frame=241 count=60 elapsed-ms=84.871 replay-ms=23.972 present-ms=1.751 readback-ms=0.000 scope=wall-time-per-frame
+NVN_PROFILE frame=301 count=60 elapsed-ms=119.271 replay-ms=60.711 present-ms=1.875 readback-ms=0.000 scope=wall-time-per-frame
+NVN_PROFILE frame=361 count=60 elapsed-ms=30.870 replay-ms=23.398 present-ms=1.742 readback-ms=0.000 scope=wall-time-per-frame

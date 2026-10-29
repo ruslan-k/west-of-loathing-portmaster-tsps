@@ -22,3 +22,31 @@ Verdict: no evidence either way. What it does rule out cheaply is the idea that 
 
 A real test needs a fixed scene (a save that always loads into the same room), then finish vs flush
 on the identical view, three windows each.
+
+## Matched frame indices, finish vs flush
+
+Six frame numbers appear in both logs; comparing the same frame index rather than the same wall
+clock:
+
+```
+frame   control (finish)        flush
+ 61     432.6 ms / replay 35.0  460.4 / 60.8
+121      36.9 / 28.3             58.4 / 40.1
+181      49.8 / 36.8             36.0 / 25.9
+241     109.5 / 24.6             84.9 / 24.0
+301     190.6 / 102.4           119.3 / 60.7
+361      33.2 / 23.3             30.9 / 23.4
+```
+
+At the only frame where both runs are past loading (361) the two are identical: 33.2/23.3 against
+30.9/23.4. The other rows are dominated by load spikes that do not coincide.
+
+**Verdict: flush and finish are a wash here.** Combined with the run-to-run spread (frame 361 is
+33.2 ms in this control and 39.8 ms in the same run's later windows), the conclusion is that the
+frame is scene-bound and the current measurement method cannot separate a 5 ms change from noise.
+
+## Blocked on a deterministic scene
+
+Every remaining question - is the wait a drain, does flushing help, would 720p work - needs the
+same view twice. That means a save that always loads into the same room, plus scripted input to
+reach it, checked by the frame's own draw count (`draws-mean`) rather than by wall time.
