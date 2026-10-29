@@ -12264,7 +12264,7 @@
 +}
 --- /dev/null
 +++ b/native/wol_uprender_v24.h
-@@ -0,0 +1,107 @@
+@@ -0,0 +1,116 @@
 +/* Update v327680 (metadata v24) UpRender / Screen observation.
 + *
 + * Measured on device: the guest answers Unity's Screen::get_width/height with
@@ -12349,6 +12349,15 @@
 +        r[8] = pair[0];
 +        r[9] = pair[1];
 +        ctx->uc_mcontext.pc = pc + 4;
++        if(wol_up24_events < 4 && wol_up24_mem >= 0 && accessible(owner + 0x78, 0x80, PROT_READ)) {
++            /* owner[0..0x7f]: look for the force-pixel pair before touching anything. */
++            uint32_t words[32];
++            if(pread(wol_up24_mem, words, sizeof words, (off_t)owner) == (ssize_t)sizeof words) {
++                printf("WOL_UPRENDER24_LAYOUT owner=0x%llx", (unsigned long long)owner);
++                for(unsigned k = 0; k < 32; k++) printf(" %u", words[k]);
++                printf("\n");
++            }
++        }
 +        if(wol_up24_events++ < 64)
 +            printf("WOL_UPRENDER24 site=aspect owner=0x%llx loaded=%ux%u used=%ux%u written=%u\n",
 +                   (unsigned long long)owner, before[0], before[1], pair[0], pair[1],
