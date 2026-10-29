@@ -13,6 +13,7 @@ pre=r'''
 #include <string.h>
 #include <pthread.h>
 #include "nvn_texture_formats.h"
+#include "aw_release.h"
 struct nvn_pool {unsigned flags;};static struct nvn_pool pool={.flags=0x22};
 struct nvn_texture {uint64_t id;struct nvn_pool *pool; struct {unsigned format,target,depth,levels,samples,width,height,flags,packaged,packaged_layout,gl_name;uint32_t swizzle[4];} b;unsigned host_half,host_scaled,packaged_lazy,composition_target_seen;};
 static uint64_t nvn_caller;
