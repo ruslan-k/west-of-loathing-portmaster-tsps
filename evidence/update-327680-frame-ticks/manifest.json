@@ -4,12 +4,16 @@
     "sha256": "a07e9858a5d7a4d4ebcd46e30086b5a9dfec0a48b0e8590f9d1e25bfe841e4ea"
   },
   "RESULT.md": {
-    "bytes": 2783,
-    "sha256": "a37d9e21e5dc985ec3beb2077704653e67534ccc8fa34515d88666b283982751"
+    "bytes": 3786,
+    "sha256": "c7deedd724e1c3b30e619ae3bf2d86de313a9aae8dcd2c891bf07f3643b4cea4"
   },
   "scaled-title-black.png": {
     "bytes": 2759,
     "sha256": "7efdbbfeb59ec43fc9584c5027bfb5a906d7980f68ffa20f617083617c6cf574"
+  },
+  "scaled-window-diagnosis.log": {
+    "bytes": 557,
+    "sha256": "253edd2c3d1aff690acd324ee1017f08b30b324b68be20fb0e79a0e6049b8853"
   },
   "ticks-pair.log": {
     "bytes": 782,

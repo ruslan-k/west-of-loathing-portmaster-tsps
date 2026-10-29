@@ -60,3 +60,24 @@ the 0-presents CMA run, from the other side: a counter is not a picture.
 Status of the flag: **rejected**. The storage-scale path engages and is faster
 only because the output is black. Any further work here needs a render-path fix
 first (the scaled blit is not compositing), and it is not a launcher option.
+
+## Why it is black (narrowed, not fixed)
+
+From `diag-zrs2-shot.log`:
+
+```
+MOMO_WINDOW_COLOR index=0 id=2 size=1920x1080 flags=0x9 scaled=1 actual=1280x720 initial-uniform=1 target-seen=0 draws=0
+ZERO_TEXEL_WRITE 2670    ZERO_TEXTURE_FLUSH 896    GL_INVALID 0
+control: WOL_PRESENT_SRC ... draws=1 scaled=0   (no MOMO_WINDOW_COLOR line at all)
+```
+
+So `actual=1280x720` is what the code really allocates (the earlier `storage=640x360`
+line belongs to a different print and was misleading), the guest's writes and
+flushes do reach the scaled path, and GL reports no error. What is missing is the
+handoff: the window images are never bound as render targets (`target-seen=0`)
+and the presenter ends up sampling a surface with no content.
+
+Next step is therefore not another flag but a receipt inside the scaled present:
+log the sampler's texture name, `glIsTexture`, and whether the scaled copy-back
+ran, on the same frame the presenter draws. Until that exists, every storage-scale
+number is meaningless.
