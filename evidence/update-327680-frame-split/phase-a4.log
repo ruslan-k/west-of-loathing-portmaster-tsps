@@ -1,0 +1,4 @@
+NVN_PROFILE frame=601 count=60 elapsed-ms=40.699 replay-ms=24.270 present-ms=2.601 readback-ms=0.000 scope=wall-time-per-frame
+NVN_PROFILE_DETAIL frame=601 counter-ms=8.606 finish-ms=0.055 receipt-ms=0.000 swap-ms=2.308 elided-waits=1773 real-final-waits=615
+NVN_PROFILE frame=661 count=60 elapsed-ms=39.492 replay-ms=23.986 present-ms=1.711 readback-ms=0.000 scope=wall-time-per-frame
+NVN_PROFILE_DETAIL frame=661 counter-ms=8.337 finish-ms=0.045 receipt-ms=0.000 swap-ms=1.360 elided-waits=1953 real-final-waits=675

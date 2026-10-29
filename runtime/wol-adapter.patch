@@ -4493,7 +4493,7 @@
                  nvn_present.frames,(swap_finished-last_swap)*1e-6,(nvn_profile.replay_ns-l_replay)*1e-6,(nvn_profile.finish_ns-l_finish)*1e-6,
                  (pres_now-l_present)*1e-6,(nvn_profile.swap_ns-l_swap)*1e-6,(nvn_profile.readback_ns-l_read)*1e-6);
          last_swap=swap_finished;l_replay=nvn_profile.replay_ns;l_finish=nvn_profile.finish_ns;l_read=nvn_profile.readback_ns;l_swap=nvn_profile.swap_ns;l_present=pres_now;
-@@ -342,32 +549,38 @@
+@@ -342,6 +549,7 @@
      if(!nvn_present_from_job)nvn_window.acquired[index]=0;
      uint64_t now=nvn_nanoseconds();nvn_profile.present_ns+=now-started;nvn_profile.frames++;
      if(nvn_profile.start && nvn_profile.frames>=60) {
@@ -4501,11 +4501,8 @@
          nvn_single_report(nvn_present.frames);
          nvn_gpu_frame_gate_report(nvn_present.frames,nvn_profile.frames);
          double ms=1e-6/nvn_profile.frames;
--        printf("NVN_PROFILE frame=%u count=%u elapsed-ms=%.3f replay-ms=%.3f present-ms=%.3f readback-ms=%.3f scope=wall-time-per-frame\n",nvn_present.frames,nvn_profile.frames,
-+        diag_printf("NVN_PROFILE frame=%u count=%u elapsed-ms=%.3f replay-ms=%.3f present-ms=%.3f readback-ms=%.3f scope=wall-time-per-frame\n",nvn_present.frames,nvn_profile.frames,
-             (now-nvn_profile.start)*ms,nvn_profile.replay_ns*ms,nvn_profile.present_ns*ms,nvn_profile.readback_ns*ms);
--        printf("NVN_PROFILE_DETAIL frame=%u counter-ms=%.3f finish-ms=%.3f receipt-ms=%.3f swap-ms=%.3f elided-waits=%"PRIu64" real-final-waits=%"PRIu64"\n",
-+        diag_printf("NVN_PROFILE_DETAIL frame=%u counter-ms=%.3f finish-ms=%.3f receipt-ms=%.3f swap-ms=%.3f elided-waits=%"PRIu64" real-final-waits=%"PRIu64"\n",
+@@ -350,24 +558,29 @@
+         printf("NVN_PROFILE_DETAIL frame=%u counter-ms=%.3f finish-ms=%.3f receipt-ms=%.3f swap-ms=%.3f elided-waits=%"PRIu64" real-final-waits=%"PRIu64"\n",
              nvn_present.frames,nvn_profile.counter_ns*ms,nvn_profile.finish_ns*ms,nvn_profile.receipt_ns*ms,nvn_profile.swap_ns*ms,
              nvn_gl_completion.skipped_waits,nvn_gl_completion.real_waits);
 -        printf("T2_COMMAND_RECORDER frame=%u locks=%"PRIu64" contended=%"PRIu64" recording-threads=%u scope=cumulative\n",

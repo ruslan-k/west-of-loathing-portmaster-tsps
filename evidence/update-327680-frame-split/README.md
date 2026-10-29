@@ -51,3 +51,27 @@ release.
 The guidance about `AW_FB_COPY` still stands as a separate question (it is compiled
 only under `ANIMAL_WELL_SHADERS`), but it is not the explanation for these 22 ms and
 must not be "fixed" on that assumption.
+
+## Corrected split with release-visible phase lines (run `split-a4`, ELF `1803571a`)
+
+```
+NVN_PROFILE frame=601 count=60 elapsed-ms=40.699 replay-ms=24.270 present-ms=2.601 readback-ms=0.000
+NVN_PROFILE_DETAIL frame=661 counter-ms=8.337 finish-ms=0.045 receipt-ms=0.000 swap-ms=1.360
+```
+
+- frame: **~40 ms** -> **~24.6 frames/s**, not 8.8
+- replay (guest NVN dispatch + GL submission): **~24 ms** (60%)
+- counters: **~8.3 ms**
+- present: **~2.6 ms**, swap **~1.4 ms**, finish **0.045 ms**
+
+Two earlier numbers in this folder are therefore wrong and are retracted:
+
+1. **8.80 f/s baseline** - the tick average included the slow startup window and the
+   tick counter starts at the first present; `elapsed-ms` from the phase line is the
+   honest frame period. The old 25.5 f/s figure was closer to reality than my 8.8.
+2. **"present burns 22 ms of CPU"** - that instrument read the thread CPU clock at
+   the tick print, which happens once every 64 presents, so it measured whole-frame
+   CPU, not the present call. Present is 2.6 ms.
+
+What survives: the process is CPU-bound (~96% of one core), the guest's own replay
+dominates, and the gap to 30 f/s is about **7 ms per frame** (40 -> 33.3), not 80.
