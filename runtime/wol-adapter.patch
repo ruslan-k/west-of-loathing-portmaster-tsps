@@ -8008,7 +8008,7 @@
                  }
                  if((j+1==list->count && (next!=list->last || r.next)) ||
                     (j+1<list->count && (next==list->last || !r.next)) ||
-@@ -318,26 +431,32 @@
+@@ -318,26 +431,41 @@
  #ifdef ANIMAL_WELL_SHADERS
                  {   static int pc;static unsigned pf;if(!pc){const char *o=getenv("AW_DRAW_PROBE");pf=o?(unsigned)strtoul(o,NULL,10):0;pc=1;}
                      if(pf && nvn_replay.last_frame+1==pf){uint64_t tg[2]={0,0};if(r.op==NI_nvnCommandBufferSetRenderTargets)memcpy(tg,r.payload,16);
@@ -8018,6 +8018,15 @@
  #endif
                  zero_gpu_cost_context(nvn_functions[r.op].name,0,0,0,0,0,0);
 +                wol_gpu_pass_boundary(1,r.op==NI_nvnCommandBufferSetRenderTargets);
++                {   /* WOL_DRAWARRAYS_TRACE=1: what the three unindexed draws actually are. */
++                    static int cfg,on;
++                    if(!cfg){const char *o=getenv("WOL_DRAWARRAYS_TRACE");on=o&&!strcmp(o,"1");cfg=1;}
++                    if(on&&r.op==NI_nvnCommandBufferDrawArrays)
++                        printf("WOL_DRAWARRAYS target=%ux%u prog=%u/%u count=%llu first=%llu frame=%u\n",
++                            nvn_render.target?nvn_render.target->b.width:0,nvn_render.target?nvn_render.target->b.height:0,
++                            nvn_render.program?nvn_render.program->sources[0]:0,nvn_render.program?nvn_render.program->sources[1]:0,
++                            (unsigned long long)r.args[0],(unsigned long long)r.args[1],nvn_replay.last_frame);
++                }
                  nvn_replay_record(&r);
 +                if(is_draw && wol_gpu_timer.active)wol_gpu_timer.draws++;
 +                wol_gpu_pass_boundary(0,r.op==NI_nvnCommandBufferSetRenderTargets);
@@ -8045,7 +8054,7 @@
              if(batch_errors)nvn_replay_error_boundary(); /* before fence/completion/publication */
              if(!asynchronous&&!snapshot) {
                  /* MOMO_SUBMIT_FINISH=0: end an executed list with a flush instead of a full wait, to tell
-@@ -359,6 +478,10 @@
+@@ -359,6 +487,10 @@
          struct nvn_queue *q=nvn_queue_find(a[0]);
          if(a[1]>256)stop("NVN_QUEUE_SUBMIT_COUNT",nvn_caller,a[1],24);
          const uint64_t *handles=nvn_pointer(a[2],a[1]*8,PROT_READ);nvn_gl_acquire();
@@ -8056,7 +8065,7 @@
          unsigned asynchronous=nvn_async_enabled(),batch_errors=nvn_replay_errors_batched();uint64_t submitted_handles[256];
          t2_queue_submits_seen++;
          if(asynchronous)nvn_async_admit_locked(q,a[1]);
-@@ -385,9 +508,9 @@
+@@ -385,9 +517,9 @@
              uint64_t log_lifetime=list->log_lifetime;
              struct frame_log_event log=nvn_command_log_sample(&executed_cache,&executed_logs,list->owner,list->count,log_lifetime,frame_log_full_commands()||nvn_draw_diagnostic_active());
              if(log.emit) {

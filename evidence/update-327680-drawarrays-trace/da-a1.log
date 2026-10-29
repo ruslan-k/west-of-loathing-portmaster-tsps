@@ -1,0 +1,11 @@
+WOL_DRAWARRAYS target=1280x720 prog=0/0 count=7 first=0 frame=2245
+WOL_DRAWARRAYS target=1280x720 prog=0/0 count=7 first=0 frame=2245
+WOL_DRAWARRAYS target=1920x1080 prog=0/0 count=7 first=0 frame=2245
+WOL_DRAWARRAYS target=1280x720 prog=0/0 count=7 first=0 frame=2246
+WOL_DRAWARRAYS target=1280x720 prog=0/0 count=7 first=0 frame=2246
+WOL_DRAWARRAYS target=1920x1080 prog=0/0 count=7 first=0 frame=2246
+WOL_DRAWARRAYS target=1280x720 prog=0/0 count=7 first=0 frame=2247
+WOL_DRAWARRAYS target=1280x720 prog=0/0 count=7 first=0 frame=2247
+WOL_DRAWARRAYS target=1920x1080 prog=0/0 count=7 first=0 frame=2247
+NVN_PROFILE frame=2161 count=60 elapsed-ms=41.631 replay-ms=25.894 present-ms=1.775 readback-ms=0.000
+NVN_PROFILE frame=2221 count=60 elapsed-ms=42.961 replay-ms=26.202 present-ms=1.704 readback-ms=0.000
