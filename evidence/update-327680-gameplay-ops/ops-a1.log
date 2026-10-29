@@ -1,0 +1,12 @@
+NVN_REPLAY_OP frame=2041 op=nvnCommandBufferDrawElementsBaseVertex ms-per-frame=6.206 calls-per-frame=72.8 us-per-call=85.3
+NVN_REPLAY_OP frame=2041 op=nvnCommandBufferDownsample ms-per-frame=2.562 calls-per-frame=4.0 us-per-call=640.4
+NVN_REPLAY_OP frame=2041 op=nvnCommandBufferCopyTextureToTexture ms-per-frame=1.649 calls-per-frame=1.0 us-per-call=1648.9
+NVN_REPLAY_OP frame=2041 op=nvnCommandBufferSetRenderTargets ms-per-frame=0.447 calls-per-frame=19.0 us-per-call=23.5
+NVN_REPLAY_OP frame=2041 op=nvnCommandBufferBindUniformBuffers ms-per-frame=0.161 calls-per-frame=102.8 us-per-call=1.6
+NVN_REPLAY_OP frame=2041 op=nvnCommandBufferUpdateUniformBuffer ms-per-frame=0.148 calls-per-frame=56.8 us-per-call=2.6
+NVN_REPLAY_OP frame=2041 op=nvnCommandBufferBindProgram ms-per-frame=0.115 calls-per-frame=30.0 us-per-call=3.8
+NVN_REPLAY_OP frame=2041 op=nvnCommandBufferClearDepthStencil ms-per-frame=0.073 calls-per-frame=3.0 us-per-call=24.3
+NVN_PROFILE frame=2101 count=60 elapsed-ms=175.868 replay-ms=62.154 present-ms=1.948 readback-ms=0.000 scope=wall-time-per-frame
+NVN_PROFILE frame=2161 count=60 elapsed-ms=241.645 replay-ms=51.207 present-ms=1.884 readback-ms=0.000 scope=wall-time-per-frame
+NVN_PROFILE frame=2221 count=60 elapsed-ms=50.092 replay-ms=27.724 present-ms=1.828 readback-ms=0.000 scope=wall-time-per-frame
+NVN_PROFILE frame=2281 count=60 elapsed-ms=42.918 replay-ms=26.556 present-ms=1.745 readback-ms=0.000 scope=wall-time-per-frame
