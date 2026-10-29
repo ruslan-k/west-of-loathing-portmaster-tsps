@@ -61,3 +61,24 @@ There is no handler-level CPU hotspot to optimise in these two classes. The rema
 submission/wait time, and the only legal levers there are synchronisation-overlap ones - which
 `COTM_ASYNC_FRAME` currently refuses by design (`NVN_LC2_ASYNC_STAGE_PROGRAMS_UNQUALIFIED`).
 No renderer change is justified by this evidence.
+
+## RETRACTION (roadmap §25.2, 2026-10-30)
+
+The `WOL_OP_SPLIT` line already divides by `64e6`: `handler=3.234` is the **mean per selected op**,
+not a 64-op bucket total. Dividing it again produced the bogus "50.5 us per op" above.
+
+Correct reading of late-window medians:
+
+```
+handler 3.234 ms per op   (sum over 64 ops ~ 207 ms)
+cpu     1.081 ms per op   (sum over 64 ops ~  69 ms)
+gap     3.123 ms per op   (unclassified, includes unrelated ops and frame boundaries)
+```
+
+So the earlier claim "handlers are microseconds, the 6.8 ms is between-op wait" is **withdrawn**.
+The handler cost is real and large. Two further defects: `DrawArrays` and `ReportCounter` share one
+accumulator, so per-opcode cost is not separable; and `gap` spans unrelated NVN operations and frame
+boundaries, so it is not a GPU-wait measurement.
+
+Next per roadmap: H-E1b (per-class count/sum/mean with explicit units and frame/list ownership),
+plus read-only H-M0 memory receipts. No async or render-size change until those proofs exist.
