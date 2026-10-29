@@ -1081,7 +1081,15 @@
  #endif
      pthread_cond_broadcast(&kernel_changed);
  }
-@@ -237,7 +238,7 @@
+@@ -224,6 +225,7 @@
+ }
+ static void hid_publish(struct hid_sample sample,unsigned connected) {
+     if(!hid_state.shared_plus_one)return;
++    hid_sample_stick_directions(&sample);
+     uint8_t *shared=shared_regions[hid_state.shared_plus_one-1].writer;
+     unsigned target=10;
+     if(hid_state.active && (hid_state.styles&1) && connected)
+@@ -237,7 +239,7 @@
       * not No1. ON by default now; MOMO_NPAD_HANDHELD=0 goes back. */
      static int hh_cfg;static unsigned handheld;
      if(!hh_cfg){const char *o=getenv("MOMO_NPAD_HANDHELD");handheld=!o||strcmp(o,"0");hh_cfg=1;
@@ -1090,7 +1098,7 @@
      for(unsigned i=0;i<10;i++) {
          uint8_t *entry=shared+0x9a00+0x5000*i;
          unsigned is_handheld=handheld && i==8 && hid_state.active && (hid_state.styles&2) && connected;
-@@ -257,11 +258,11 @@
+@@ -257,11 +259,11 @@
          if(style!=old) {
              if(hid_state.events[i])session_get(hid_state.events[i],0)->initialized=1;
              pthread_cond_broadcast(&kernel_changed);
@@ -1104,7 +1112,7 @@
          hid_host.last_buttons=sample.buttons;
      }
  }
-@@ -271,7 +272,7 @@
+@@ -271,7 +273,7 @@
      pthread_mutex_lock(&kernel_mutex);
      hid_publish((struct hid_sample){0},hid_host.pad!=NULL);
      pthread_mutex_unlock(&kernel_mutex);
@@ -1113,7 +1121,7 @@
          diagnostic?"diagnostic":"physical",failed?"failed":"ok");
      fflush(NULL);
      stop(failed?"GPTK_INPUT_SINK_FATAL":"USER_CONTROLLER_EXIT",0,0,failed?21:0);
-@@ -288,9 +289,9 @@
+@@ -288,9 +290,9 @@
          hid_host.diagnostic_lx=(int16_t)(command.reserved&0xffff);
          hid_host.diagnostic_ly=(int16_t)(command.reserved>>16);
          hid_host.diagnostic_until=now+command.milliseconds;
@@ -1125,7 +1133,7 @@
      if(now>=hid_host.diagnostic_until){hid_host.diagnostic_buttons=0;hid_host.diagnostic_lx=hid_host.diagnostic_ly=0;}
  #if defined(MEGAMAN_HOST_DIAGNOSTIC) && MEGAMAN_HOST_DIAGNOSTIC
      if(megaman_virtual_pad.enabled && megaman_virtual_pad_set(hid_host.diagnostic_buttons))
-@@ -304,7 +305,7 @@
+@@ -304,7 +306,7 @@
      if(virtual_result<0)stop("HID_HOST_VIRTUAL_OPEN_FAILED",0,0,21);
      if(virtual_result) {
          hid_host.pad=megaman_virtual_pad.controller;
@@ -1134,7 +1142,7 @@
      }
  #endif
      for(;;) {
-@@ -315,14 +316,14 @@
+@@ -315,14 +317,14 @@
  #endif
              hid_c6_close(hid_host.pad);hid_host.pad=NULL;hid_host.face_swap=0;
              hid_host.left_stick=(struct megaman_left_stick){0};
@@ -1151,7 +1159,7 @@
  #if defined(T2_SWITCH_INPUT) && T2_SWITCH_INPUT
                  hid_host.face_swap=t2_face_measure(hid_host.pad,i,"player-one");
  #endif
-@@ -330,9 +331,9 @@
+@@ -330,9 +332,9 @@
              }
          }
          for(unsigned i=0;i<HID_EXTRA_PADS;i++)if(hid_host.extra[i]&&!SDL_GameControllerGetAttached(hid_host.extra[i])) {
@@ -1164,7 +1172,7 @@
          if(hid_host.pad)for(int i=0;i<SDL_NumJoysticks();i++) {
              if(!hid_c6_available(i))continue;
              SDL_JoystickID id=t2_sdl_device_instance(i);
-@@ -341,7 +342,7 @@
+@@ -341,7 +343,7 @@
              if(slot==HID_EXTRA_PADS)break;
              hid_host.extra[slot]=SDL_GameControllerOpen(i);
              if(hid_host.extra[slot]) {
@@ -1173,7 +1181,7 @@
  #if defined(T2_SWITCH_INPUT) && T2_SWITCH_INPUT
                  hid_host.face_swap_extra[slot]=t2_face_measure(hid_host.extra[slot],i,"extra");
  #endif
-@@ -399,13 +400,13 @@
+@@ -399,13 +401,13 @@
          snprintf(address.sun_path,sizeof(address.sun_path),"%s/buttons.sock",path);
          hid_host.command_fd=socket(AF_UNIX,SOCK_DGRAM|SOCK_NONBLOCK|SOCK_CLOEXEC,0);
          if(hid_host.command_fd<0 || bind(hid_host.command_fd,(struct sockaddr *)&address,sizeof(address)))stop("HID_DIAGNOSTIC_SOCKET_FAILED",0,errno,21);
@@ -1189,6 +1197,29 @@
      }
      if(rc)stop("HID_HOST_THREAD_FAILED",0,rc,21);
  }
+--- a/native/input_ring.h
++++ b/native/input_ring.h
+@@ -5,6 +5,20 @@
+  */
+ #include <stdint.h>
+ struct hid_sample {uint64_t number,buttons;int32_t lx,ly,rx,ry;uint32_t attributes,reserved;};
++/* WOL_NPAD_STICK_DIRECTIONS_BEGIN */
++/* Npad direction pseudo-buttons are separate from its raw analog coordinates. */
++static inline void hid_sample_stick_directions(struct hid_sample *s) {
++    const int32_t threshold=16384; /* Half-range, matching Switch controller direction tests. */
++    if(s->lx<=-threshold)s->buttons|=UINT64_C(1)<<16;
++    else if(s->lx>=threshold)s->buttons|=UINT64_C(1)<<18;
++    if(s->ly>=threshold)s->buttons|=UINT64_C(1)<<17;
++    else if(s->ly<=-threshold)s->buttons|=UINT64_C(1)<<19;
++    if(s->rx<=-threshold)s->buttons|=UINT64_C(1)<<20;
++    else if(s->rx>=threshold)s->buttons|=UINT64_C(1)<<22;
++    if(s->ry>=threshold)s->buttons|=UINT64_C(1)<<21;
++    else if(s->ry<=-threshold)s->buttons|=UINT64_C(1)<<23;
++}
++/* WOL_NPAD_STICK_DIRECTIONS_END */
+ struct hid_slot {uint64_t sequence;struct hid_sample sample;};
+ struct hid_ring {uint64_t unused,capacity,tail,count;struct hid_slot slots[17];};
+ _Static_assert(sizeof(struct hid_sample)==0x28,"Npad sample ABI");
 --- a/native/ipc.h
 +++ b/native/ipc.h
 @@ -19,7 +19,7 @@

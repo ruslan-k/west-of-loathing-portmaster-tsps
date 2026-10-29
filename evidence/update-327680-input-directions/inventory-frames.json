@@ -1,0 +1,31 @@
+{
+  "note": "matched frames around one calibrated right-stick pulse",
+  "frames": [
+    {
+      "frame": "before_axis",
+      "list_region_bbox": [
+        520,
+        80,
+        920,
+        670
+      ],
+      "list_min": 255,
+      "list_max": 255,
+      "list_std": 0.0,
+      "nonwhite_px": 0
+    },
+    {
+      "frame": "after_axis",
+      "list_region_bbox": [
+        520,
+        80,
+        920,
+        670
+      ],
+      "list_min": 255,
+      "list_max": 255,
+      "list_std": 0.0,
+      "nonwhite_px": 0
+    }
+  ]
+}

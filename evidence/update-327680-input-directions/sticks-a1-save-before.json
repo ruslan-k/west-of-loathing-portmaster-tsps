@@ -1,0 +1,20 @@
+{
+  "backup": "/mnt/SDCARD/Roms/PORTS/wol-update-probe-20261028/backups/save-before-sticks-a1",
+  "files": [
+    {
+      "path": "save-Shane Bassett-589275.json",
+      "sha256": "d4c265cfe37ec5a6505ae08fedb96798c2c6d018ed45c17451be7bf2d1b3b8e4",
+      "bytes": 2361
+    },
+    {
+      "path": "permaflags.json",
+      "sha256": "605ce9b5e092a3c95e0052dbf9b320b67d3ad94e495f905c4768b098bd91bdb5",
+      "bytes": 179
+    },
+    {
+      "path": ".pseudo-device-id-010031b00a4e8000.bin",
+      "sha256": "3528f87def85643b2fcb042259c020ea6064f4da1761ee94717caac23920ec0b",
+      "bytes": 16
+    }
+  ]
+}
