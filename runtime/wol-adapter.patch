@@ -4522,7 +4522,7 @@
              nvn_present.frames,nvn_profile.replay_cpu_samples==nvn_profile.replay_submits?nvn_profile.replay_cpu_ns*ms:-1.0,
 --- a/native/nvn_queue.h
 +++ b/native/nvn_queue.h
-@@ -12,20 +12,32 @@
+@@ -12,16 +12,28 @@
  static inline uint64_t nvn_phase_now(void){struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec;}
  static inline void nvn_phase_begin(void){if(nvn_phase.enabled)nvn_phase.mark=nvn_phase_now();}
  static inline void nvn_phase_end(unsigned k){if(nvn_phase.enabled){uint64_t n=nvn_phase_now();nvn_phase.ns[k]+=n-nvn_phase.mark;nvn_phase.calls[k]++;nvn_phase.mark=n;}}
@@ -4554,11 +4554,6 @@
      for(unsigned rank=0;rank<10;rank++) {
          unsigned best=0;for(unsigned i=1;i<NI_COUNT;i++)if(nvn_phase.op_ns[i]>nvn_phase.op_ns[best])best=i;
          if(!nvn_phase.op_ns[best])break;
--        printf("NVN_REPLAY_OP frame=%u op=%s ms-per-frame=%.3f calls-per-frame=%.1f us-per-call=%.1f\n",frame,nvn_functions[best].name,
-+        diag_printf("NVN_REPLAY_OP frame=%u op=%s ms-per-frame=%.3f calls-per-frame=%.1f us-per-call=%.1f\n",frame,nvn_functions[best].name,
-             nvn_phase.op_ns[best]*f,(double)nvn_phase.op_calls[best]/frames,nvn_phase.op_calls[best]?nvn_phase.op_ns[best]/1e3/nvn_phase.op_calls[best]:0.0);
-         nvn_phase.op_ns[best]=0;
-     }
 @@ -37,6 +49,7 @@
   * not Tegra allocations. Nonempty submission needs the typed command decoder.
   */
