@@ -1125,7 +1125,7 @@
          hid_host.last_buttons=sample.buttons;
      }
  }
-@@ -271,7 +273,7 @@
+@@ -271,11 +273,36 @@
      pthread_mutex_lock(&kernel_mutex);
      hid_publish((struct hid_sample){0},hid_host.pad!=NULL);
      pthread_mutex_unlock(&kernel_mutex);
@@ -1134,7 +1134,36 @@
          diagnostic?"diagnostic":"physical",failed?"failed":"ok");
      fflush(NULL);
      stop(failed?"GPTK_INPUT_SINK_FATAL":"USER_CONTROLLER_EXIT",0,0,failed?21:0);
-@@ -288,9 +290,9 @@
+ }
++/* WOL_SCRIPT_INPUT="start_ms:hold_ms:mask,..." - recorded presses so two runs can reach the same
++ * scene without a human. shortcut: fixed schedule from the first sample, blind to what is on
++ * screen; upgrade to frame-triggered steps when a menu needs two different screens. */
++static struct {int parsed,on;unsigned n;uint64_t t0;struct{uint64_t start,hold,mask;}e[16];} wol_script;
++static void wol_script_input_apply(uint64_t now) {
++    if(!wol_script.parsed) {
++        wol_script.parsed=1;const char *s=getenv("WOL_SCRIPT_INPUT");
++        if(s&&*s){char *copy=strdup(s),*save=NULL;
++            for(char *tok=strtok_r(copy,",",&save);tok&&wol_script.n<16;tok=strtok_r(NULL,",",&save)) {
++                unsigned long a,b,c;
++                if(sscanf(tok,"%lu:%lu:%lx",&a,&b,&c)==3)wol_script.e[wol_script.n++]=(typeof(wol_script.e[0])){a,b,c};
++            }
++            free(copy);
++        }
++        wol_script.on=wol_script.n>0;
++        if(wol_script.on){printf("WOL_SCRIPT_INPUT entries=%u\n",wol_script.n);fflush(stdout);}
++    }
++    if(!wol_script.on)return;
++    uint64_t t=now-wol_script.t0,m=0;
++    for(unsigned i=0;i<wol_script.n;i++)
++        if(t>=wol_script.e[i].start&&t<wol_script.e[i].start+wol_script.e[i].hold)m|=wol_script.e[i].mask;
++    if(m){hid_host.diagnostic_buttons=m;hid_host.diagnostic_until=now+40;
++        static uint64_t last;if(last!=m){last=m;printf("WOL_SCRIPT_PRESS t=%llu mask=%#llx\n",(unsigned long long)t,(unsigned long long)m);fflush(stdout);}}
++}
++static void wol_script_input_init(void) {wol_script.t0=hid_now_ms();}
+ static void hid_diagnostic_update(uint64_t now) {
+     if(hid_host.command_fd<0)return;
+     struct {uint64_t buttons;uint32_t milliseconds,reserved;} command;
+@@ -288,9 +315,9 @@
          hid_host.diagnostic_lx=(int16_t)(command.reserved&0xffff);
          hid_host.diagnostic_ly=(int16_t)(command.reserved>>16);
          hid_host.diagnostic_until=now+command.milliseconds;
@@ -1146,7 +1175,7 @@
      if(now>=hid_host.diagnostic_until){hid_host.diagnostic_buttons=0;hid_host.diagnostic_lx=hid_host.diagnostic_ly=0;}
  #if defined(MEGAMAN_HOST_DIAGNOSTIC) && MEGAMAN_HOST_DIAGNOSTIC
      if(megaman_virtual_pad.enabled && megaman_virtual_pad_set(hid_host.diagnostic_buttons))
-@@ -304,7 +306,7 @@
+@@ -304,7 +331,7 @@
      if(virtual_result<0)stop("HID_HOST_VIRTUAL_OPEN_FAILED",0,0,21);
      if(virtual_result) {
          hid_host.pad=megaman_virtual_pad.controller;
@@ -1155,7 +1184,7 @@
      }
  #endif
      for(;;) {
-@@ -315,14 +317,14 @@
+@@ -315,14 +342,14 @@
  #endif
              hid_c6_close(hid_host.pad);hid_host.pad=NULL;hid_host.face_swap=0;
              hid_host.left_stick=(struct megaman_left_stick){0};
@@ -1172,7 +1201,7 @@
  #if defined(T2_SWITCH_INPUT) && T2_SWITCH_INPUT
                  hid_host.face_swap=t2_face_measure(hid_host.pad,i,"player-one");
  #endif
-@@ -330,9 +332,9 @@
+@@ -330,9 +357,9 @@
              }
          }
          for(unsigned i=0;i<HID_EXTRA_PADS;i++)if(hid_host.extra[i]&&!SDL_GameControllerGetAttached(hid_host.extra[i])) {
@@ -1185,7 +1214,7 @@
          if(hid_host.pad)for(int i=0;i<SDL_NumJoysticks();i++) {
              if(!hid_c6_available(i))continue;
              SDL_JoystickID id=t2_sdl_device_instance(i);
-@@ -341,7 +343,7 @@
+@@ -341,13 +368,14 @@
              if(slot==HID_EXTRA_PADS)break;
              hid_host.extra[slot]=SDL_GameControllerOpen(i);
              if(hid_host.extra[slot]) {
@@ -1194,13 +1223,22 @@
  #if defined(T2_SWITCH_INPUT) && T2_SWITCH_INPUT
                  hid_host.face_swap_extra[slot]=t2_face_measure(hid_host.extra[slot],i,"extra");
  #endif
-@@ -399,13 +401,13 @@
+             }
+         }
+         hid_diagnostic_update(hid_now_ms());
++        wol_script_input_apply(hid_now_ms());
+         uint64_t diagnostic_buttons=hid_host.diagnostic_buttons;
+ #if defined(MEGAMAN_HOST_DIAGNOSTIC) && MEGAMAN_HOST_DIAGNOSTIC
+         if(megaman_virtual_pad.enabled)diagnostic_buttons=0;
+@@ -399,13 +427,14 @@
          snprintf(address.sun_path,sizeof(address.sun_path),"%s/buttons.sock",path);
          hid_host.command_fd=socket(AF_UNIX,SOCK_DGRAM|SOCK_NONBLOCK|SOCK_CLOEXEC,0);
          if(hid_host.command_fd<0 || bind(hid_host.command_fd,(struct sockaddr *)&address,sizeof(address)))stop("HID_DIAGNOSTIC_SOCKET_FAILED",0,errno,21);
 -        printf("HID_DIAGNOSTIC_SOCKET path=%s\n",address.sun_path);
+-    }
 +        diag_printf("HID_DIAGNOSTIC_SOCKET path=%s\n",address.sun_path);
-     }
++    }
++    wol_script_input_init();
      pthread_attr_t attr;pthread_attr_init(&attr);pthread_attr_setstacksize(&attr,1U<<20);
      int rc=pthread_create(&hid_host.worker,&attr,hid_worker,NULL);pthread_attr_destroy(&attr);
      {   /* Opt-in COTM_HID_AFFINITY: keep the HID worker off the guest main core. */

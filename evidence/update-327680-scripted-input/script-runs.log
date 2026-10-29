@@ -1,0 +1,9 @@
+== script-a2
+WOL_SCRIPT_PRESS t=16008 mask=0x3
+      3 draws=7.00
+== script-a3
+WOL_SCRIPT_PRESS t=24000 mask=0x1
+      7 draws=7.00
+== script-a4
+WOL_SCRIPT_PRESS t=19003 mask=0x1
+      6 draws=7.00
