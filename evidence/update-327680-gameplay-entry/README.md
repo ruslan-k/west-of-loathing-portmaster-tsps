@@ -55,3 +55,16 @@ actually produces, then tap the one that maps to Switch A.
 Harness fix that removed a recurring false start: the probe now refreshes
 `device-manifest.json` from the device before every run, so the identity assert
 can no longer fail against a stale local copy.
+
+## Owner instruction and a wedge
+
+Owner states gameplay entry needs **several A presses**, not one. Injection of
+306/307 and a six-press A run (`opt-input-map1`) could not be evaluated: the
+device stopped answering (`ssh: No route to host`, ping down for 2.5 min) and
+needs a physical power-cycle. That is the known memory-pressure wedge class, not
+a port crash - it came after several traced runs with the diagnostic floor at
+16 MiB.
+
+Next entry attempt, after the power-cycle: one quiet run (no RT tracing), six A
+presses (BTN_EAST 305) 2.5 s apart, then confirm the scene by frame match before
+enabling any census.
