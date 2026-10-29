@@ -51,3 +51,26 @@ So the next measurement is not another profile of the whole frame: it is a count
 identity of the pool that `a[1]` falls into. If that sync is the cost, the fix is to keep the
 counter buffer permanently CPU-coherent instead of re-establishing it twice per frame - and it is
 then a contained change, not a renderer rewrite.
+
+## Correction: the coherence hook is not the cost
+
+The hypothesis above is wrong, and cheaply so. `zero_texture_require_cpu` (`nvn_textures.h:166`)
+returns on its second line for this title: it only proceeds when `pool->zero_r8_target_seen` is set
+or the ZERO contract is active (`zero_render_scale_enabled() && pool->flags==0xa4`). West of
+Loathing has neither, so the call the previous section blamed is a no-op.
+
+Second, the replay's own handler for `NI_nvnCommandBufferReportCounter` is a `break`
+(`nvn_commands.h:168`): a sixteen-byte store, nothing that can take 8.5 ms.
+
+Which leaves the uncomfortable explanation: the per-op figure is *elapsed since the previous op*,
+so whatever waits between the two calls - a GPU drain, a fence, a batch flush - is charged to the
+counter because that is where the clock stands still. The counter is the *place* the frame pauses,
+not necessarily the *reason*.
+
+## What the next probe has to separate
+
+1. Time the ReportCounter handler on its own clock, inside the case, not via the op ledger.
+2. Count `nvn_gl_finish_current()` / `glFlush` calls between ops, and whether one lands between the
+   two counters.
+3. If the drain is real, the answer is the same as before but for a different reason: the frame is
+   serialized around a wait, and the fix is to overlap it - not to touch the counter.
