@@ -1,0 +1,7 @@
+650-WOL_KEY_OWNER key=0x340a64714 mutex-word=0x0 owner-handle=0x0 owner-thread=0xffffffff waiter=0x18
+651-MOMO_THREAD index=0x19 handle=0x433 state=0x2 core=0x1 last-svc=0x1c at=sdk.text.seg+0x393dd8 waiting-key=0x0 waiting-mutex=0x0 entry=sdk.text.seg
+652-MOMO_THREAD index=0x1a handle=0x437 state=0x2 core=0x1 last-svc=0x18 at=sdk.text.seg+0x393dac waiting-key=0x0 waiting-mutex=0x0 entry=sdk.text.seg
+653-MOMO_THREAD index=0x1b handle=0x438 state=0x2 core=0x1 last-svc=0xb at=sdk.text.seg+0x393d08 waiting-key=0x0 waiting-mutex=0x0 entry=sdk.text.seg+
+654-MOMO_THREAD index=0x1c handle=0x439 state=0x2 core=0x1 last-svc=0x1c at=sdk.text.seg+0x393dd8 waiting-key=0x3413a88b0 waiting-mutex=0x0 entry=sdk.
+655-WOL_KEY_OWNER key=0x3413a88b0 mutex-word=0x0 owner-handle=0x0 owner-thread=0xffffffff waiter=0x1c
+656:STOP status=NVN_PROGRAM_INVALID pc=main.text.seg+0x532994 detail=0x0 query_memory_calls=0xa4 tls_trap_reads=0x0

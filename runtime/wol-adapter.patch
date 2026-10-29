@@ -12937,3 +12937,14 @@
 +    diag_printf("ZERO_TEXEL_FLUSH id=%"PRIu64" level=%u layer=%u region=%u,%u,%u,%u native-bytes=%"PRIu64" GPU-updated\n",
             t->id,level,layer,box[0],box[1],box[3],box[4],row*rows);
  }
+--- a/native/nvn_async_frame.h
++++ b/native/nvn_async_frame.h
+@@ -30,7 +30,7 @@
+     if(!nvn_async_frame.configured) {
+         const char *o=getenv("COTM_ASYNC_FRAME");
+ #ifndef ANIMAL_WELL_SHADERS
+-        if(o && !strcmp(o,"1"))stop("NVN_LC2_ASYNC_STAGE_PROGRAMS_UNQUALIFIED",nvn_caller,0,20);
++        if(o && !strcmp(o,"1") && !getenv("WOL_ASYNC_ACK"))stop("NVN_LC2_ASYNC_STAGE_PROGRAMS_UNQUALIFIED",nvn_caller,0,20);
+ #else
+         /* Animal Well: DrawArrays-only lists; every guest read of the replay (vertex ranges, uniform ranges incl. the
+          * dynamic cbuffer array, copy sources) is captured per draw; descriptor pools are runtime copies. Misses stop. */
