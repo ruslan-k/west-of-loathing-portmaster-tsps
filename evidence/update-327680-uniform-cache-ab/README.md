@@ -21,3 +21,21 @@ way, which needs scripted input (or a save that loads straight into a room).
 
 Not claimed: that the cache is slow, broken, or that it changed the frame. The run simply did not
 show the scene.
+
+## Second attempt with a longer window: the band is reached, no win
+
+150 s window, cache on, `ordinal=1`, game-scene band:
+
+```
+draws 56.5-57.5, 59.9, 60.5:  wall-ms 7.92 8.02 8.03 8.13 8.17 8.20 8.31 8.31 8.33 8.37 8.44 8.46 8.50 8.51
+```
+
+Control (cache off, same band from `stab-a1`): 7.78-8.47 ms.
+
+Identical distributions: median ~8.3 both, spread 0.6 both. **`WOL_UNIFORM_CACHE=1` neither helps nor
+hurts the draw list on this title** - consistent with the roadmap's own note that the historical
+uniform win was worth ~1 ms, which is inside this spread.
+
+Two lessons that cost real runs: a 70 s window can stay on the title (7 draws) and prove nothing,
+and a 150 s window reliably reaches the 56-61 band. The band filter does work once both runs get
+there.
