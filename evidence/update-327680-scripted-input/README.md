@@ -56,3 +56,39 @@ reads.
 One real human press on the title with `COTM_INPUT_DIAGNOSTIC` logging (or the existing pad trace)
 to see which bit actually moves it - two minutes of a person's time that replaces guessing five
 masks. Everything after that is scripted.
+
+## Root cause: the probe path never set the controller map
+
+`update-launcher.sh:114` exports `SDL_GAMECONTROLLERCONFIG` (the `TRIMUI Player1` mapping:
+`a:b0,b:b1,start:b7,...`). My probe harness launched the runtime directly and did not, so SDL had no
+mapping, no pad was opened, `hid_read_sample` returned an empty sample, and every press - physical
+or scripted - was invisible. That is why the title sat at 7 draws through five masks and a human
+pressing buttons.
+
+With the map exported, the same build reports:
+
+```
+HID_JOYSTICK_COUNT 1 pad=TRIMUI Player1
+```
+
+## Scripted entry works
+
+```
+pad-a2 (90 s):  94 presses, still 7 draws - the window ended during loading (178-373 ms/frame)
+pad-a3 (260 s): 254 presses, draws-mean 71.0-72.8, frame 40.3/41.6 ms, replay 24.7/25.0
+```
+
+So the runtime reaches gameplay without a human, and the scene it lands in is a band of its own
+(~71 draws, heavier than the 56-61 windows seen when the title timed out into a demo/attract
+state). Presses at 20 s and later, repeating every 4 s, are enough: 90 s is simply too short.
+
+## The method now
+
+```json
+SDL_GAMECONTROLLERCONFIG="0300a3845e0400008e02000014010000,TRIMUI Player1,a:b0,b:b1,..."
+WOL_SCRIPT_INPUT="20000:250:1:4000,20200:250:2:4000,20400:250:10:4000"
+WOL_PROBE_SECONDS=260
+```
+
+filter `NVN_COUNTER_PROFILE ordinal=1` to `draws-mean` 70-73 and take three windows. That is the
+first honest baseline this build has had.

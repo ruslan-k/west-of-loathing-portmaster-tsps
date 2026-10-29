@@ -1094,7 +1094,23 @@
  #endif
      pthread_cond_broadcast(&kernel_changed);
  }
-@@ -224,6 +225,7 @@
+@@ -191,6 +192,15 @@
+     sample.ly=-(int32_t)SDL_GameControllerGetAxis(pad,SDL_CONTROLLER_AXIS_LEFTY);
+     sample.rx=SDL_GameControllerGetAxis(pad,SDL_CONTROLLER_AXIS_RIGHTX);
+     sample.ry=-(int32_t)SDL_GameControllerGetAxis(pad,SDL_CONTROLLER_AXIS_RIGHTY);
++    {   /* WOL_PAD_TRACE=1: what the physical pad really sends, so a scripted press can copy it. */
++        static uint64_t last_mask;static int last_lx=1<<20,last_ly=1<<20;static int cfg,tracing;
++        if(!cfg){const char *o=getenv("WOL_PAD_TRACE");tracing=o&&!strcmp(o,"1");cfg=1;}
++        if(tracing&&(physical_buttons!=last_mask||abs(sample.lx-last_lx)>8000||abs(sample.ly-last_ly)>8000)) {
++            last_mask=physical_buttons;last_lx=sample.lx;last_ly=sample.ly;
++            printf("WOL_PAD_PHYSICAL mask=%#llx lx=%d ly=%d\n",(unsigned long long)physical_buttons,sample.lx,sample.ly);
++            fflush(stdout);
++        }
++    }
+     /* Every attached controller drives player one: buttons are merged and each axis follows the pad that is
+      * deflected the most, so the owner's pad works whatever its enumeration index is. */
+     for(unsigned i=0;i<HID_EXTRA_PADS;i++) {
+@@ -224,6 +234,7 @@
  }
  static void hid_publish(struct hid_sample sample,unsigned connected) {
      if(!hid_state.shared_plus_one)return;
@@ -1102,7 +1118,7 @@
      uint8_t *shared=shared_regions[hid_state.shared_plus_one-1].writer;
      unsigned target=10;
      if(hid_state.active && (hid_state.styles&1) && connected)
-@@ -237,7 +239,7 @@
+@@ -237,7 +248,7 @@
       * not No1. ON by default now; MOMO_NPAD_HANDHELD=0 goes back. */
      static int hh_cfg;static unsigned handheld;
      if(!hh_cfg){const char *o=getenv("MOMO_NPAD_HANDHELD");handheld=!o||strcmp(o,"0");hh_cfg=1;
@@ -1111,7 +1127,7 @@
      for(unsigned i=0;i<10;i++) {
          uint8_t *entry=shared+0x9a00+0x5000*i;
          unsigned is_handheld=handheld && i==8 && hid_state.active && (hid_state.styles&2) && connected;
-@@ -257,11 +259,11 @@
+@@ -257,11 +268,11 @@
          if(style!=old) {
              if(hid_state.events[i])session_get(hid_state.events[i],0)->initialized=1;
              pthread_cond_broadcast(&kernel_changed);
@@ -1125,7 +1141,7 @@
          hid_host.last_buttons=sample.buttons;
      }
  }
-@@ -271,11 +273,38 @@
+@@ -271,11 +282,38 @@
      pthread_mutex_lock(&kernel_mutex);
      hid_publish((struct hid_sample){0},hid_host.pad!=NULL);
      pthread_mutex_unlock(&kernel_mutex);
@@ -1165,7 +1181,7 @@
  static void hid_diagnostic_update(uint64_t now) {
      if(hid_host.command_fd<0)return;
      struct {uint64_t buttons;uint32_t milliseconds,reserved;} command;
-@@ -288,9 +317,9 @@
+@@ -288,9 +326,9 @@
          hid_host.diagnostic_lx=(int16_t)(command.reserved&0xffff);
          hid_host.diagnostic_ly=(int16_t)(command.reserved>>16);
          hid_host.diagnostic_until=now+command.milliseconds;
@@ -1177,7 +1193,7 @@
      if(now>=hid_host.diagnostic_until){hid_host.diagnostic_buttons=0;hid_host.diagnostic_lx=hid_host.diagnostic_ly=0;}
  #if defined(MEGAMAN_HOST_DIAGNOSTIC) && MEGAMAN_HOST_DIAGNOSTIC
      if(megaman_virtual_pad.enabled && megaman_virtual_pad_set(hid_host.diagnostic_buttons))
-@@ -304,7 +333,7 @@
+@@ -304,7 +342,7 @@
      if(virtual_result<0)stop("HID_HOST_VIRTUAL_OPEN_FAILED",0,0,21);
      if(virtual_result) {
          hid_host.pad=megaman_virtual_pad.controller;
@@ -1186,7 +1202,7 @@
      }
  #endif
      for(;;) {
-@@ -315,14 +344,14 @@
+@@ -315,14 +353,14 @@
  #endif
              hid_c6_close(hid_host.pad);hid_host.pad=NULL;hid_host.face_swap=0;
              hid_host.left_stick=(struct megaman_left_stick){0};
@@ -1203,7 +1219,7 @@
  #if defined(T2_SWITCH_INPUT) && T2_SWITCH_INPUT
                  hid_host.face_swap=t2_face_measure(hid_host.pad,i,"player-one");
  #endif
-@@ -330,9 +359,9 @@
+@@ -330,9 +368,9 @@
              }
          }
          for(unsigned i=0;i<HID_EXTRA_PADS;i++)if(hid_host.extra[i]&&!SDL_GameControllerGetAttached(hid_host.extra[i])) {
@@ -1212,11 +1228,11 @@
 -        {static int seen=-1;int n=SDL_NumJoysticks();if(n!=seen){seen=n;printf("HID_JOYSTICK_COUNT %d\n",n);}}
 +            hid_c6_close(hid_host.extra[i]);hid_host.extra[i]=NULL;hid_host.face_swap_extra[i]=0;diag_printf("HID_EXTRA_DISCONNECTED slot=%u\n",i);
 +        }
-+        {static int seen=-1;int n=SDL_NumJoysticks();if(n!=seen){seen=n;diag_printf("HID_JOYSTICK_COUNT %d\n",n);}}
++        {static int seen=-1;int n=SDL_NumJoysticks();if(n!=seen){seen=n;printf("HID_JOYSTICK_COUNT %d pad=%s\n",n,hid_host.pad?SDL_GameControllerName(hid_host.pad):"none");fflush(stdout);}}
          if(hid_host.pad)for(int i=0;i<SDL_NumJoysticks();i++) {
              if(!hid_c6_available(i))continue;
              SDL_JoystickID id=t2_sdl_device_instance(i);
-@@ -341,13 +370,14 @@
+@@ -341,13 +379,14 @@
              if(slot==HID_EXTRA_PADS)break;
              hid_host.extra[slot]=SDL_GameControllerOpen(i);
              if(hid_host.extra[slot]) {
@@ -1232,7 +1248,7 @@
          uint64_t diagnostic_buttons=hid_host.diagnostic_buttons;
  #if defined(MEGAMAN_HOST_DIAGNOSTIC) && MEGAMAN_HOST_DIAGNOSTIC
          if(megaman_virtual_pad.enabled)diagnostic_buttons=0;
-@@ -399,13 +429,14 @@
+@@ -399,13 +438,14 @@
          snprintf(address.sun_path,sizeof(address.sun_path),"%s/buttons.sock",path);
          hid_host.command_fd=socket(AF_UNIX,SOCK_DGRAM|SOCK_NONBLOCK|SOCK_CLOEXEC,0);
          if(hid_host.command_fd<0 || bind(hid_host.command_fd,(struct sockaddr *)&address,sizeof(address)))stop("HID_DIAGNOSTIC_SOCKET_FAILED",0,errno,21);

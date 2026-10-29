@@ -1,7 +1,11 @@
 {
   "README.md": {
-    "bytes": 2851,
-    "sha256": "d776c955a240277a8c3c043b6e8939e78d4d0fe0dd782030b6f7b9f05a2264df"
+    "bytes": 4270,
+    "sha256": "52c6ebb353ccadcd9710afac0a6b399fc9fcad6b6a92a3fe1c3c9513a6913be1"
+  },
+  "pad-rootcause.log": {
+    "bytes": 199,
+    "sha256": "fcbf4131050cb20a576befccc8e2fe4e2b54acbc429ce7b8caddd3601c3e4853"
   },
   "repeat-runs.log": {
     "bytes": 70,
