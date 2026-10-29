@@ -1,0 +1,5 @@
+NVN_PROFILE frame=61 count=60 elapsed-ms=462.637 replay-ms=44.180 present-ms=3.606 readback-ms=0.671 scope=wall-time-per-frame
+NVN_PROFILE_DETAIL frame=61 counter-ms=15.806 finish-ms=0.075 receipt-ms=0.000 swap-ms=2.280 elided-waits=181 real-final-waits=61
+NVN_PROFILE_REPLAY_CPU frame=61 cpu-ms=13.574 cpu-samples=60 submits=60 scope=thread-cpu-per-frame includes-counters=1
+VmRSS:	  755544 kB
+VmSwap:	  257584 kB
