@@ -21,6 +21,7 @@ class VibrationInfoTests(unittest.TestCase):
 #include <stdlib.h>
 #include <stdio.h>
 static void stop(const char *name,uint64_t pc,uint64_t value,int code){(void)pc;(void)value;puts(name);exit(code);}
+static void __attribute__((unused)) diag_printf(const char *f,...){(void)f;}
 static struct {unsigned open,count;uint32_t handles[128];} vibration_lists[8]={{1,1,{3}}};
 '''+helper+guard+r'''
 int main(int argc,char **argv){if(argc<2||argc>3)return 99;uint32_t h=(uint32_t)strtoul(argv[1],NULL,0);printf("%u\n",argc==3?hid_vibration_side(h,0):hid_vibration_handle_side(h,0));return 0;}
@@ -37,7 +38,12 @@ int main(int argc,char **argv){if(argc<2||argc>3)return 99;uint32_t h=(uint32_t)
                 self.assertEqual(out.stdout.strip(),'UNSUPPORTED_VIBRATION_HANDLE')
             registered=subprocess.run([str(binary),'0x3','write'],check=True,capture_output=True,text=True)
             self.assertEqual(registered.stdout.strip(),'0')
-            unregistered=subprocess.run([str(binary),'0x12004','write'],capture_output=True,text=True)
+            # MEASURED on device: the title writes handheld values to 0x12004 with no
+            # registration session. That handle class stays accepted; any other unregistered
+            # handle must still fail closed instead of silently dropping the write.
+            handheld=subprocess.run([str(binary),'0x12004','write'],check=True,capture_output=True,text=True)
+            self.assertEqual(handheld.stdout.strip(),'1')
+            unregistered=subprocess.run([str(binary),'0x103','write'],capture_output=True,text=True)
             self.assertEqual(unregistered.returncode,20)
             self.assertEqual(unregistered.stdout.strip(),'HID_VIBRATION_ROUTE_REQUIRED')
 

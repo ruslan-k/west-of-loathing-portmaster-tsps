@@ -911,7 +911,7 @@
  static uint8_t zero_motion_active[10][5][3];
  static struct {unsigned open,count;uint32_t handles[128];} vibration_lists[8];
  static void vibration_destroy(unsigned state) {
-@@ -44,13 +45,23 @@
+@@ -44,13 +45,36 @@
      }
      ipc_reply(buffer,req->token,0,NULL,0,0,req->domain);return 1;
  }
@@ -932,6 +932,19 @@
 -    if(!registered||(handle>>16)>1)stop("HID_VIBRATION_ROUTE_REQUIRED",pc,handle,20);
 -    return handle>>16;
 -}
++    /* MEASURED (run rect-a1): after the title's Continue press the guest writes values to
++     * 0x12004 (style 4, handheld player 0x20, device 1) without ever opening a
++     * SendVibrationValues registration session, and the fail-closed guard killed the whole
++     * runtime at 129 s. The handheld actuator has no registration list in this title, so the
++     * exact handheld handle class is accepted as implicitly mounted; the value still only
++     * reaches the pad through the normal mounted-handheld path, other unregistered handles
++     * keep failing closed. */
++    if(!registered && ((handle>>8)&255)==0x20) {
++        static unsigned implicit_told;
++        if(implicit_told<4){implicit_told++;
++            diag_printf("HID_VIBRATION_IMPLICIT_HANDHELD handle=0x%x occurrence=%u\n",handle,implicit_told);}
++        registered=1;
++    }
 +    if(!registered)stop("HID_VIBRATION_ROUTE_REQUIRED",pc,handle,20);
 +    return side;
 +}
@@ -939,7 +952,7 @@
  static unsigned zero_vibration_mounted(uint32_t handle) {
      if((handle&255)!=3 || !hid_state.active || !(hid_state.styles&1) || !hid_vibration_mounted())return 0;
      for(unsigned i=0;i<hid_state.num_ids;i++)if(hid_state.ids[i]<8)
-@@ -66,9 +77,7 @@
+@@ -66,9 +90,7 @@
      if(endpoint==EP_VIBRATION_LIST && req->command==0) {
          if(req->data_size<4 || req->data_size>12 || req->send_pid || req->copies || req->num_inputs || req->num_outputs)
              stop("INVALID_VIBRATION_REGISTRATION",pc,req->data_size,24);
@@ -950,7 +963,7 @@
          unsigned *state=req->domain?&s->objects[req->object_id-1].initialized:&s->initialized;
          if(!*state) {
              unsigned i=0;while(i<8&&vibration_lists[i].open)i++;
-@@ -147,11 +156,12 @@
+@@ -147,11 +169,12 @@
      }
      if(req->command==200) {
          if(req->data_size<4||req->data_size>12||req->send_pid||req->num_inputs||req->num_outputs)stop("HID_VIBRATION_INFO_INPUT",pc,req->data_size,24);
@@ -965,7 +978,7 @@
              handle,info[0],info[1],log.occurrence,log.suppressed,guest_thread_index,log.changed);
          ipc_reply(buffer,req->token,0,info,sizeof(info),0,req->domain);return 1;
      }
-@@ -162,7 +172,7 @@
+@@ -162,7 +185,7 @@
          {   /* AW_RUMBLE_OFF=1: accept the value without waiting for the host actuator (fps measurement; the audio-driven
               * rumble is ~42 requests per frame and each one waits for the previous SDL rumble transfer). */
              static int cfg;static unsigned off;
@@ -974,7 +987,7 @@
              if(off){ipc_reply(buffer,req->token,0,NULL,0,0,req->domain);return 1;}
          }
  #endif
-@@ -172,7 +182,7 @@
+@@ -172,7 +195,7 @@
      }
      if(req->command==202||req->command==211) {
          if(req->data_size<16||req->data_size>24||req->copies||req->num_inputs||req->num_outputs)stop("HID_VIBRATION_QUERY_INPUT",pc,req->data_size,24);
@@ -983,7 +996,7 @@
          if(req->command==211) {
              uint8_t mounted=zero_vibration_mounted(read32(req->data));ipc_reply(buffer,req->token,0,&mounted,1,0,req->domain);
          } else {
-@@ -191,7 +201,7 @@
+@@ -191,7 +214,7 @@
                  memset(hid_host.vibration,0,sizeof(hid_host.vibration));hid_rumble_request(pc);
              }
              hid_host.vibration_disabled=!req->data[0];
@@ -992,7 +1005,7 @@
                  req->data[0],hid_vibration_permitted(),hid_vibration_mounted());
              ipc_reply(buffer,req->token,0,NULL,0,0,req->domain);
          } else {
-@@ -266,5 +276,47 @@
+@@ -266,5 +289,47 @@
      if(req->command==121) {
          hid_aruid(req,0,pc);ipc_reply(buffer,req->token,0,&hid_state.hold,8,0,req->domain);return 1;
      }
