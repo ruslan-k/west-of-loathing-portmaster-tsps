@@ -1,16 +1,14 @@
 # West of Loathing on TrimUI Smart Pro S — active optimization roadmap (re-audited 2026-10-30)
 
-> **Status:** research-backed **plan**, not a claim that any optimization below is implemented, benchmarked, or promoted.  
+> **Status:** re-audited on 2026-10-30: E1 reporting error corrected; no new FPS optimization demonstrated.  
 > **Primary implementation:** **native Unity 2017.4.19f1 / Mono on AArch64** (the current playable/installed port).  
 > **Secondary implementation:** **actively developed experimental** Switch **Horizon/NVN → GLES** v327680, **NOT** the installed production runtime.  
-> **Reviewed repository snapshots (2026-10-29):** WoL `7c6bfdbc9434a351100be02ace50e11a26aaf787` (21 further commits); `wild1walker/portmaster-unity` `490c4d449c65dfba5288e37d1ce931d8d4972d04`, with the **actual installed host built from pinned upstream** `913debc122b8234a3db56939a4728d9438972ce2` and local `legacy-fmod-output.patch`; `wild1walker/portmaster-cuphead` `4c94d4cdf7b1c96b5f47ad539b60e9dc0ff394a4`; `shirai91/nx2android` `6444d67694a4015003fc31c6c74f110fac43502a`. Pin these identities in any reproduction.  
-> **Decision (revised):** two separate tracks. For the installed Unity/Mono port, first obtain an audio-enabled frame/memory baseline. For the actively developed Horizon v327680 candidate, first attribute the ~6.8 ms `DrawArrays` and ~6.8 ms `ReportCounter` intervals in a measured **~43 ms gameplay frame**, rather than attempting another unsupported 1080p storage scale. See [§25](#25-2026-10-30-horizon-v327680-re-audit-current-measurements-and-optimization-path).
+> **Reviewed repository snapshots (2026-10-29):** WoL `d84cd43f20989410c9b4562704a80fc3806c92f0` (five new commits since previous review); `wild1walker/portmaster-unity` `490c4d449c65dfba5288e37d1ce931d8d4972d04`, with the **actual installed host built from pinned upstream** `913debc122b8234a3db56939a4728d9438972ce2` and local `legacy-fmod-output.patch`; `wild1walker/portmaster-cuphead` `4c94d4cdf7b1c96b5f47ad539b60e9dc0ff394a4`; `shirai91/nx2android` `6444d67694a4015003fc31c6c74f110fac43502a`. Pin these identities in any reproduction.  
+> **Decision (current):** installed Unity/Mono retains its audio-enabled baseline N0–N14. Experimental Horizon v327680 must **repair existing E1 op profiler units and per-frame attribution** and **verify runtime CMA headroom** before an async-program or resolution optimization. See [current section 25](#25-2026-10-30-corrected-e1-and-horizon-priorities).
 
-### 2026-10-30 audit update — two independent port tracks
+### Current audit: five more commits and a critical E1 correction
 
-Since this document was created, **21 new commits** (through `7c6bfdbc9434`) have landed in the **isolated Horizon v327680 candidate**. The runtime now reaches gameplay using a scripted TRIMUI controller and reports **42.1–43.1 ms per gameplay frame (23.2–23.8 runtime presents/s)**, replay **25.9–26.9 ms** and present **~1.7 ms** in a ~71–73-draw scene. This does **not** supersede the installed Unity/Mono implementation, which remains the end-user build with owner-confirmed audio. The earlier 8.8 FPS and 22 ms “present CPU” observations were retracted in [frame-split evidence](../evidence/update-327680-frame-split/README.md).
-
-**Current Horizon priority is measurement, not a renderer rewrite.** The measured wall intervals are `DrawArrays` 6.84 ms/3 calls, `ReportCounter` 6.79 ms/2 and `DrawElementsBaseVertex` 6.21 ms/~73; these are not proven **individual GPU costs**, and deleting a 6.8 ms category alone cannot reach 30 FPS (~9.8 ms/frame required). Uniform caching and finish→flush showed no demonstrated matched-scene gain; asynchronous frame fails its program-qualification gate and previous storage scaling produced black output. Read [`25](#25-2026-10-30-horizon-v327680-re-audit-current-measurements-and-optimization-path) for the **one next reversible experiment**, the evidence taxonomy, exit criteria, and updated priorities.
+The isolated Horizon branch now has rolling `WOL_OP_SPLIT` measurements, target flags for the three seven-vertex draws, and the first async qualification stop. **E1 exists already**, but the recorded `handler=3.234` is **3.234 milliseconds per selected op**, not a 64-op sum to divide again to obtain 50.5 µs. The 64-op `gap` covers other operations and frame/list boundaries, **not necessarily GPU waiting**. The [E1 report](../evidence/update-327680-op-split/README.md) now contains a correction preserving its original logs. The async failure `NVN_PROGRAM_INVALID detail=0x0` does not yet prove a deleted/recycled program. Furthermore, `WOL_ASYNC_ACK` is checked by presence, and device telemetry reached `CmaFree=16 kB` post-launch with ~1.1 GiB `VmSwap`. **Prioritize validated timing, program-object provenance and memory safety, not guessed pin counts or 720p resizing.** Authoritative active Horizon plan: [section 25](#25-2026-10-30-corrected-e1-and-horizon-priorities).
 
 ## 0. Executive decision
 
@@ -349,7 +347,7 @@ If `gpucnt` cannot probe the TSPS driver/counter version, say **unsupported**; d
 
 ## 20. Experimental Switch/Horizon branch — previous research checkpoint
 
-**Read this only for experimental `build_horizon.sh` / `runtime/wol-adapter.patch`. The installed game does not use this code; its ongoing development is active.** Earlier H0–H4 order is **superseded by §25**. This older checkpoint must not be used to claim Unity performance gains.
+**Read this only for experimental `build_horizon.sh` / `runtime/wol-adapter.patch`. The installed game does not use this code; its ongoing development is active.** Earlier H0–H4 order is **superseded by section 25**. This older checkpoint must not be used to claim Unity performance gains.
 
 ### H0. First reversible experiment: release-equivalent phase ledger
 
@@ -447,92 +445,88 @@ Do not commit any generated game data. Keep evidence receipts minimal and reprod
 **Final state of this document:** a thorough prioritized research roadmap. It does not certify a new run, patch, measured frame-time reduction, new memory headroom or production deployment.
 
 
-## 25. 2026-10-30 Horizon v327680 re-audit: current measurements and optimization path
+## 25. 2026-10-30 corrected E1 and Horizon priorities
 
-**Scope / authority.** This section supersedes the old H0–H4 priority order in `20 for **active Horizon engineering**. The accepted installed Unity/Mono build, its data and FMOD→SDL/ALSA audio are unchanged. The latest reviewed WoL HEAD is `7c6bfdbc9434a351100be02ace50e11a26aaf787`. This is an independent code/evidence review and a **documentation update**, **not a new device experiment, runtime patch or accepted FPS optimization**.
+**Authority:** Updated against repo HEAD [`d84cd43f`](https://github.com/ruslan-k/west-of-loathing-portmaster-tsps/commit/d84cd43f20989410c9b4562704a80fc3806c92f0), **five commits** after preceding roadmap revision. This section **supersedes** the former `25 and old historical H0–H4 order in `20 for *active experimental Horizon v327680 development*. The user-installed, audio-confirmed **native ARM64 Unity/Mono** port remains the separate production track (N0–N14). **This review made no device tests or runtime modifications and proves no new FPS gain.**
 
-### 25.1 Verified scene and frame budget
+### 25.1 New facts and limits
 
-| Evidence | Demonstrated observation | Causal limitation |
+| Source | Evidence | Do not assume |
 |---|---|---|
-| [Scripted pad](../evidence/update-327680-scripted-input/README.md) | The test launcher had omitted `SDL_GAMECONTROLLERCONFIG`. Restoring the TRIMUI map plus a **260 s** repeating press schedule reaches ~**71–73 draws/frame** in gameplay. | A 90 s run does not reach the scene. Draw-count band does not establish pixel/camera/character-state equality across A/B. |
-| [Current status](../evidence/update-327680-status/README.md) and [gameplay ops](../evidence/update-327680-gameplay-ops/README.md) | Release-mode ELF prefix `332b741a`, heavy gameplay **42.1–43.1 ms/frame**, replay **25.9–26.9 ms**, present **~1.7 ms**, ~**23.2–23.8 runtime presents/s**. | Per-window means, **not** measured P95/P99 physical scanout, not an installed Unity figure. |
-| [Op ledger](../evidence/update-327680-gameplay-ops/README.md) | `DrawArrays` **6.838 ms** / 3 calls; `ReportCounter` **6.794 ms** / 2; `DrawElementsBaseVertex` **6.206 ms** / 72.8; `Downsample` **2.562 ms** / 4; `CopyTextureToTexture` **1.649 ms** / 1. | Sequential wall-clock phases include host work and potentially blocking. These **are not isolated GPU shader execution times**, nor necessarily additively removable. |
-| [Seven-vertex trace](../evidence/update-327680-drawarrays-trace/README.md) | Each `DrawArrays` has 7 vertices; sizes of **current** render targets: **1280×720, 1280×720, 1920×1080**. | Does **not** establish fullscreen coverage or fragment costs. `prog=0/0` is a missing identity from that trace. |
-| [Counter source audit](../evidence/update-327680-replay-op-profile/README.md) | Earlier theory that `zero_texture_require_cpu()` is a slow coherence readback is **retracted**: title guard returns immediately; replay's counter handler is tiny. | “ReportCounter costs 6.8 ms” is **time attribution**, not evidence that a 16-byte store takes 6.8 ms or may be omitted. |
-| [Draw-list CPU/wall](../evidence/update-327680-command-profile/README.md) | In a **different** scene band, ~8–10 ms wall elapsed with ~0.12–0.14 ms thread CPU. | Confirms blocking **somewhere**, but not the exact blocker nor that current gameplay's 6.8 ms is necessarily GPU work. |
-| [Uniform cache](../evidence/update-327680-uniform-cache-ab/README.md) | Comparable ~56–61-draw windows: ~7.92–8.51 ms ON versus ~7.78–8.47 ms OFF. | **No measured win**. First short run never reached matched gameplay. |
-| [Finish→flush](../evidence/update-327680-flush-vs-finish/README.md) | No reliable replay gain; total-frame windows scene-confounded. | Do not remove finish or claim an async improvement without completion/hazard proof. |
-| [Async](../evidence/update-327680-async-frame/README.md) | `COTM_ASYNC_FRAME=1` rejects WoL with `NVN_LC2_ASYNC_STAGE_PROGRAMS_UNQUALIFIED`. | Requires validating game stage programs/snapshots; forcing the flag is unsafe. |
-| [Storage-scale and layout](../evidence/update-327680-zero-render-scale/README.md), [v24](../evidence/update-327680-uprender-layout/README.md) | Logical 1920×1080 / smaller host backing has a **black-screen failure**; v24 `UpRender` +0x20/+0x24 holds **16 and 9**, not pixel dimensions. | Old v23's ~24→33 fps gameplay success is **not portable by offset**. No accepted 720p storage/swapchain gain here. |
-| [GPU timeline capability](../evidence/gpu-pass-timeline/README.md) | Runtime already has a sampled `WOL_GPU_TIMELINE=1` extension query path; old separate scene reached a reported **10.576 ms** 1080p GPU pass interval. | Different ELF/save/scene/ordinal, not proof of the latest 7-vertex 1080p pass time. Validate query availability/disjoint and target mapping on this revision. |
+| [E1 README with correction](../evidence/update-327680-op-split/README.md), [raw rolling log](../evidence/update-327680-op-split/opsplit3-lines.txt), [patch source](../runtime/wol-adapter.patch) | `WOL_OP_SPLIT=1` already runs; the 64-selected-op rolling reporter uses nanosecond sums divided by `64e6`. | Published **50.5 µs/op handler / 16.9 µs/op CPU** figures are valid. They are **wrong for current rolling code**. |
+| [Heavy gameplay](../evidence/update-327680-status/README.md), [op profile](../evidence/update-327680-gameplay-ops/README.md) | ~71–73 draws; **42.1–43.1 ms/frame**, replay ~**25.9–26.9 ms**, present ~**1.7 ms**; older op classes `DrawArrays 6.84ms/3`, `ReportCounter 6.79ms/2`, indexed ~`6.21ms/73`. | Those op intervals independently represent GPU work or were captured by the same ELF/frame/window as rolling E1. |
+| [Draw target trace](../evidence/update-327680-drawarrays-target/README.md) | Two seven-vertex operations see `1280×720 flags=0x8`, one sees `1920×1080 flags=0x9`. | Flags uniquely identify a swapchain image or its **actual** physical framebuffer size; `id=0` is not a live unique GL identity. |
+| [Async qualification](../evidence/update-327680-async-qualification/README.md) | `COTM_GL_THREAD=1 COTM_ASYNC_FRAME=1 WOL_ASYNC_ACK=1` stops at `NVN_PROGRAM_INVALID`, `main.text.seg+0x532994`, `detail=0x0`. No async frame accepted. | Guest recycled a nonzero shader program and a pin-count fix is therefore correct. |
+| [Code gate](../runtime/wol-adapter.patch) | `!getenv("WOL_ASYNC_ACK")` guards bypass: **any present value including `0` or empty counts**. | `WOL_ASYNC_ACK=0` disables bypass; acknowledgment is equivalent to shader/snapshot qualification. |
+| [Device memory](../evidence/update-327680-drawarrays-target/da-a2-harness.log) | `CmaFree 130212 kB` at preflight → `88`, `16`, `104`, `48 kB` sampled live; at exit `VmRSS 675532 kB`, `VmSwap 1107232 kB`; `TIME_LIMIT`, MainUI restored, 131 production hashes unchanged. | This is an observed OOM, or a 65,536 KiB preflight gate reserves 64 MiB of **runtime** CMA for an extra worker frame. |
+| [Closed experiments](../evidence/update-327680-status/README.md) | Uniform cache is a wash, `glFinish`→`glFlush` no demonstrated gain, old lower-storage route produced black output, v24 UpRender offset pair is 16/9 aspect. | One is a ready 30-FPS fix. |
 
-**Frame arithmetic:** **43.13 ms → 33.33 ms** needs **9.80 ms less critical-path time** (22.7%). Perfectly removing nominal `DrawArrays` **6.84 ms** alone leaves **36.29 ms** (~27.6 fps). Perfectly removing `ReportCounter` **6.79 ms** leaves **36.34 ms** (~27.5 fps). Eliminating both counter values does not guarantee a 13.63 ms reduction: a GPU/scheduler wait may merely move to the next call or frame.
+**Budget:** **43.13 → 33.333 ms/frame** requires **9.80 ms net end-to-end critical-path** saving, not just a shorter named op timer. Removing the nominal 6.84 ms class *perfectly* would still leave ~36.29 ms (~27.6 FPS), and a moved GPU stall is no gain.
 
-**Explicitly retracted:** early [frame-budget](../evidence/update-327680-frame-budget/README.md) “8.80 release FPS” came from averaging startup and “22 ms present CPU” from a mislocated thread-CPU timestamp. [Corrected frame split](../evidence/update-327680-frame-split/README.md) instead measured **~40 ms/frame**, **~2.6 ms present**, **~1.4 ms swap**. Do not use the retracted values to conclude 30 FPS is impossible or that presenting alone costs 22 ms.
+### 25.2 Central audit correction: `WOL_OP_SPLIT` output is *already divided by 64*
 
-### 25.2 Critical profiler semantics: time is not necessarily spent *inside* the named operation
+Current `runtime/wol-adapter.patch` near line ~8038:
 
-The current [source overlay](../runtime/wol-adapter.patch), around patch lines ~8000–8055, logs `WOL_DRAWARRAYS` **before** `nvn_replay_record(&r)`, records that operation, performs additional pass-boundary work and then updates `nvn_phase_end()`. The phase ledger uses `CLOCK_MONOTONIC` intervals between marks. This means a charge can include adjoining work, driver queue backpressure and nested phase timing; it is **not** automatically one isolated handler or a GPU timestamp.
+¤¤¤c
+/* ops_h, ops_gap and ops_ch are nanoseconds summed over 64 selected ops */
+if (!(++ops_n & 63)) {
+    printf("WOL_OP_SPLIT n=... handler=%.3f gap=%.3f cpu=%.3f ms",
+           ops_h/64e6, ops_gap/64e6, ops_ch/64e6);
+    ops_h=ops_gap=ops_ch=0;
+}
+¤¤¤
 
-Implications: (a) the counter's 16-byte store is **not a proven 3.4 ms CPU operation**; (b) a 7-vertex `DrawArrays` could block in host GLES because preceding GPU work is outstanding, and 1920×1080 target dimensions do not measure actual fragment coverage; (c) `prog=0/0` in the trace means the instrumentation did not identify the program at that point, not that no shader is bound. Before attributing render cost, collect **actual** GL framebuffer/attachment, program, primitive, viewport/scissor, source texture, output and relevant fence/driver call.
+This computes **average ms per selected operation**, not total ms for the bucket. The later [E1 README](../evidence/update-327680-op-split/README.md) divided the *printed average* by 64 **again** and claimed ~50.5 µs/op. Correct reading of a representative median of late **64-op-window averages**:
 
-### 25.3 Revised priorities: two independent tracks
+| Logged | Correct **mean per selected op** | Implied **sum across 64 ops** |
+|---|---:|---:|
+| `handler=3.234` | **3.234 ms wall/op** | **206.976 ms** |
+| `cpu=1.081` | **1.081 ms CPU/op** | **69.184 ms** |
+| `gap=3.123` | **3.123 ms unclassified/op** | **199.872 ms** |
 
-**Native Unity installed port:** N0→N1 (audio-enabled baseline) → N2 (Mono/UnityMain/driver CPU profile), with N3–N14 conditional on measured CPU/GPU/memory and correct save/load/DLC/endurance. No change to this priority based on Horizon numbers.
+These are **medians of window means**, not tied to matched 71–73-draw frames. The earlier `opsplit2-lines.txt` contains an **individual-operation logging revision**; don't reinterpret those `n=1..64` lines using the latest rolling formula. The separate [E1 evidence correction](../evidence/update-327680-op-split/README.md) explicitly retracts the microsecond and “only async remains” conclusions.
 
-**Active Horizon candidate:**
+**Further source-level defects:** (1) `DrawArrays` and `ReportCounter` share one accumulator, so per-opcode cost cannot be identified; (2) `gap` runs from *the end of the previous selected opcode* to *the start of the next*, including unrelated NVN operations, list/frame boundaries, guest work or scheduling — **not a GPU-wait measurement**; (3) summaries contain neither frame ID/list nor verifiable scene identity; (4) the old `NVN_REPLAY_OP` ledger has nested/advancing phase marks that must be reconciled only within the **same ELF, scene, frame and nonoverlapping timer scope**.
 
-| Task | Rank | Requirement | Go/no-go criterion |
+**Verdict:** E1 instrumentation exists but its current **published interpretation is invalid**. It does not prove handlers are cheap, that `ReportCounter` merely marks waiting, or that an async queue is the sole remaining lever.
+
+### 25.3 Async root cause and gate: currently unqualified
+
+The [async stop](../evidence/update-327680-async-qualification/async3-stop.txt) reports `NVN_PROGRAM_INVALID detail=0x0`. The source's `nvn_program_find` failure calls `stop("NVN_PROGRAM_INVALID", nvn_caller, object, 24)`. Under the standard detail mapping, **zero is consistent with a searched object equal to zero**; this is an inference requiring direct logging. It does **not** prove a formerly valid **nonzero** program was destroyed and recycled during async playback. Alternative causes: missing worker bound-state snapshot, null/unbind stage semantics, wrong program object/pointer, unrecorded initialization, or an actual lifetime race.
+
+Before pinning anything, capture a bounded **default-OFF** create→SetShaders/bind→command record→snapshot→worker lookup→destroy/slot reuse sequence with **full guest object address, stage mask, program slot/generation/live status, snapshot ID, frame/list, worker/guest TID and caller PC**; compare identical synchronous replay. Check whether the failing object is zero and how it became so.
+
+**Guard bug:** currently `!getenv("WOL_ASYNC_ACK")` is not strict `strcmp(value,"1")==0`. Empty/`0` values bypass the early gate. An ACK is never proof of program/snapshot/guest-memory-read qualification. Keep default OFF and fail closed. If nonzero program retirement is **proved**, design generation-tagged refs plus GPU-fenced deferred release, dropped-frame/cancellation/shutdown handling and context ownership. A simple pin-count without those conditions is unsafe, particularly given available memory.
+
+### 25.4 CMA and swap headroom are a P0 gate
+
+A long [device trace](../evidence/update-327680-drawarrays-target/da-a2-harness.log) ran with **CmaFree close to zero after startup** (minimum sampled 16 kB), and around **1.1 GiB process VmSwap** at exit. It ended via bounded `TIME_LIMIT`, **not OOM**; cleanup was correct. The existing **65,536 KiB CmaFree preflight** is *admission*, not a reservation. An additional async frame, buffer snapshots or pinned GL programs may exceed remaining contiguous memory even when launch succeeded.
+
+During the same measured scene collect `MemAvailable`, `CmaFree`, `smaps_rollup Pss/SwapPss`, `VmRSS/VmSwap`, faults, swap-in/out rates, Mali/GLES committed memory and exact extra frame/pin lifecycle. **Don't add overlapping RSS/CMA/GPU figures**. Do not lower memory floors, disable swap, alter clocks or run unbounded queues to force apparent FPS. **Block async** if a safe memory budget is not demonstrated.
+
+### 25.5 Swapchain target needs identity proof
+
+The `1920×1080 flags=0x9` target resembles the swapchain family but **flags are not an identity** and `id=0` is unpopulated. Read-only join actual draw target **guest pointer** to `nvn_window.textures[slot]`, GL framebuffer attachment/name, pool+offset+range, texture lifetime/generation, real host backing vs logical dimensions, viewport/scissor, primitive/shader/sampler and final visible KMS slot. If backing is already `1280×720`, “2.25× fragment work” may be false. Previous `ZERO_RENDER_SCALE` black frames and v24 16:9 UpRender offsets prohibit blind resize. First validate actual GPU timer on same current scene if needed; earlier ~10.576 ms pass belonged to a different revision/scene.
+
+### 25.6 Updated next actions and hard gates
+
+| ID | Priority | Concrete task | Pass / failure condition |
 |---|---|---|---|
-| **E0: valid scene control** | **P0 preflight** | Scripted pad with `SDL_GAMECONTROLLERCONFIG`, ~260 s allowed, **three 60-present windows** with ~71–73 indexed draws, visible KMS scene evidence, hashes and thermal/fault/CMA data. | If scene/camera/content differ, the A/B is **invalid**, even if draw count matches. |
-| **E1: split expensive op wall/CPU spans** | **P0 FIRST experiment** | Default-OFF **`WOL_OP_SPLIT=1`** read-only subspans around `DrawArrays` and `ReportCounter`, without extra GL calls, queue/sync change or per-op logging. | Attribute handler vs pre/post vs named GL/sync; **±5%** span reconciliation, **≤5%** instrumentation overhead, scene+KMS valid. |
-| **E2: GPU/pass proof** | P1 **after E1** | Reuse existing `WOL_GPU_TIMELINE=1`, verify nonblocking query and disjoint status, sample actual 720p/1080p pass identity and shader/FBO. | Actual GPU timing distinct from host wall/CPU; unsupported query = **unknown**, not estimated. |
-| **E3: one gated lever** | Conditional | CPU hotspot **or** legal wait overlap **or** proven expensive pass/copy, selected by E1/E2; fresh A/B/A/B/A. | ≥**9.8 ms** net end-to-end saving toward **≤33.33 ms**, no moved wait, pixel/audio/input/save parity. |
-| **E4: whole-game certification** | After E3 | Title, HUD gameplay, dialogue, inventory, map, combat, DLC, save/load, long-run memory and input; independent screen output. | ≥30 **distinct displayed** frames/s where applicable, P95 physical interval ≤33.33 ms and no OOM/CMA regression. |
-| **E5: revisit v24 resolution metadata** | Deferred | Exact owner metadata/field-offset evidence or real 1080p producer + alias dependency proof, not guessed offsets. | Only if E2 established 1080p is truly costly *and* full producer/consumer contract is known. |
+| **H-E1b** | **P0, FIRST code experiment** | Fix existing E1: separate opcode counts/sums/CPU; label **sum ms vs mean ms/op**; attach command list/frame/scene key and characterize cross-frame gap. Keep default OFF and unchanged rendering. | Unit tests `sum=mean×count` and CPU≤wall with rounding; same-release-ELF scene reconciliation, ≤5% profiler overhead, valid KMS. |
+| **H-M0** | **P0, read-only in same run** | Device memory: preflight vs runtime min CMA, PSS/SwapPSS, faults, swap I/O, GPU committed and per-frame queue budget. | No new allocation, no gate change, clean MainUI/hash recovery; **no async** without headroom. |
+| **H-P1** | P1 | Attribute actual wait/host CPU/GLES driver/guest work on **identical frame and opcode**. | Named function/fence, wall+thread CPU and GPU query where valid; never relabel unclassified gap as GPU wait. |
+| **H-G1** | P1 conditional | Reuse `WOL_GPU_TIMELINE` and derive exact shader/FBO/slot/swapchain provenance for the 7-vertex draws. | Nonblocking checked query, no disjoint, correct visual output, same ELF/frame. |
+| **H-A0** | P2 conditional | Async zero/invalid program identity trace, exact ACK value + stage/snapshot qualification. | Prove guest-object lifecycle; no speculative pin. |
+| **H-A1** | P3 conditional | One bounded program generation/retirement/snapshot fix *if proven*. | Correct async frames, no OOM/black/invalid program, safe drop/shutdown. |
+| **H-R1** | P2 conditional | One proven expensive pass or copy rewritten pixel-equivalently. | Full-frame saving, no 1080p logical/physical confusion, correct scanout and resource alias. |
+| **H-ACCEPT** | Final | A/B/A/B/A, physical distinct-frame timing, representative gameplay/dialogue/map/DLC/save, audio/controls, thermal/memory/endurance. | **≤33.333 ms** steady heavy frame / P95 visible interval at target, ~9.8 ms net gain with no moved wait; production hashes unchanged. |
 
-**Rationale:** The remaining gap of ~9.8 ms cannot be met by removing only one nominal 6.8 ms category, and its cost may be displaced. There is no justified **P0 runtime change** yet; a **P0 diagnostic experiment** is the high-ROI action. Async-frame, uniform-cache and flush substitution are **not** currently near-term optimization candidates.
+**H-E1b specification:** new default-OFF profiler flag, e.g. `WOL_OP_SPLIT_V2=1`, with per-class `count`, `sum_handler_wall_ns`, `sum_handler_thread_cpu_ns`, optional bounded max/histogram and unit-explicit `mean_ms_per_op` and `sum_ms`. Time only existing calls; **no new GL finish/flush, query readback, texture change, context hop, per-op printf**. At actual present boundaries report frame IDs, list and draw-count band; separate gaps **within list** vs **across frames**. Reconcile the old phase ledger in the same ELF and physically verified heavy gameplay (correct `SDL_GAMECONTROLLERCONFIG`, ~260 s-class entry), with ≥3 matched 60-present windows, KMS proof, temperature/clocks/CMA/SwapPSS and OFF→ON→OFF. Test counts 0/64/unequal-op mix, cross-list boundaries, time unit conversion and threaded counter ownership. **H-E1b succeeds diagnostically even if it adds zero FPS**; only then choose CPU, GPU, wait or renderer optimization.
 
-### 25.4 One next reversible experiment — E1
+### 25.7 Explicit no-go and next commit
 
-**Hypothesis to falsify:** the apparent `ReportCounter`/`DrawArrays` wall charges are dominated by blocking or previous submitted work, rather than true handler CPU time.
+No accepted fix yet for ~**9.8 ms** heavy-scene critical path. **Do not repeat**: 50.5 µs per op from rolling E1; “gap = GPU wait”; “`detail=0` proves recycled program”; “`WOL_ASYNC_ACK=0` safely opts out”; “`flags=0x9` uniquely proves swapchain”; “logical 1080p = actual 1080p shader pixels”; v23 UpRender pixel offsets on v24; black `ZERO_RENDER_SCALE` as a speed gain; disabling finish; generic uniform cache as a known win; assuming post-start CMA stays above preflight gate.
 
-**One change** to the isolated Horizon candidate: opt-in `WOL_OP_SPLIT=1`. For only those two op classes in the existing `nvn_replay_run_list()` loop, sample **`CLOCK_MONOTONIC` and `CLOCK_THREAD_CPUTIME_ID`** before/after (1) pre-op hooks and the interval since previous mark, (2) the exact `nvn_replay_record()` handler, and (3) post-op hooks until the normal phase mark. Where safely possible, subdivide the **existing** GL dispatch/pointer/fence call—do **not** introduce an extra `glFinish`, `glFlush`, `glGetError`, readback, GPU query wait, context switch or resource mutation. Sum in memory, emit **one bounded aggregate per 60–64 frames**. Keep default OFF, preserve same release build, and ensure nested phase timers are not added twice.
+**Required safety:** Preserve **65,536 KiB CmaFree** launch admission and existing runtime floor, no production Unity APK/saves/config mutation, bounded tests and watchdog, unchanged CPU/GPU governors, real KMS gameplay pixels, input/audio/saves, valid final MainUI and production-hash receipt. Frame counters without distinct visible movement are not FPS acceptance.
 
-**Procedure:** after a physically verified heavy gameplay window, compare `OFF→ON→OFF` with identical ELF source revision other than the instrumentation, effective env, scene/script, GPU clocks, memory guards and device boot assumptions. Keep original `NVN_REPLAY_OP` ledger for accounting. **Hard STOP** if stage draw counts/captures differ, instrumented P50 increases >5% beyond adjacent control, accounting residual >5%, any new GLES error/OOM or black/flat/stale frame, or failed frontend cleanup.
-
-**Interpretation:**
-- **CPU high within handler:** a real host CPU bottleneck; profile that specific function before changing rendering.
-- **Wall high, CPU low inside a known GL/fence call:** investigate exact wait/owner and validate with E2 GPU work or scheduling evidence. **Not automatically GPU shader bound**.
-- **Handler cheap but pre/post high:** the old per-op label is misleading; optimize the actual boundary, never suppress a meaningful guest GPU counter.
-- **Wait shifts to another call or subsequent frame when changed:** **no FPS benefit**, rollback.
-- **No proven ≥9.8 ms recoverable span:** report the current ~23–24 fps heavy-scene limit as a measured development outcome and prioritize correctness/memory, not speculative black-screen rendering changes.
-
-**Diagnostic success ≠ performance success.** E1 should produce a causal attribution and a verified stop/go decision, not necessarily a single extra FPS.
-
-### 25.5 Next only if E1 warrants it
-
-If E1 identifies GLES/driver pressure, **E2** must first prove what the three 7-vertex operations actually draw. Their prior render targets were logged **before** replay. Use real draw-time shader/program, FBO/attachment, format, primitive, viewport/scissor, sampled textures and actual pixel changes. Existing GPU-timeline query samples must not block or be read during an unresolved disjoint state. The historical 10.576 ms interval from another build is only a hypothesis.
-
-If a real 1080p pass is GPU-limited, prove guest NVN pool offset/extent, target alias, previous writer and future readers, final GL texture and every swapchain slot before any resize. **Old `ZERO_RENDER_SCALE=2` black KMS is a failure**, not a starting point to optimize by further resizing. Prefer a provably redundant clear/copy or a specific shader pass only when its visual equivalence and memory effects are validated.
-
-If instead a fixed sync wait is responsible, identify exactly which GPU/guest object is protected, whether the guest immediately polls it, and whether a later draw/swap will wait. A bounded ticket/producer-consumer overlap is only legal after explicit in-flight alias, GL context, counter and snapshot proofs. `COTM_ASYNC_FRAME` currently refuses the title by design; do not bypass that check.
-
-If CPU work in many indexed draws dominates, investigate the named callpath, not generic VBO churn: prior `WOL_PAIR_RING` removed create/delete churn without a repeatable whole-frame gain.
-
-### 25.6 No-go, acceptance and cleanup rules
-
-Keep the **65,536 KiB CmaFree** Horizon preflight gate and existing memory-floor policy. Collect boot ID, process start, ELF SHA, scene/keyframe/KMS, GPU/CPU frequency residency, PSS/SwapPSS and faults for every A/B arm. A runtime present count is **not** physical screen FPS. Stable 30 FPS means independently observed **distinct** moving output and **P95 physical frame period ≤33.33 ms** in the target gameplay, not a short title-only counter. No audio/control/inventory/map/save/DLC regression or black/duplicated/stale frame.
-
-Only an **isolated candidate** with a default-OFF option may be modified; user-installed Unity runtime/APK/save/config/legacy snapshots remain untouched. Tests must restore MainUI, controller, CPU policy and other device state, with production file hashes unchanged. Source/ELF/trace identities must be kept distinct; no extrapolation from earlier v23 UpRender, title, or first-run debug data.
-
-### 25.7 Proposed next commits (planning only)
-
-1. `diag(horizon): add optional pre/handler/post wall+CPU splits for the two costly op classes` — host-only code patch with bounded receipts, no changed GL semantics, unit tests and default OFF.
-2. `test(horizon): capture ≥3 validated scripted heavy-gameplay windows and OFF/ON/OFF attribution` — physical KMS, matching controller map, thermal and memory receipt, clean return to Spruce.
-3. `diag(horizon): qualify existing timer-query path on exact seven-vertex passes` — only after E1 identifies GLES as relevant.
-4. `perf(horizon): one measured named bottleneck optimization` — do not choose in advance; require >noise critical-path improvement, no shifted wait, safe revert.
-5. `docs(horizon): accept or close 30 FPS for the named heavy-scene build` — keep all limitations and counterexamples.
-
-**Current action:** E1 only, not a host swapchain rewrite. The N0–N14 native Unity roadmap remains in force independently.
+**Single next proposed commit (not performed):** `diag(horizon): repair E1 mean/sum units and split per-op frame ownership`, accompanied by data-free tests, plus **read-only H-M0 memory receipts** at gameplay; **do not** begin async or render-size changes until those proofs identify a safe lever.
