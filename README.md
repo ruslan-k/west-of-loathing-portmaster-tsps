@@ -14,6 +14,8 @@ The active layout is [`port/`](port/README.md): one **West of Loathing.sh** laun
 
 See [current verification](docs/native-unity-port.md) for exact hashes, evidence boundaries and migration details.
 
+For prioritized, current optimization work (native Unity first, historical Horizon only as a separate research track), see the [active performance and memory roadmap](docs/optimization-roadmap-active-native-unity-2026-10-29.md). The older [Switch/Horizon roadmap](docs/optimization-roadmap.md) is retained for historical evidence.
+
 ## Install / build
 
 The repository includes the ARM64 host, generic Mono runtime components, licenses and data-free build/packing code. It **does not include the game, DLC, Unity player libraries, managed Unity assemblies, APK, saves or extracted console files**.
