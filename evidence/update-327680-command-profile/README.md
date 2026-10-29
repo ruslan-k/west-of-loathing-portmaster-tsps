@@ -79,3 +79,20 @@ replay 24.2-24.8 ms, present 1.66-1.80 ms
 Frame 40 ms, target 33.3 ms, gap ~6.7 ms. The serialized wait inside the draw list is 8.0-8.4 ms.
 Overlapping it with the guest's next frame is arithmetically enough to reach ~31-32 ms, i.e. just
 over 30 frames/s - and it is the only measured block of the right size.
+
+## The wait does not scale with draw count
+
+Two runs, same build, different scene weight:
+
+```
+split-a6  draws-mean=7.00   ordinal=1 wall-ms=9.973  cpu-ms=0.119
+stab-a1   draws-mean=61.78  ordinal=1 wall-ms=8.270  cpu-ms=0.140
+```
+
+Nine times the draws, and the wall time went *down*. A GPU-work-bound list would grow with the
+draw count; this one is flat at 8-10 ms. So the wait is a **fixed per-frame sync cost** (a fence
+or the submit path), not the GPU chewing through the scene.
+
+That changes what the fix has to be: not fewer draws and not smaller textures, but taking that one
+fixed wait off the critical path. It also explains why frame time sat at 40 ms with both light and
+heavy content - 24 ms of guest CPU plus the same ~9 ms of sync.
