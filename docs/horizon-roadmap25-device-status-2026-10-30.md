@@ -1,10 +1,13 @@
 # Horizon roadmap §25 — item-by-item device status
 
+> **Follow-up source audit, 2026-10-30; authoritative interpretation: [main roadmap `25](optimization-roadmap-active-native-unity-2026-10-29.md#25-current-horizon-v327680-re-audit--2026-10-30-head-38f05f66).** This status page preserves the original experiment results but its strong causal conclusions need qualifications: (1) `WOL_OP_V2` increments the selected operation *before* detecting a frame change, mixing the new frame's first operation with the previous bucket and labeling it as the new frame; (2) the first 60-frame `NVN_PROFILE` averaged **462.637 ms/frame**, not the earlier ~43-ms matched heavy-gameplay window, and the 90 V2 rows have no independently validated ~71–73-draw scene match; (3) **~10.1 ms ReportCounter wall with ~0.21 ms CPU across two calls** shows a large off-CPU span **in this diagnostic sample**, **not** a named GPU fence or a recoverable 10 ms in the old gameplay baseline; (4) `CmaFree` is system-wide, and the 95 samples include prestart/post-exit; 66 below the launch admission gate are a serious headroom warning, **not owner attribution or an observed OOM**; (5) zero texture-shadow GC events at `WOL_TEX_SHADOW_MB=192` are **not** a trusted peak-live-byte measurement because `sh_bytes` does not track all free/replace paths. Async pinning did **not** resolve `NVN_PROGRAM_INVALID`. Next single reversible experiment: default-OFF **H-E1c**, correctly frame-scoped wall/CPU profiler in physically verified heavy gameplay, with a passive CMA/SwapPSS host receipt. **No device changes were made by this audit.**
+
+
 **Date:** 2026-10-30 · **ELF:** `21e23b58c3e2fb01018c71ab10ad4b9a08029e85e9a8ad0118765c89d345d956` (w32)
 **Run:** `e1b`, `WOL_OP_SPLIT=1` (default-OFF profiler), scripted input, 90 reported frames
 **Production Unity port and saves untouched; probe tree only.**
 
-## H-E1b — per-class op budgets with explicit units — **DONE (diagnostic success)**
+## H-E1b — per-class op budgets with explicit units — **IMPLEMENTED; frame-ownership bug identified**
 
 `WOL_OP_SPLIT` was rewritten (commit `0593c9e`): separate accumulators for `DrawArrays` and
 `ReportCounter`, explicit `sum_ms` / `mean_ms` / `cpu_mean_ms`, one `WOL_OP_V2` line per frame.
@@ -25,7 +28,7 @@ Two separable facts the old instrumentation could not produce:
    ~10.1 ms per frame. This is the missing ~9.8 ms almost exactly.
 2. **`DrawArrays` is real CPU work**: 1.835 ms CPU per call, ~5.5 ms per frame.
 
-## H-M0 — memory receipts — **DONE, and it is a wall**
+## H-M0 — memory receipts — **DONE as system-level sampling; ownership and headroom still unproved**
 
 Host-side sampling every 3 s during the gameplay run `mem0` (95 points, ELF `21e23b58`), preflight
 `CmaFree 129 188 kB`:
@@ -79,11 +82,9 @@ wait and ~5.5 ms in `DrawArrays` CPU; no change has been shown to move the criti
 `WOL_ASYNC_ACK` now requires the exact value `"1"`; previously `0`, empty or any non-empty value
 bypassed the fail-closed guard (`0593c9e`). Async remains default OFF.
 
-## Recommended single next step
+## Recommended single next step (superseded by later audit)
 
-Trace the owner of the `ReportCounter` wait on one matched frame (H-P1): name the fence/driver call
-and its caller, with wall + thread CPU at the call site. It is the only measured span of the right
-size (~10 ms) and it is not CPU work, so it cannot be optimized away inside the handler.
+**Now H-E1c first**, to repair the first-op rollover and measure the actual ~43 ms heavy gameplay scene. **Only if confirmed there**, H-P1 should name the exact ReportCounter wait and causal owner. The 10.1 ms class span alone does not prove a GPU fence.
 
 ## Architecture attempt A1 — bounded CPU texture mirrors — **NEGATIVE (measurement)**
 
