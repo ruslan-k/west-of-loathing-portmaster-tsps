@@ -1,12 +1,12 @@
 # Audio on the IL2CPP route: why 2019 games are silent and how WoL got sound (2026-10-30)
 
 Symptom: Unity 2019.4 IL2CPP port ran at 60 fps with no sound, while the same `ua_host`
-(the 2017 route, e.g. Cuphead) had sound.
+(the 2017-era builds) had sound.
 
 ## The two audio paths
 
 - **2017 players** call OpenSL ES directly → `runtime/android/opensles.c` → SDL device or an
-  `aplay`/`pw-cat`/`pacat` pipe. This path works and is what Cuphead uses.
+  `aplay`/`pw-cat`/`pacat` pipe. This path works on this hardware.
 - **2019+ players** never touch OpenSL ES. Unity's `org.fmod.FMODAudioDevice` (Java) mixes in
   `runtime/jni/up_input.c:fmod_thread()` and hands the PCM to `UPC.on_audio`.
   **`ua_host` never assigned `cfg.on_audio`**, so every block was dropped after mixing:

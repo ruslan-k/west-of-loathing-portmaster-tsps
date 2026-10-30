@@ -1,4 +1,0 @@
-VIBRATION_REGISTER logical-handle=0x3 physical-output=system-SDL-for-connected-full-key-only
-VIBRATION_REGISTER logical-handle=0x10003 physical-output=system-SDL-for-connected-full-key-only
-VIBRATION_REGISTER logical-handle=0x2004 physical-output=system-SDL-for-connected-full-key-only
-VIBRATION_REGISTER logical-handle=0x12004 physical-output=system-SDL-for-connected-full-key-only

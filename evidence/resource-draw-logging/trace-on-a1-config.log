@@ -1,6 +1,0 @@
-WOL_BUILD_ID sha256=c35548fb7e56e6d4edb03523ab579fdce1577ffaa3b8cd2b68df32b7d99ecb5b
-WOL_DRAW_TRACE detailed=1 default=off errors=always-on
-NVN_VIDEO_CADENCE every=1 capture-every=60 dark-every=1 initial-every=1 initial-full=1 band-rows=16 negative-band=fresh-full unmeasured=NOT-SAMPLED max-initial-dark-detection-delay=0-frames
-HID_DIAGNOSTIC_PRESS buttons=0x1 milliseconds=180 stick=0,0 provider=physical connected-pad-required=1
-HID_DIAGNOSTIC_PRESS buttons=0x100 milliseconds=180 stick=0,0 provider=physical connected-pad-required=1
-HID_DIAGNOSTIC_PRESS buttons=0x2 milliseconds=180 stick=0,0 provider=physical connected-pad-required=1

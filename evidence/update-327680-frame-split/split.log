@@ -1,6 +1,0 @@
-NVN_PROFILE_REPLAY_CPU frame=241 cpu-ms=14.419 cpu-samples=60 submits=60 scope=thread-cpu-per-frame includes-counters=1
-WOL_PRESENT_TICK n=256 t=292506566471 cpu_ms=28.277
-NVN_PROFILE_REPLAY_CPU frame=301 cpu-ms=10.650 cpu-samples=60 submits=60 scope=thread-cpu-per-frame includes-counters=1
-WOL_PRESENT_TICK n=320 t=294443918180 cpu_ms=13.055
-NVN_PROFILE_REPLAY_CPU frame=361 cpu-ms=10.964 cpu-samples=60 submits=60 scope=thread-cpu-per-frame includes-counters=1
-WOL_PRESENT_TICK n=384 t=319137252233 cpu_ms=21.767

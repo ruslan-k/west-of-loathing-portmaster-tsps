@@ -1,6 +1,0 @@
-NVN_PROFILE frame=361 count=60 elapsed-ms=30.031 replay-ms=23.221 present-ms=1.832 readback-ms=0.000 scope=wall-time-per-frame
-NVN_COUNTER_PROFILE frame=361 ordinal=0 calls=60 wall-ms=0.205 wall-min-ms=0.071 wall-max-ms=4.142 cpu-ms=0.050 cpu-samples=60 draws-mean=0.00 zero-draw-calls=60 since-swap-ms=4.992 swap-samples=60 destination=0x3b070d020 target=0x4 target-size=1920x1080 fbo=6 state-changes=59
-NVN_COUNTER_PROFILE frame=361 ordinal=1 calls=60 wall-ms=9.535 wall-min-ms=1.964 wall-max-ms=11.997 cpu-ms=0.130 cpu-samples=60 draws-mean=7.00 zero-draw-calls=0 since-swap-ms=18.540 swap-samples=60 destination=0x3b070d030 target=0x2 target-size=1920x1080 fbo=1 state-changes=59
-NVN_PROFILE frame=421 count=60 elapsed-ms=29.092 replay-ms=21.294 present-ms=1.747 readback-ms=0.000 scope=wall-time-per-frame
-NVN_COUNTER_PROFILE frame=421 ordinal=0 calls=60 wall-ms=0.107 wall-min-ms=0.071 wall-max-ms=0.351 cpu-ms=0.051 cpu-samples=60 draws-mean=0.00 zero-draw-calls=60 since-swap-ms=6.094 swap-samples=60 destination=0x3b070d020 target=0x4 target-size=1920x1080 fbo=6 state-changes=59
-NVN_COUNTER_PROFILE frame=421 ordinal=1 calls=60 wall-ms=9.973 wall-min-ms=9.087 wall-max-ms=11.038 cpu-ms=0.119 cpu-samples=60 draws-mean=7.00 zero-draw-calls=0 since-swap-ms=17.254 swap-samples=60 destination=0x3b070d030 target=0x2 target-size=1920x1080 fbo=1 state-changes=59

@@ -1,6 +1,0 @@
-[audio] legacy FMOD -> SDL alsa: 24000 Hz, stereo s16, 512 frames
-[audio] legacy FMOD: frames=121856 nonzero-blocks=0 queued=3072
-[audio] legacy FMOD: frames=7822336 nonzero-blocks=29562 queued=3072
-[audio] legacy FMOD: frames=7942656 nonzero-blocks=30032 queued=3072
-[audio] legacy FMOD closed: frames=8018432 nonzero-blocks=30328
-[host] Unity stopped

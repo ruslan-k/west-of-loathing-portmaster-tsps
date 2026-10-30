@@ -1,2 +1,0 @@
-ZERO_RENDER_SCALE_WINDOW colors=3 logical=1920x1080 storage=640x360 output=1280x720 native-crop=preserved
-WOL_PRESENT_SRC frame=0 texture=1 id=2 src=1920x1080 levels=1 backbuffer=1280x720 crop=0,0,1280,720 half=0 scaled=1 draws=1

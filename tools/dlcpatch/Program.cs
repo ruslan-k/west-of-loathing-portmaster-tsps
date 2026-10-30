@@ -85,7 +85,7 @@ if (File.Exists(csPath))
 {
     var cs = AssemblyDefinition.ReadAssembly(csPath, read);
     var hit = 0;
-    // The game's own DLC gate (Cuphead's codepatch patches DLCManager.refreshDLC the same way):
+    // The game's own DLC gate — other Unity ports patch their DLC manager flag the same way:
     // Steam's stub never fires DlcInstalled_t, so the save's add-on content reads as "not loaded".
     foreach (var t in cs.MainModule.Types.Where(t => t.Name == "DLC"))
         foreach (var m in t.Methods)

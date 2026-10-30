@@ -1,2 +1,0 @@
-MOMO_THREAD index=0x1d handle=0x43c state=0x2 core=0x2 last-svc=0x21 at=sdk.text.seg+0x393e00 waiting-key=0x0 waiting-mutex=0x0 entry=sdk.text.seg+0x342f20
-STOP status=HID_VIBRATION_ROUTE_REQUIRED pc=sdk.text.seg+0x393e00 detail=0x12004 query_memory_calls=0xe2 tls_trap_reads=0x0

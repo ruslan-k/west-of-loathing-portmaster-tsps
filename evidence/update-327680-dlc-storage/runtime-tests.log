@@ -1,8 +1,0 @@
-CLEANUP_VERIFIED {"schema": 1, "label": "fixture", "owner_save_sha256": {"slot.json": "1d7ab677b9c8d933e3a772b444883294fc5332c1788e5e1ed3ee44443287c297"}, "harness_sha256": "42a1fa4a9a456552f8e3b07e76a80e6201389c4019b4e41245d88649e0678cde", "cold_cache_requested": false, "runtime_sha256": "cd2c9c08109990f1425f4a536b6d3325f38dbd619e0035bce7473ae3c8fc8239", "section_sha256": "b9b9a3eb31a736f240bbf8e81e7a73f83a0b580c00af8de2bfaf5c270a14c818", "cleanup_verified": true, "cleanup_warnings": ["runtime archive: fixture archive ENOSPC"], "game_remaining": [], "menu_pids": [1], "restored_save_sha256": {"slot.json": "1d7ab677b9c8d933e3a772b444883294fc5332c1788e5e1ed3ee44443287c297"}}
-CLEANUP_VERIFIED {"schema": 1, "label": "fixture", "owner_save_sha256": {"slot.json": "1d7ab677b9c8d933e3a772b444883294fc5332c1788e5e1ed3ee44443287c297"}, "harness_sha256": "42a1fa4a9a456552f8e3b07e76a80e6201389c4019b4e41245d88649e0678cde", "cold_cache_requested": false, "runtime_sha256": "cd2c9c08109990f1425f4a536b6d3325f38dbd619e0035bce7473ae3c8fc8239", "section_sha256": "b9b9a3eb31a736f240bbf8e81e7a73f83a0b580c00af8de2bfaf5c270a14c818", "cleanup_verified": true, "cleanup_warnings": ["observer shutdown: fixture observer shutdown failure"], "game_remaining": [], "menu_pids": [1], "restored_save_sha256": {"slot.json": "1d7ab677b9c8d933e3a772b444883294fc5332c1788e5e1ed3ee44443287c297"}}
-.....................OWNER_SAVE_RESTORE_PENDING /var/home/ruslan/.hermes/cache/scratch/tmpys18lve5/out/owner-save
-....................................................................................
-----------------------------------------------------------------------
-Ran 105 tests in 13.680s
-
-OK

@@ -1,6 +1,0 @@
-{
-  "version": 1,
-  "steps": ["shaders", "textures"],
-  "shaders": {"precision": "highp", "from": ["glcore"]},
-  "textures": {"scale": 1.0, "scale_sharp": 1.0, "block": [4, 4], "mips": "keep", "quality": "medium", "mode": "guided", "threads": 8}
-}
