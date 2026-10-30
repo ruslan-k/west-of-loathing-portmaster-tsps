@@ -55,3 +55,9 @@ KMS proof, ±5% reconciliation against `WOL_OP_V3`) are **NOT MET**. No stage at
 Restored to `f5c6f6f2` (sha verified), `device-manifest.json` and the `files[]` entry restored to the
 same hash and byte count, MainUI up, no port processes left. The `hd1-a` boot receipt shows
 `CmaFree=130412 kB`, so the failed arms never consumed CMA.
+
+## Independent static audit of staged ledger (2026-10-30; no new device run)
+
+**Additional source-level H-D1 ledger bug (2026-10-30 full audit):** [`wol_da_split.h`](wol_da_split.h) uses `WOL_DA_STAGES=11` for eleven `NPS_*` stage IDs **and** assigns its final index 10 to whole-draw start clocks. The indexed `NPS_SUBMIT=10` stage overwrites these draw-start clocks, while `wol_da_residual_cpu()` excludes index 10; totals/residual would therefore be wrong **if the code reached gameplay**. Host test only covers stages 0 and 1 and may `SkipTest` absent owner-local header. Separate whole-draw timestamps from NPS arrays (or allocate a distinct 12th index), include submit in the accounted sum, add final-stage regression, make fixture portable/non-skipping. This is independent of the observed `rtld.text.seg` boot failure. [Roadmap §26.3a](../../docs/optimization-roadmap-active-native-unity-2026-10-29.md#263a-h-d1-ledger-static-correctness-defect--must-fix-before-any-h-d1-numbers).
+
+This annotation preserves the original source, two failed boot outcomes and recorded hashes; it does not claim that this timer collision caused the rtld map failure.
