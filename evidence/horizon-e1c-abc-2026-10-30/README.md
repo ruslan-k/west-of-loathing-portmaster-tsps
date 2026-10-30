@@ -77,19 +77,48 @@ the runtime exits. Guest `VmSwap` reaches ~0.92 GB of the 963 MiB device. This c
 hard wall for any additional async frame, pinned shader lifetime or extra render target; it is a
 system-level series, not per-object attribution.
 
+## H-P1 follow-up — the named wait is `glFinish`, and it is not on the critical path
+
+Static read of the replay path: `nvn_replay.h` handles `nvnCommandBufferReportCounter` by calling
+`nvn_counter_timestamp()` (`nvn_counter_time.h:16`), which runs
+
+```c
+if(!nvn_counter_time_enabled())glFinish();
+```
+
+with `COTM_COUNTER_CPU_TIME=1` selecting the CPU-wall approximation instead (no GPU timestamp,
+submit completion unchanged). One reversible arm, same fresh-boot procedure, V3 on:
+
+| Arm | env | p50 ms | p95 ms | `ReportCounter` wall | `ReportCounter` CPU |
+|---|---|---:|---:|---:|---:|
+| c2-on | — | 40.412 | 41.353 | **8.482 ms** | 0.198 ms |
+| c4-cputime | `COTM_COUNTER_CPU_TIME=1` | **39.894** | 40.906 | **0.014 ms** | 0.014 ms |
+
+Removing the two `glFinish` calls per frame removes **8.47 ms from the class** but only
+**0.52 ms from the frame**. The GPU work being drained does not disappear: it reappears in the
+unaccounted remainder (accounted share falls 39.2 % → 16.9 %). Scene identity holds (cross-arm MAD
+5.7–6.0 at 180/240 s, bright captures at 100/180/240 s).
+
+**Conclusion: H-P1 is closed as a negative result.** The wait is named (`glFinish` in
+`nvn_counter_time.h:17`, twice per frame), and dropping it is not an optimization — the frame-time
+effect is 1.3 %, far short of the 7.1 ms needed. The 30 FPS gap must be addressed in GPU work or in
+the `DrawArrays` CPU path (5.6–6.0 ms of thread CPU per frame), not in counter synchronization.
+
 ## Verdict
 
 - **H-E1c closed**: frame ownership is repaired, ledger overhead is 0.04 %, and the matched-scene
   data is valid for per-op conclusions. The terminal partial bucket is still not flushed by the
   emitter (one frame at most); statistics use completed frames only.
 - **H-M1 done as passive accompaniment**: CMA/SwapPss/swap-I/O series exist for all three arms.
-- **H-P1 becomes the single next experiment**: name the existing wait inside `ReportCounter`
-  (8.48 ms wall per frame) and prove whether deferring it is legal before touching any renderer path.
-- No 30 FPS claim: gap from 40.4 ms to 33.333 ms is 7.1 ms (17.6 %) and no change has moved the
-  critical path yet.
+- **H-P1 closed as a negative result**: the `ReportCounter` wait is `glFinish`, and removing both
+  calls per frame moves the frame only 40.412 → 39.894 ms, so it is not the recoverable 8 ms.
+- **Next**: the `DrawArrays` CPU path (5.6–6.0 ms/frame) or the GPU work behind it; a 30 FPS claim
+  still needs 7.1 ms off the critical path and has not been demonstrated.
 
 ## Limits / threats to validity
 
+- The c4 arm changes the counter values the guest reads (CPU wall instead of a GPU timestamp), so it
+  qualifies the wait's cost, not a shippable behaviour; one arm only, no repetition.
 - One worker thread; multi-thread bucket ordering untested on device (synthetic tests only).
 - Arms are sequential fresh boots, not interleaved; die temperature/devfreq was not recorded.
 - The c1-off 100 s capture is black while c2-on/c3-off are bright; 180 s and 240 s match in all arms.

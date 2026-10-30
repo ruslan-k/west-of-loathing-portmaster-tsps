@@ -11,8 +11,9 @@
 > fresh-boot OFF/ON/OFF (40.608 / 40.412 / 40.184 ms p50, overhead +0.04 %) and a passive H-M1
 > series — see the H-E1c section below and
 > [evidence/horizon-e1c-abc-2026-10-30](../evidence/horizon-e1c-abc-2026-10-30/README.md).
-> `ReportCounter` still blocks (8.48 ms wall / 0.20 ms CPU per frame) in the matched scene; the
-> single next experiment is H-P1, naming that wait.
+> `ReportCounter` still blocks (8.48 ms wall / 0.20 ms CPU per frame) in the matched scene. The
+> named wait is `glFinish` (`nvn_counter_time.h:17`), and removing it is a **negative result**:
+> frame 40.412 → 39.894 ms (§ H-P1 below). The next lever is the `DrawArrays` CPU path.
 
 ## H-E1b — per-class op budgets with explicit units — **IMPLEMENTED; frame-ownership bug identified**
 
@@ -53,11 +54,19 @@ be added on top of this — this is the hard wall in front of H-A1 and H-R1, ind
 
 Raw samples: `evidence/horizon-roadmap25-device-status/mem0-samples.txt`.
 
-## H-P1 — attribute the actual wait — **NARROWED, not closed**
+## H-P1 — attribute the actual wait — **CLOSED: named `glFinish`, not recoverable**
 
-The wait is inside `ReportCounter` (wall ≫ CPU). What is not proven: which owner (GPU fence vs driver
-submit) and whether it is per-counter or amortized. Needs a named fence/owner trace, not another
-per-op timer.
+The wait is named: `nvn_replay.h` handles `nvnCommandBufferReportCounter` through
+`nvn_counter_timestamp()`, which runs `if(!nvn_counter_time_enabled())glFinish();`
+(`nvn_counter_time.h:17`) — twice per frame. `COTM_COUNTER_CPU_TIME=1` selects a CPU-wall
+approximation (no GPU timestamp; submit completion unchanged).
+
+Matched fresh-boot A/B on the same scene: baseline **40.412 ms** p50 with `ReportCounter`
+**8.482 ms wall / 0.198 ms CPU**; with the option **39.894 ms** p50 and **0.014 ms / 0.014 ms**.
+Removing 8.47 ms from the class removed **0.52 ms** from the frame — the drained GPU work reappears
+in the unaccounted remainder (accounted share 39.2 % → 16.9 %). This is the roadmap's “a wait that
+reappears later is no optimization” case. Do **not** pursue counter synchronization for 30 FPS.
+Evidence: [horizon-e1c-abc-2026-10-30](../evidence/horizon-e1c-abc-2026-10-30/README.md#h-p1-follow-up--the-named-wait-is-glfinish-and-it-is-not-on-the-critical-path).
 
 ## H-G1 — 7-vertex draw provenance — **NOT STARTED**
 
