@@ -36,7 +36,38 @@ The check is `t2_image_file_map()` in `native/t2_image_file_map.h:43`
 `f5c6f6f2...` maps without complaint — verified in the same minute: a 30 s control run of `f5c6f6f2`
 on the same probe directory passes segment mapping and reaches the video readback path.
 
-Two independent rebuilds reproduce it:
+## Root cause of B1 (proven): the build used the wrong image table
+
+`native/loader.c` includes `image_table.h`, which is **not** part of the recovered source — it comes
+from the *image* directory passed as `build_horizon.sh`'s second argument (`-I"$1"`). Every rebuild so
+far used `spikes/wol-switch/wol-horizon-image`, which is the **base** image:
+
+| image_table.h | `rtld.text.seg` | `main.text.seg` |
+|---|---:|---:|
+| `spikes/wol-switch/wol-horizon-image` (used) | 6,048 | 20,762,904 |
+| `scratch/wol-resume-20261028/image-update-fixed` | 6,304 | 35,439,544 |
+| device payload in the probe directory | 6,304 | 35,439,544 |
+
+So the rebuilt binary asserted the *base* segment sizes against the **v327680 update** payload and
+failed closed on `rtld.text.seg` — exactly the intended behaviour of the guard, not a defect in it.
+
+Rebuilt with `image-update-fixed` (same w9 source + ledger):
+
+```
+ELF 37824200e2dbbadbe931afa42193d048a4d5f9990ab40c324ed706d752301084
+START ... rtld-entry=0x8000000
+NX-VIDEO-READBACK/1 ... match=1 mismatch=none
+WOL_WATCHDOG_EXIT reason=runtime-exit rc=22 elapsed=62.143   (60 s bounded probe, normal end)
+```
+
+B1 exit is met for *start + mapping + video readback + clean MainUI*. What is **not** yet met is the
+frame-time leg: this w9-derived binary emits **no `NVN_PROFILE` lines at all** (0 in a full 242 s arm,
+23 `T2_MEMWATCH_SAMPLE` lines), so it cannot produce comparable frame numbers. The w9 tree is
+therefore not the source of the installed `f5c6f6f2`; the control rebuild from the canonical overlay
+tree (`/tmp/wolctl`, same `image-update-fixed`) is the next check.
+
+Two independent rebuilds reproduce the original failure:
+
 
 | Build | Source | ELF | Result |
 |---|---|---|---|

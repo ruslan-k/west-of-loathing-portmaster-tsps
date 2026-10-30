@@ -2,22 +2,15 @@ import subprocess,tempfile,unittest
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
-HEADER=ROOT.parent/'..'/'spikes'/'wol-switch'/'wol-horizon-source'/'native'/'wol_da_split.h'
-
-
-def _header():
-    """The ledger header lives in the build source; fall back to the spike tree."""
-    candidates=[HEADER,
-        Path('/mnt/external/Hermes/spikes/wol-switch/wol-horizon-build-up24s2/source/native/wol_da_split.h'),
-        Path('/mnt/external/Hermes/spikes/wol-switch/wol-horizon-source/native/wol_da_split.h')]
-    for c in candidates:
-        if c.is_file(): return c.read_text()
-    raise unittest.SkipTest('wol_da_split.h not present in a build source tree')
+# The in-repo copy is authoritative for CI until the overlay can be rebuilt against the exact
+# game image (roadmap 26.3a); a missing header must fail, never skip.
+HEADER=ROOT/'evidence'/'horizon-hd1-2026-10-30'/'wol_da_split.h'
 
 
 class DrawArraysLedger(unittest.TestCase):
-    def test_accumulates_non_overlapping_spans_and_residual(self):
-        h=_header()
+    def test_last_stage_does_not_alias_the_enclosing_draw(self):
+        self.assertTrue(HEADER.is_file(),f'ledger header missing: {HEADER}')
+        h=HEADER.read_text()
         c=r'''
 #include <stdint.h>
 #include <assert.h>
@@ -26,30 +19,37 @@ class DrawArraysLedger(unittest.TestCase):
 int main(void) {
  struct wol_da_state s;memset(&s,0,sizeof s);
 
- /* default OFF: an open/close pair must not record anything */
+ /* default OFF: nothing is recorded even if spans and a draw are opened */
  wol_da_open_draw(&s);wol_da_fake_clock=100;wol_da_mark(&s,0);wol_da_fake_clock=160;
  wol_da_close(&s,0);wol_da_fake_clock=200;wol_da_close_draw(&s);
  assert(s.total_cpu==0 && s.cpu[0]==0 && s.draws==0);
 
  s.on=1;
- /* one draw: span0 60ns cpu, span1 40ns, draw total 150ns -> residual 50ns */
+ /* frame 1: stages 0 and 10 (NPS_SUBMIT is the last NPS_* id) inside one draw.
+    Draw spans 1000..1300, stages explain 60+40, residual must be 200. */
  wol_da_fake_clock=1000;wol_da_open_draw(&s);
  wol_da_fake_clock=1000;wol_da_mark(&s,0);wol_da_fake_clock=1060;wol_da_close(&s,0);
- wol_da_fake_clock=1060;wol_da_mark(&s,1);wol_da_fake_clock=1100;wol_da_close(&s,1);
- wol_da_fake_clock=1150;wol_da_close_draw(&s);
- assert(s.draws==1);
- assert(s.cpu[0]==60 && s.cpu[1]==40);
- assert(s.calls[0]==1 && s.calls[1]==1);
- assert(s.total_cpu==150 && s.total_wall==150);
- assert(wol_da_residual_cpu(&s)==50);
+ wol_da_fake_clock=1200;wol_da_mark(&s,10);wol_da_fake_clock=1240;wol_da_close(&s,10);
+ wol_da_fake_clock=1300;wol_da_close_draw(&s);
+ assert(s.cpu[0]==60 && s.cpu[10]==40);
+ assert(s.calls[10]==1);
+ assert(s.total_cpu==300 && s.total_wall==300);   /* measured from draw entry, not from submit */
+ assert(wol_da_residual_cpu(&s)==200);            /* submit belongs to the stage sum */
 
- /* closed state ignores stray marks */
- wol_da_fake_clock=2000;wol_da_mark(&s,2);wol_da_fake_clock=2100;wol_da_close(&s,2);
- assert(s.cpu[2]==0);
+ /* frame 2 accumulates instead of restarting the enclosing clock */
+ wol_da_fake_clock=2000;wol_da_open_draw(&s);
+ wol_da_fake_clock=2000;wol_da_mark(&s,10);wol_da_fake_clock=2050;wol_da_close(&s,10);
+ wol_da_fake_clock=2100;wol_da_close_draw(&s);
+ assert(s.draws==2 && s.cpu[10]==90 && s.calls[10]==2);
+ assert(s.total_cpu==400);
+ assert(wol_da_residual_cpu(&s)==250);   /* 400 total - (60+40+50) staged */
 
- /* reset clears every bucket */
+ /* marks while closed are ignored */
+ wol_da_fake_clock=3000;wol_da_mark(&s,3);wol_da_fake_clock=3100;wol_da_close(&s,3);
+ assert(s.cpu[3]==0);
+
  wol_da_reset(&s);
- assert(s.total_cpu==0 && s.cpu[0]==0 && s.cpu[1]==0 && s.draws==0);
+ assert(s.total_cpu==0 && s.cpu[0]==0 && s.cpu[10]==0 && s.draws==0 && s.draw_wall_t0==0);
  return 0;
 }
 '''

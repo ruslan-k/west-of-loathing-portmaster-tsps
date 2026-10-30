@@ -21,6 +21,9 @@ struct wol_da_state {
     unsigned configured, on, active;
     uint64_t wall[WOL_DA_STAGES], cpu[WOL_DA_STAGES], calls[WOL_DA_STAGES];
     uint64_t w0[WOL_DA_STAGES], c0[WOL_DA_STAGES];
+    /* Enclosing draw interval has its own slots: it must never alias NPS_SUBMIT, which is
+     * stage 10 and would otherwise overwrite the draw-entry timestamp. */
+    uint64_t draw_wall_t0, draw_cpu_t0;
     uint64_t total_wall, total_cpu, draws, windows;
 };
 
@@ -48,23 +51,24 @@ static inline void wol_da_close(struct wol_da_state *s, unsigned k) {
 static inline void wol_da_open_draw(struct wol_da_state *s) {
     if(!s->on)return;
     s->active=1;s->draws++;
-    s->w0[WOL_DA_STAGES-1]=wol_da_wall_now();s->c0[WOL_DA_STAGES-1]=wol_da_cpu_now();
+    s->draw_wall_t0=wol_da_wall_now();s->draw_cpu_t0=wol_da_cpu_now();
 }
 static inline void wol_da_close_draw(struct wol_da_state *s) {
     if(!s->active)return;
     s->active=0;
-    s->total_wall+=wol_da_wall_now()-s->w0[WOL_DA_STAGES-1];
-    s->total_cpu+=wol_da_cpu_now()-s->c0[WOL_DA_STAGES-1];
+    s->total_wall+=wol_da_wall_now()-s->draw_wall_t0;
+    s->total_cpu+=wol_da_cpu_now()-s->draw_cpu_t0;
 }
 /* CPU the bracketed stages do not explain; printing it keeps the ledger honest instead of
  * implying the stages sum to the whole draw. */
 static inline uint64_t wol_da_residual_cpu(const struct wol_da_state *s) {
     uint64_t sum=0;
-    for(unsigned k=0;k+1<WOL_DA_STAGES;k++)sum+=s->cpu[k];
+    for(unsigned k=0;k<WOL_DA_STAGES;k++)sum+=s->cpu[k];   /* all stages, NPS_SUBMIT included */
     return s->total_cpu>sum?s->total_cpu-sum:0;
 }
 static inline void wol_da_reset(struct wol_da_state *s) {
     for(unsigned k=0;k<WOL_DA_STAGES;k++){s->wall[k]=s->cpu[k]=s->calls[k]=s->w0[k]=s->c0[k]=0;}
+    s->draw_wall_t0=s->draw_cpu_t0=0;
     s->total_wall=s->total_cpu=s->draws=s->windows=0;
 }
 #endif
