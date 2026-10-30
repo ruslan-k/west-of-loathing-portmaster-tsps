@@ -1,0 +1,39 @@
+diff --git a/var/home/ruslan/.hermes/cache/scratch/wol-resume-20261028/build-up24-w9/source/native/nvn_queue.h b/tmp/hd1src/native/nvn_queue.h
+index cba1ebb..6236b0f 100644
+--- a/var/home/ruslan/.hermes/cache/scratch/wol-resume-20261028/build-up24-w9/source/native/nvn_queue.h
++++ b/tmp/hd1src/native/nvn_queue.h
+@@ -18,8 +18,32 @@ static inline void nvn_phase_end(unsigned k){if(nvn_phase.enabled){uint64_t n=nv
+  * buffer query/upload) and the GL draw submission itself. */
+ enum {NPS_A1,NPS_A2A,NPS_A2B,NPS_A2C1,NPS_A2C2,NPS_A2C3,NPS_A2C4,NPS_A3,NPS_MID,NPS_INDEX,NPS_SUBMIT,NPS_COUNT};
+ static uint64_t nvn_sub_ns[NPS_COUNT],nvn_sub_calls[NPS_COUNT];
+-static inline void nvn_sub_begin(uint64_t *t0){if(nvn_phase.enabled)*t0=nvn_phase_now();}
+-static inline void nvn_sub_end(unsigned k,uint64_t t0){if(nvn_phase.enabled){nvn_sub_ns[k]+=nvn_phase_now()-t0;nvn_sub_calls[k]++;}}
++/* H-D1: DrawArrays-only CPU+wall ledger over these same spans (default OFF). */
++#include "wol_da_split.h"
++static struct wol_da_state nvn_da;
++static unsigned nvn_da_on(void) {
++    if(!nvn_da.configured){const char *o=getenv("WOL_DA_CPU_SPLIT");nvn_da.on=o&&!strcmp(o,"1");nvn_da.configured=1;
++        if(nvn_da.on)diag_printf("WOL_DA_CPU_SPLIT enabled=1 scope=DrawArrays-only stages=NPS_A1..NPS_SUBMIT+residual clocks=monotonic+thread-cpu\n");}
++    return nvn_da.on;
++}
++static inline void nvn_sub_begin(unsigned k,uint64_t *t0){if(nvn_phase.enabled)*t0=nvn_phase_now();wol_da_mark(&nvn_da,k);}
++static inline void nvn_sub_end(unsigned k,uint64_t t0){if(nvn_phase.enabled){nvn_sub_ns[k]+=nvn_phase_now()-t0;nvn_sub_calls[k]++;}wol_da_close(&nvn_da,k);}
++static void nvn_da_report(unsigned frame,unsigned frames) {
++    if(!nvn_da_on()||!frames||!nvn_da.draws)return;
++    double f=1e-6/frames;
++    diag_printf("WOL_DA_CPU_SPLIT frame=%u span=%u draws=%.1f wall=%.3f ms/frame cpu=%.3f ms/frame residual-cpu=%.3f stages-cpu="
++        "a1=%.3f a2a=%.3f a2b=%.3f a2c1=%.3f a2c2=%.3f a2c3=%.3f a2c4=%.3f a3=%.3f mid=%.3f index=%.3f submit=%.3f"
++        " stages-wall=%.3f/%.3f/%.3f/%.3f/%.3f/%.3f/%.3f/%.3f/%.3f/%.3f/%.3f calls-per-draw=%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIu64
++        " scope=drawarrays-only non-overlapping-spans\n",
++        frame,frames,(double)nvn_da.draws/frames,nvn_da.total_wall*f,nvn_da.total_cpu*f,wol_da_residual_cpu(&nvn_da)*f,
++        nvn_da.cpu[0]*f,nvn_da.cpu[1]*f,nvn_da.cpu[2]*f,nvn_da.cpu[3]*f,nvn_da.cpu[4]*f,nvn_da.cpu[5]*f,nvn_da.cpu[6]*f,
++        nvn_da.cpu[7]*f,nvn_da.cpu[8]*f,nvn_da.cpu[9]*f,nvn_da.cpu[10]*f,
++        nvn_da.wall[0]*f,nvn_da.wall[1]*f,nvn_da.wall[2]*f,nvn_da.wall[3]*f,nvn_da.wall[4]*f,nvn_da.wall[5]*f,
++        nvn_da.wall[6]*f,nvn_da.wall[7]*f,nvn_da.wall[8]*f,nvn_da.wall[9]*f,nvn_da.wall[10]*f,
++        nvn_da.calls[0],nvn_da.calls[1],nvn_da.calls[2],nvn_da.calls[3],nvn_da.calls[4],nvn_da.calls[5],
++        nvn_da.calls[6],nvn_da.calls[7],nvn_da.calls[8],nvn_da.calls[9],nvn_da.calls[10]);
++    wol_da_reset(&nvn_da);
++}
+ static void nvn_phase_report(unsigned frame,unsigned frames) {
+     if(!nvn_phase_enabled()||!frames)return;
+     double f=1e-6/frames;

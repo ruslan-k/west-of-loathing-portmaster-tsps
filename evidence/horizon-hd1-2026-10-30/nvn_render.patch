@@ -1,0 +1,140 @@
+diff --git a/var/home/ruslan/.hermes/cache/scratch/wol-resume-20261028/build-up24-w9/source/native/nvn_render.h b/tmp/hd1src/native/nvn_render.h
+index efcb185..97830bd 100644
+--- a/var/home/ruslan/.hermes/cache/scratch/wol-resume-20261028/build-up24-w9/source/native/nvn_render.h
++++ b/tmp/hd1src/native/nvn_render.h
+@@ -1063,7 +1063,7 @@ static unsigned wol_pair_bind_attribute(unsigned index,uint32_t a,uint64_t first
+ #endif
+ static void nvn_render_draw_inner(struct nvn_record *r) {
+     uint64_t aw_t0=aw_setup_now();
+-    uint64_t nvn_sub_tt=0;nvn_sub_begin(&nvn_sub_tt);
++    uint64_t nvn_sub_tt=0;nvn_sub_begin(NPS_A1,&nvn_sub_tt);
+ #if defined(WOL_PLACEHOLDER_COMMANDS) && WOL_PLACEHOLDER_COMMANDS
+     {   /* WoL bring-up: the title declares its vertex interface through the attribute state object. In
+          * placeholder mode the attribute loop below never runs (a placeholder program uses no
+@@ -1188,7 +1188,7 @@ static void nvn_render_draw_inner(struct nvn_record *r) {
+             }
+         }
+         struct wol_cat_linked *wol_cat_cur=wol_cat_link(wol_active_cat[0],wol_f_sel);
+-        nvn_sub_end(NPS_A1,nvn_sub_tt);nvn_sub_begin(&nvn_sub_tt);
++        nvn_sub_end(NPS_A1,nvn_sub_tt);nvn_sub_begin(NPS_A2A,&nvn_sub_tt);
+         if(wol_cat_cur) {
+             wol_pair_program=wol_cat_cur->name;wol_pair_c3_loc=wol_cat_cur->c3;wol_pair_uvk_loc=wol_cat_cur->uvk;
+             wol_pair_c3f_loc=wol_cat_cur->c3f;wol_pair_tex_loc=wol_cat_cur->tex;
+@@ -1326,7 +1326,7 @@ static void nvn_render_draw_inner(struct nvn_record *r) {
+                     putchar('\n');
+                 }
+             }
+-            nvn_sub_end(NPS_A2A,nvn_sub_tt);nvn_sub_begin(&nvn_sub_tt);
++            nvn_sub_end(NPS_A2A,nvn_sub_tt);nvn_sub_begin(NPS_A2B,&nvn_sub_tt);
+             glUseProgram(wol_pair_program);
+             /* build-239: u_wol_uvk defaults to the historical half; the per-draw smart rule below may
+              * override it for the top family. Programs without the uniform report -1: no-op. */
+@@ -1334,7 +1334,7 @@ static void nvn_render_draw_inner(struct nvn_record *r) {
+             if(wol_cat_cur->clip>=0)glUniform2f(wol_cat_cur->clip,nvn_device.window_origin?-1.0f:1.0f,(GLfloat)nvn_device.depth_mode);
+             wol_uniform_upload(&wol_cat_cur->uniform_cache,0,wol_pair_c3_loc,words);
+             wol_uniform_upload(&wol_cat_cur->uniform_cache,1,wol_pair_c3f_loc,fwords);
+-            nvn_sub_end(NPS_A2B,nvn_sub_tt);nvn_sub_begin(&nvn_sub_tt);
++            nvn_sub_end(NPS_A2B,nvn_sub_tt);nvn_sub_begin(NPS_A2C1,&nvn_sub_tt);
+ {   /* 2026-10-14: the top2 pair's first-resolving slot is the 4x4 white dummy; print every nonzero
+      * recorded fragment-stage slot for the first few top2 draws so the real texture slot (the
+      * poster-portrait / glyph hunt) becomes a measurement. Bounded. */
+@@ -1448,7 +1448,7 @@ static void nvn_render_draw_inner(struct nvn_record *r) {
+                         if(handle)diag_printf("WOL_PAIR_TEX quiet-pick slot=%u id=%llu %ux%u\n",tslot,(unsigned long long)pid2,pw,ph);
+                         else diag_printf("WOL_PAIR_TEX quiet-pick=none candidates-empty\n");}
+                 }
+-                nvn_sub_end(NPS_A2C1,nvn_sub_tt);nvn_sub_begin(&nvn_sub_tt);
++                nvn_sub_end(NPS_A2C1,nvn_sub_tt);nvn_sub_begin(NPS_A2C2,&nvn_sub_tt);
+                 if(wol_fs_testtex()&&wol_pair_tex_loc>=0) {
+                     /* Known-texture check (review 2026-10-13): a 256x256 UV gradient bound as tex0.
+                      * If the real fragment shows the gradient, its sampling path is correct and only
+@@ -1479,7 +1479,7 @@ static void nvn_render_draw_inner(struct nvn_record *r) {
+                             glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,(GLint)fw_val);
+                             static unsigned fw_told;if(fw_told<4){fw_told++;diag_printf("WOL_FORCE_WRAP applied wrap=0x%x name=%u\n",(unsigned)fw_val,(unsigned)t->name);}}
+                         if(wol_draw_trace_enabled())diag_printf("WOL_PAIR_TEX slot=%u handle=0x%llx name=%u %ux%u\n",tslot,(unsigned long long)handle,(unsigned)t->name,t->b.width,t->b.height);}if(t->name==139u){static int s139;static unsigned s139on;if(!s139){const char*o=getenv("WOL_SKIP_TEX139");s139on=o&&!strcmp(o,"1");s139=1;}wol_skip_139_this=s139on?1:0;}else wol_skip_139_this=0;
+-                    nvn_sub_end(NPS_A2C2,nvn_sub_tt);nvn_sub_begin(&nvn_sub_tt);
++                    nvn_sub_end(NPS_A2C2,nvn_sub_tt);nvn_sub_begin(NPS_A2C3,&nvn_sub_tt);
+                     /* Second sampler (f268 draft): bind the next resolvable recorded handle to unit 1. */
+                     {int t1loc=wol_cat_cur&&wol_cat_cur->tex1>=0?wol_cat_cur->tex1:wol_pair_tex1_loc;
+                     if(t1loc>=0) {
+@@ -1496,7 +1496,7 @@ static void nvn_render_draw_inner(struct nvn_record *r) {
+                     }}
+                 } else diag_printf("WOL_PAIR_TEX none=1\n");
+             }
+-            nvn_sub_end(NPS_A2C3,nvn_sub_tt);nvn_sub_begin(&nvn_sub_tt);
++            nvn_sub_end(NPS_A2C3,nvn_sub_tt);nvn_sub_begin(NPS_A2C4,&nvn_sub_tt);
+             /* WOL_TEXDUMP_GLNAME="n1,n2,...": dump listed GL texture names once each (PAM, alpha kept)
+              * wherever they are bound - the pair-scoped WOL_TEXDUMP_ID misses textures drawn by pairs
+              * the recorder is not armed for. 2026-10-14: hunt for the button-icon/poster textures. */
+@@ -1537,7 +1537,7 @@ static void nvn_render_draw_inner(struct nvn_record *r) {
+                 }
+              }
+             }
+-            nvn_sub_end(NPS_A2C4,nvn_sub_tt);nvn_sub_begin(&nvn_sub_tt);
++            nvn_sub_end(NPS_A2C4,nvn_sub_tt);nvn_sub_begin(NPS_A3,&nvn_sub_tt);
+             struct wol_draw_geometry geometry;
+             /* Late texture dump (independent of the once-per-fragment slot report above): at draws>6000
+              * dump the COMPOSITE's t0 (the RT it reads - should contain the menu layer) plus the target,
+@@ -1583,7 +1583,7 @@ static void nvn_render_draw_inner(struct nvn_record *r) {
+                     putchar('\n');
+                 }
+             }
+-            nvn_sub_end(NPS_A3,nvn_sub_tt);nvn_sub_begin(&nvn_sub_tt);
++            nvn_sub_end(NPS_A3,nvn_sub_tt);nvn_sub_begin(NPS_MID,&nvn_sub_tt);
+             unsigned long long stride=nvn_render.streams[0][0],vsize=nvn_render.vertex[0].size;
+             if(wol_draw_trace_enabled())diag_printf("WOL_PAIR_DRAW mode=%"PRIu64" first=%"PRIu64" count=%"PRIu64" stride=%llu stream=%llu c3bank=%llx/%u avail=%u target=%"PRIu64"/%ux%u\n",
+                 mode,first,count,stride,vsize,(unsigned long long)c3r.address,(unsigned)c3r.size,avail,
+@@ -2108,19 +2108,19 @@ static void nvn_render_draw_inner(struct nvn_record *r) {
+                 nvn_sub_end(NPS_MID,nvn_sub_tt);
+                 if(wol_skip_139_this){static unsigned s139told;if(s139told<4){s139told++;diag_printf("WOL_SKIP_TEX139 draw skipped name=139\n");}}
+                 else if(geometry.indices) {
+-                    uint64_t nvn_sub_t0=0;nvn_sub_begin(&nvn_sub_t0);
++                    uint64_t nvn_sub_t0=0;nvn_sub_begin(NPS_INDEX,&nvn_sub_t0);
+                     GLint saved_elements=0;glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING,&saved_elements);
+                     GLuint elements=0;
+                     if(wol_pair_ring_mode())elements=wol_pair_ring_buffer(&wol_pair_ring.element[pair_ring_slot]);
+                     else glGenBuffers(1,&elements);
+                     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,elements);
+                     glBufferData(GL_ELEMENT_ARRAY_BUFFER,(GLsizeiptr)(count*sizeof(uint16_t)),geometry.indices,GL_STREAM_DRAW);
+-                    nvn_sub_end(NPS_INDEX,nvn_sub_t0);nvn_sub_begin(&nvn_sub_t0);
++                    nvn_sub_end(NPS_INDEX,nvn_sub_t0);nvn_sub_begin(NPS_SUBMIT,&nvn_sub_t0);
+                     glDrawElements(geometry.primitive,(GLsizei)count,GL_UNSIGNED_SHORT,0);
+                     nvn_sub_end(NPS_SUBMIT,nvn_sub_t0);
+                     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,(GLuint)saved_elements);
+                     if(!wol_pair_ring_mode())glDeleteBuffers(1,&elements);
+-                } else if(!wol_skip_139_this) {uint64_t nvn_sub_t0=0;nvn_sub_begin(&nvn_sub_t0);glDrawArrays(geometry.primitive,0,(GLsizei)count);nvn_sub_end(NPS_SUBMIT,nvn_sub_t0);}
++                } else if(!wol_skip_139_this) {uint64_t nvn_sub_t0=0;nvn_sub_begin(NPS_SUBMIT,&nvn_sub_t0);glDrawArrays(geometry.primitive,0,(GLsizei)count);nvn_sub_end(NPS_SUBMIT,nvn_sub_t0);}
+                 if(p2solid){if(p2_saved_blend)glEnable(GL_BLEND);else glDisable(GL_BLEND);
+                             if(p2_saved_scissor)glEnable(GL_SCISSOR_TEST);else glDisable(GL_SCISSOR_TEST);
+                             if(p2_saved_depth)glEnable(GL_DEPTH_TEST);else glDisable(GL_DEPTH_TEST);
+@@ -3114,7 +3114,7 @@ static void nvn_render_draw_inner(struct nvn_record *r) {
+             if(cadence_stencil && mfc_stencil_preserve_geometry(primitive,indices,count,maximum)) {
+                 nvn_mfc_require(nvn_render.depth,MFC_STENCIL,0);
+                 nvn_render_color_mask(0);nvn_render_depth_mask(GL_FALSE);
+-                {uint64_t nvn_sub_t0=0;nvn_sub_begin(&nvn_sub_t0);glDrawElements(primitive,count,GL_UNSIGNED_SHORT,indices);nvn_sub_end(NPS_SUBMIT,nvn_sub_t0);}
++                {uint64_t nvn_sub_t0=0;nvn_sub_begin(NPS_SUBMIT,&nvn_sub_t0);glDrawElements(primitive,count,GL_UNSIGNED_SHORT,indices);nvn_sub_end(NPS_SUBMIT,nvn_sub_t0);}
+                 nvn_render_color_mask(effective_color_mask);
+                 nvn_render_depth_mask((nvn_render.depth_state[0]>>1)&1);
+                 uint64_t preserved=++megaman_frame_cadence.stencil_preserved_draws;
+@@ -3185,7 +3185,7 @@ static void nvn_render_draw_inner(struct nvn_record *r) {
+         uint64_t aw_probe_t0=0;if(tpf && nvn_replay.last_frame+1==tpf){glFinish();aw_probe_t0=nvn_nanoseconds();}
+         if(p->aw_noise_location>=0){glActiveTexture(GL_TEXTURE0+7);glBindTexture(GL_TEXTURE_2D,aw_noise.tex);GLint unit=7;nvn_uniform_send(p->aw_noise_location,NVN_UNIFORM_INT,&unit);glActiveTexture(GL_TEXTURE0);}
+ #endif
+-        {uint64_t nvn_sub_t0=0;nvn_sub_begin(&nvn_sub_t0);if(indices)glDrawElements(primitive,count,GL_UNSIGNED_SHORT,indices);else glDrawArrays(primitive,0,count);nvn_sub_end(NPS_SUBMIT,nvn_sub_t0);}
++        {uint64_t nvn_sub_t0=0;nvn_sub_begin(NPS_SUBMIT,&nvn_sub_t0);if(indices)glDrawElements(primitive,count,GL_UNSIGNED_SHORT,indices);else glDrawArrays(primitive,0,count);nvn_sub_end(NPS_SUBMIT,nvn_sub_t0);}
+         zero_depth_draw_end(&depth_draw);nvn_draw_finish_profile();
+ #ifdef ANIMAL_WELL_SHADERS
+         nvn_render.target->aw_draws_since_clear++;
+@@ -3289,7 +3289,12 @@ static void nvn_render_draw_inner(struct nvn_record *r) {
+     if(nvn_replay.draws<=8)diag_printf("NVN_GAME_DRAW number=%u count=%"PRIu64" primitive=%u program=%u target=0x%"PRIx64" emitted=%u\n",nvn_replay.draws,count,primitive,program,nvn_render.target->object,!elided);
+ }
+ static void nvn_render_draw(struct nvn_record *r) {
+-    if(!nvn_replay.restart_enabled || r->op==NI_nvnCommandBufferDrawArrays){nvn_render_draw_inner(r);return;}
++    if(!nvn_replay.restart_enabled || r->op==NI_nvnCommandBufferDrawArrays){
++        /* H-D1: bracket only real DrawArrays records; the ledger is inert unless WOL_DA_CPU_SPLIT=1. */
++        if(nvn_da_on() && r->op==NI_nvnCommandBufferDrawArrays) {
++            wol_da_open_draw(&nvn_da);nvn_render_draw_inner(r);wol_da_close_draw(&nvn_da);return;
++        }
++        nvn_render_draw_inner(r);return;}
+     unsigned type=r->args[1];uint64_t count=r->args[2];
+     if(type>2 || count>1048576)stop("ZERO_RESTART_INDEX_RANGE",nvn_caller,count,24);
+     if(!count)return;
