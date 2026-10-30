@@ -11,6 +11,7 @@ export SDL_VIDEODRIVER=kmsdrm
 export SDL_AUDIODRIVER=alsa
 export AUDIODEV=plughw:0,0
 export UA_AUDIO_SINK=pipe
+. ./port.env   # runtime options (pad name); a variable already set in the environment wins
 
 ./ua_host "$P"
 
