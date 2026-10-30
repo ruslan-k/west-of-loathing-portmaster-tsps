@@ -1,8 +1,10 @@
-# Horizon roadmap §25 — item-by-item device status
+# Horizon v327680 — device and optimization status (updated 2026-10-30)
 
-> **CURRENT STATUS (HEAD 2ec5f3b1, verified 2026-10-30): H-E1c is DONE, H-P1 is CLOSED NEGATIVE, next H-D1.** The matched fresh-boot V3 OFF/ON/OFF experiment gives **40.608 / 40.412 / 40.184 ms** for the median of **60-frame-window averages**, with ~0.04% measured profiler overhead. In the ON arm, three `DrawArrays` consume **7.264 ms wall / 6.047 ms thread CPU**; two `ReportCounter` cost **8.482 ms wall / 0.198 ms thread CPU**. `glFinish` accounts for the counter wait, but the **single semantics-changing** CPU-counter diagnostic removed ~8.47 ms locally and only ~0.52 ms from the full frame. It is **not** a shippable optimization. CMA is ~0.3–1.9 MiB in the measured gameplay, and SwapPss ~922–930 MiB. **Next experiment:** default-OFF DrawArrays-only CPU-stage decomposition with no GL/memory semantic change. [Authoritative roadmap §25](optimization-roadmap-active-native-unity-2026-10-29.md#25-current-horizon-v327680-optimization-plan--2026-10-30); [matched evidence](../evidence/horizon-e1c-abc-2026-10-30/README.md).
-
-> **Interpretation warning:** reported `p95` values of 41.855/41.353/41.391 ms were calculated **across 60-frame-window means**, not individual frame intervals or physical scanout. The c4 CPU-counter result is only one arm, and its guest-visible timing semantics differ. This supersedes older E1b and H-P1 speculation preserved below as historical notes; those values and old recommended next steps are **not current tasks**.
+> **LATEST RE-AUDIT against HEAD `fd067783`:** previous H-D1 plan is now **superseded**. c5–c8 profiling found **a2c1 7.764 ms/frame across ~60 draws** and **sm1 7.272 ms/frame across ~120 sampler calls**. These are **different runs and mixed-class wall aggregates**, **not 7.272 ms CPU exclusive to three DrawArrays**. Sampler preparation invokes refresh/materialization even when the quiet-pick selector calls `nvn_render_sampler(...,real_sample=0)`. Before any metadata-only bypass, read existing c8 `pp1–pp5` spans and perform default-OFF **H-S1 opcode/quiet-pick/real_sample thread-CPU attribution**. No GL/texture behavior change has yet been justified. [Current `25](optimization-roadmap-active-native-unity-2026-10-29.md#25-full-repo-optimization-re-audit--2026-10-30).
+>
+> **B0 CI BLOCKER:** latest GitHub Actions [run 437](https://github.com/ruslan-k/west-of-loathing-portmaster-tsps/actions/runs/41024788603) FAILED: **one of 113** memory-contract tests asserts each file occurs once in the patch; current source has **125 file headers, 116 unique paths** and repeated hunks for five paths. `git apply --numstat` parses, but following ARM64 build/tests were skipped. Fix/harden the safety contract and verify application to the frozen source; do NOT delete the test.
+>
+> **Completed:** V3 default-OFF profiler and matched E1c OFF/ON/OFF at **40.608 / 40.412 / 40.184 ms** per **60-frame-window mean** (~0.04% profiler overhead), 3 DrawArrays ~**7.264 ms wall / 6.047 ms CPU**, 2 ReportCounter ~**8.482 ms wall / 0.198 ms CPU**. H-P1 identified counter `glFinish`; one guest-semantics-changing c4 run reduced whole-frame median by only **0.52 ms**, not a shippable ~8-ms win. Gameplay `CmaFree` ~**0.3–1.9 MiB**, process SwapPss ~**922–930 MiB**; async/new GPU buffer headroom remains unproven. Frame P95 values in existing reports are **P95 across 60-frame averages**, not actual per-frame scanout P95. Native Unity installed game/audio/saves remain separate and unchanged.
 
 **Date:** 2026-10-30 · **ELF:** `21e23b58c3e2fb01018c71ab10ad4b9a08029e85e9a8ad0118765c89d345d956` (w32)
 **Run:** `e1b`, `WOL_OP_SPLIT=1` (default-OFF profiler), scripted input, 90 reported frames
@@ -150,7 +152,7 @@ Evidence: [horizon-e1c-abc-2026-10-30](../evidence/horizon-e1c-abc-2026-10-30/RE
 Known limit: the terminal partial bucket is still not flushed (≤1 frame), and only one worker
 thread emitted rows.
 
-## Post-audit engineering handoff — next ONE experiment (H-D1)
+## Earlier engineering handoff — H-D1 (SUPERSEDED by c5–c8 / H-S1)
 
 **Why:** H-P1 proves the apparent 8.48-ms `ReportCounter` wait is not an independently recoverable 8.48 ms. The strongest new named cost is **three seven-vertex DrawArrays with ~6.047 ms thread CPU** and **~7.264 ms wall/frame**. Yet 40.412→33.333 ms still needs **7.079 ms**, so no single unproven 6.05-ms CPU removal certifies 30 FPS.
 
@@ -159,3 +161,15 @@ thread emitted rows.
 **Deferred:** if driver call accounts for CPU, validate existing `WOL_GPU_TIMELINE` without blocking and prove actual 1080p FBO/program before considering GPU changes; if software setup dominates, optimize ONE invariant-proved function. Guest-memory reclaim/extra async buffering remain **blocked** by near-zero CMA and unproven alias/lifetime. `COTM_COUNTER_CPU_TIME=1` is NOT a shipping optimization; previous `ZERO_RENDER_SCALE`, `WOL_UNIFORM_CACHE`, `MOMO_SUBMIT_FINISH` remain closed.
 
 **Pacing caveat:** 60-frame-window p95 ≠ p95 of actual single-frame intervals. Report both and external physically distinct output at final acceptance.
+
+## Latest H-S1 execution handoff — single next reversible experiment, NOT IMPLEMENTED
+
+**Offline first:** read `evidence/horizon-e1c-abc-2026-10-30/c8-samsplit.log.xz` for existing `pp1…pp5` zone/call/window values. The c8 published README only prints `sm1=7.272ms`, not the fine-grained nested pp distribution. Do not add pp times to sm1 or a2c1: they are nested and different scopes.
+
+**Source:** `runtime/wol-adapter.patch` includes `nvn_render_sampler_prepare_mode`, `WOL_SAMPLE_SPLIT`, and the quiet-pick loop calling `nvn_render_sampler(candidate,0,0,0,...)`. `real_sample=0` does **not** avoid `zero_texture_refresh`, normal/RT storage materialize or sampler storage require. Those can have later-state/fail-closed side effects. This source proves a promising question, not an authorized bypass.
+
+**Proposal H-S1:** default-OFF `WOL_SAMPLER_OWNER=1`, add *only* exclusive thread-CPU+wall accounting by NVN opcode/draw ordinal, quiet-pick versus real sampled caller, `real_sample`, frame/worker/handle/generation, `pp1…pp5` and remaining `sm1`. Keep texture, GL, queue, sync and guest state unchanged. One 240-second same-script fresh-boot OFF→ON→OFF; ±5% reconciliation to same-frame `WOL_OP_V3` DrawArrays CPU, ≤5% overhead, verified moving KMS 180/240-second captures, stable temp/clocks, CmaFree/SwapPss/faults, 131 protected hash receipts and clean MainUI. A null/other sampler owner **closes the hypothesis**; there is no requirement to produce a speculative fix.
+
+**Only if proven:** compare a read-only metadata quiet-pick alternative, but first prove same selected handle and **all** refresh/materialize/RT-storage/sampler/alias/GPU next-use side effects remain correct. Never turn `COTM_COUNTER_CPU_TIME`, `ZERO_RENDER_SCALE`, shader pins, shadow eviction or a forced async queue into a production default. With 40.412→33.333 requiring ~**7.08 ms**, even full 6.047-ms DrawArrays CPU removal alone does not certify 30 FPS.
+
+**B0 must be green before calling a rebuilt candidate reproducible.** Production Unity has separate N0/N1 audio-enabled gameplay/endurance acceptance gates.
