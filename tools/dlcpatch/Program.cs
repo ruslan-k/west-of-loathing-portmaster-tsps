@@ -41,8 +41,23 @@ if (File.Exists(swPath))
                 hit++;
             }
         }
+    // The wrapper's own "is the client there" gate throws when SteamAPI_Init failed: make it a no-op
+    // so the platform queries answer through the stub instead of raising on the title screen.
+    foreach (var t in sw.MainModule.Types)
+    {
+        if (t.Name == "InteropHelp")
+            foreach (var m in t.Methods)
+                if (m.Name is "TestIfAvailableClient" or "TestIfAvailableServer" && m.Body != null)
+                { m.Body = new MethodBody(m); m.Body.GetILProcessor().Emit(OpCodes.Ret); hit++; }
+        if (t.Name == "SteamUtils")
+            foreach (var m in t.Methods)
+                if (m.Name is "IsSteamRunningOnSteamDeck" or "IsSteamInBigPictureMode"
+                    && m.ReturnType.MetadataType == MetadataType.Boolean && m.Body != null)
+                { Stub(m, 0); hit++; }
+    }
+    Console.WriteLine($"steamworks methods patched: {hit}");
     if (hit > 0) Save(sw, "com.rlabrecque.steamworks.net.dll");
-    else Console.Error.WriteLine("steamworks: no DLC methods found");
+    else Console.Error.WriteLine("steamworks: nothing to patch");
 }
 
 var csPath = Path.Combine(managed, "Assembly-CSharp.dll");
