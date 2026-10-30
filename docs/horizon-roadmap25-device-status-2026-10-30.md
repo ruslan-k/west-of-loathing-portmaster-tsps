@@ -1,7 +1,8 @@
 # Horizon roadmap §25 — item-by-item device status
 
-> **Follow-up source audit, 2026-10-30; authoritative interpretation: [main roadmap `25](optimization-roadmap-active-native-unity-2026-10-29.md#25-current-horizon-v327680-re-audit--2026-10-30-head-38f05f66).** This status page preserves the original experiment results but its strong causal conclusions need qualifications: (1) `WOL_OP_V2` increments the selected operation *before* detecting a frame change, mixing the new frame's first operation with the previous bucket and labeling it as the new frame; (2) the first 60-frame `NVN_PROFILE` averaged **462.637 ms/frame**, not the earlier ~43-ms matched heavy-gameplay window, and the 90 V2 rows have no independently validated ~71–73-draw scene match; (3) **~10.1 ms ReportCounter wall with ~0.21 ms CPU across two calls** shows a large off-CPU span **in this diagnostic sample**, **not** a named GPU fence or a recoverable 10 ms in the old gameplay baseline; (4) `CmaFree` is system-wide, and the 95 samples include prestart/post-exit; 66 below the launch admission gate are a serious headroom warning, **not owner attribution or an observed OOM**; (5) zero texture-shadow GC events at `WOL_TEX_SHADOW_MB=192` are **not** a trusted peak-live-byte measurement because `sh_bytes` does not track all free/replace paths. Async pinning did **not** resolve `NVN_PROGRAM_INVALID`. Next single reversible experiment: default-OFF **H-E1c**, correctly frame-scoped wall/CPU profiler in physically verified heavy gameplay, with a passive CMA/SwapPSS host receipt. **No device changes were made by this audit.**
+> **CURRENT STATUS (HEAD 2ec5f3b1, verified 2026-10-30): H-E1c is DONE, H-P1 is CLOSED NEGATIVE, next H-D1.** The matched fresh-boot V3 OFF/ON/OFF experiment gives **40.608 / 40.412 / 40.184 ms** for the median of **60-frame-window averages**, with ~0.04% measured profiler overhead. In the ON arm, three `DrawArrays` consume **7.264 ms wall / 6.047 ms thread CPU**; two `ReportCounter` cost **8.482 ms wall / 0.198 ms thread CPU**. `glFinish` accounts for the counter wait, but the **single semantics-changing** CPU-counter diagnostic removed ~8.47 ms locally and only ~0.52 ms from the full frame. It is **not** a shippable optimization. CMA is ~0.3–1.9 MiB in the measured gameplay, and SwapPss ~922–930 MiB. **Next experiment:** default-OFF DrawArrays-only CPU-stage decomposition with no GL/memory semantic change. [Authoritative roadmap §25](optimization-roadmap-active-native-unity-2026-10-29.md#25-current-horizon-v327680-optimization-plan--2026-10-30); [matched evidence](../evidence/horizon-e1c-abc-2026-10-30/README.md).
 
+> **Interpretation warning:** reported `p95` values of 41.855/41.353/41.391 ms were calculated **across 60-frame-window means**, not individual frame intervals or physical scanout. The c4 CPU-counter result is only one arm, and its guest-visible timing semantics differ. This supersedes older E1b and H-P1 speculation preserved below as historical notes; those values and old recommended next steps are **not current tasks**.
 
 **Date:** 2026-10-30 · **ELF:** `21e23b58c3e2fb01018c71ab10ad4b9a08029e85e9a8ad0118765c89d345d956` (w32)
 **Run:** `e1b`, `WOL_OP_SPLIT=1` (default-OFF profiler), scripted input, 90 reported frames
@@ -90,17 +91,16 @@ Not attempted beyond the retracted pin work.
 
 ## H-ACCEPT — final acceptance — **NOT REACHED**
 
-Current state: heavy-scene frame ~42–43 ms. The H-E1b data localizes ~10.1 ms in `ReportCounter`
-wait and ~5.5 ms in `DrawArrays` CPU; no change has been shown to move the critical path yet.
+The **current matched reference** is ~40.4 ms per 60-frame-window mean (~24.7 runtime presents/s); about **7.1 ms/frame** is still missing for 30. E1b's older ~10.1/5.5-ms estimates were **unmatched**. H-E1c/P1 improve attribution, not FPS. Individual-frame p95, physical distinct output, full save/audio/DLC and endurance remain unaccepted.
 
 ## Async gate correctness — **FIXED**
 
 `WOL_ASYNC_ACK` now requires the exact value `"1"`; previously `0`, empty or any non-empty value
 bypassed the fail-closed guard (`0593c9e`). Async remains default OFF.
 
-## Recommended single next step (superseded by later audit)
+## Previous recommendation — **SUPERSEDED**
 
-**Now H-E1c first**, to repair the first-op rollover and measure the actual ~43 ms heavy gameplay scene. **Only if confirmed there**, H-P1 should name the exact ReportCounter wait and causal owner. The 10.1 ms class span alone does not prove a GPU fence.
+H-E1c and H-P1 are **both closed** in the new report. Next is **H-D1**: identify where the three DrawArrays calls spend ~6.05 ms CPU/frame, with opt-in no-change instrumentation and matched scene/thermal/CMA controls.
 
 ## Architecture attempt A1 — bounded CPU texture mirrors — **NEGATIVE (measurement)**
 
@@ -150,3 +150,12 @@ Evidence: [horizon-e1c-abc-2026-10-30](../evidence/horizon-e1c-abc-2026-10-30/RE
 Known limit: the terminal partial bucket is still not flushed (≤1 frame), and only one worker
 thread emitted rows.
 
+## Post-audit engineering handoff — next ONE experiment (H-D1)
+
+**Why:** H-P1 proves the apparent 8.48-ms `ReportCounter` wait is not an independently recoverable 8.48 ms. The strongest new named cost is **three seven-vertex DrawArrays with ~6.047 ms thread CPU** and **~7.264 ms wall/frame**. Yet 40.412→33.333 ms still needs **7.079 ms**, so no single unproven 6.05-ms CPU removal certifies 30 FPS.
+
+**New default-OFF candidate, not yet implemented:** `WOL_DA_CPU_SPLIT=1`; source location `nvn_render_draw_inner()` in `runtime/wol-adapter.patch`. Record **nonoverlapping thread-CPU and wall** spans for only DrawArrays: program/FBO/state setup, uniforms, samplers/texture refresh, vertex/attribute preparation, exact existing `glDrawArrays` and remainder. Existing `NPS_SUBMIT`/draw profiling are **wall-only and mix draw opcodes**. No new GL calls, waits, cache lifetime changes or target scaling. Aggregate by frame + specific draw/target, reconcile CPU stage totals to `WOL_OP_V3` (±5%), bound output. Synthetic no-draw/frame-boundary/worker tests plus a same-gameplay fresh-boot OFF→ON→OFF with KMS 180/240-second proof, temperature/devfreq if possible, CMA/SwapPss/fault receipts and 131 production hashes. ≤5% extra overhead, no black/repeated frames, clean Spruce recovery.
+
+**Deferred:** if driver call accounts for CPU, validate existing `WOL_GPU_TIMELINE` without blocking and prove actual 1080p FBO/program before considering GPU changes; if software setup dominates, optimize ONE invariant-proved function. Guest-memory reclaim/extra async buffering remain **blocked** by near-zero CMA and unproven alias/lifetime. `COTM_COUNTER_CPU_TIME=1` is NOT a shipping optimization; previous `ZERO_RENDER_SCALE`, `WOL_UNIFORM_CACHE`, `MOMO_SUBMIT_FINISH` remain closed.
+
+**Pacing caveat:** 60-frame-window p95 ≠ p95 of actual single-frame intervals. Report both and external physically distinct output at final acceptance.
