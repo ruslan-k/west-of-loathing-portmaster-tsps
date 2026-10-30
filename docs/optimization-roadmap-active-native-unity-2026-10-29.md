@@ -1,11 +1,14 @@
-# West of Loathing — TSPS optimization roadmap (FULL AUDIT, 2026-10-30)
+# West of Loathing — TSPS complete optimization audit (updated 2026-10-30)
 
-> **Verified repo HEAD:** `fd06778302e5803f7cfbc92a47bb575a432a3284`, audited after 2 new commits.  
-> **Installed production:** native Unity 2017.4.19f1 ARM64/Mono, with owner-confirmed audio; N0–N14 remain a **separate optimization track**, with no validated post-audio sustained 30 FPS, normal DLC entrance or full cold save/reload yet.  
-> **Live experimental development:** Switch v327680 Horizon/NVN→GLES, **not installed production**. Real scripted gameplay ~40.2–40.6 ms averaged over 60-frame windows (~24.6–24.9 runtime presents/s); live `CmaFree` often ~0.3–1.9 MiB, `SwapPss` ~922–930 MiB.  
-> **Immediate priorities:** **B0: restore broken CI / source-overlay verification**, then **H-S1: attribute sampler-prepare cost by opcode, real_sample and quiet-pick**. H-E1c/H-P1 are closed, previous broad H-D1 has been narrowed by new evidence. [Authoritative plan `25](#25-full-repo-optimization-re-audit--2026-10-30).
+> **Current reviewed HEAD:** `04384a73033d909778cda8ff9a1faf128b893c8f`, seven new commits since prior documentation release `45fdc930`. Complete repository-tree inventory (5,620 entries; 5,386 in evidence), build/launcher/Unity and Horizon surfaces, source patch and tests, CI latest actual failure, profiler source and device reports. **Current decision authority: [section 26](#26-complete-optimization-follow-up--head-04384a73-2026-10-30).** Section 25 remains the previous full-repo audit before the newly staged H-D1.
+>
+> **Installed playable game:** native **Unity 2017.4.19f1 / Mono ARM64**, audio owner-confirmed; its post-audio sustained FPS, memory, normal DLC entry, controls and cold save/load remain to be certified **independently**.
+>
+> **Separate development candidate:** Switch v327680 **Horizon/NVN→GLES**, matched heavy moving gameplay `~40.2–40.6 ms` per 60-frame-window **average** (~24.7 runtime presents/s), short of 30 FPS by `~7.08 ms/frame`. No accepted net 30 FPS gain.
+>
+> **Immediate order:** **B0 — restore full CI + source/overlay parity; B1 — find rebuilt-ELF `rtld.text.seg` size mismatch; H-S0 — process old sampler pp-stage logs offline; H-S1 — opcode/quiet-pick sampler CPU attribution**. The H-D1 profiler is source-staged in `evidence/` but **failed to reach gameplay**. No framebuffer/asset shrink, guest reclaim, sync bypass or extra GPU memory approved.
 
-**Audit boundary:** reviewed repo tree, exact build and launcher, GPL patch source, source manifest, Unity packaging, profiler/test code, workflow run/log and current evidence documents. The latest XZ binary logs were not independently decompressed here (connector rejects binary content), so c5–c8 figures are cited as recorded by the repo. No device tests, runtime patches, proprietary payload or save modifications were performed in this audit.
+**Audit limits:** source and GitHub Actions inspected directly; c5–c8 XZ evidence and owner-specific segment files were not independently decompressed/replayed with the GitHub connector; no new device run, private data, build, runtime change or save change. Git history and historic measurements are preserved below. [Current Horizon status](horizon-roadmap25-device-status-2026-10-30.md), [c5–c8](../evidence/horizon-e1c-abc-2026-10-30/README.md), [failed H-D1 evidence](../evidence/horizon-hd1-2026-10-30/README.md).
 
 ## 0. Executive decision
 
@@ -545,4 +548,128 @@ Matched H-M1 shows **CmaFree ~0.3–1.9 MiB during gameplay** from ~128–130 Mi
 6. `test(native): isolated post-audio Unity scene and save/endurance receipts` (separate track).
 
 **Conclusion:** restoring sound CI and identifying the *specific sampler-prepare CPU owner* is the current critical path to an honest optimization. Neither the published ~7.27-ms mixed sampler wall sum nor the 6.05-ms DrawArrays CPU can be called a 7-ms removable cost without overlap, resource lifetime and physical-frame proof.
+
+## 26. Complete optimization follow-up — HEAD `04384a73`, 2026-10-30
+
+**Scope and supersession:** §26 supersedes §25's *future task order*, but does not erase its source/evidence explanations. Source audit included the complete Git tree inventory, seven commits since `45fdc930`, GitHub Actions run logs for latest `04384a73`, entrypoints, scripts, test contracts, main GPL overlay, owner-only Unity packaging, H-E1c/c5–c8 and H-D1 reports. **No new live device measurements** were taken. The 5,386 evidence entries were inventoried but not each manually read; the latest XZ c8 log was not independently decoded. Historical pre-audio Unity numbers are not Horizon numbers.
+
+### 26.1 Architectural inventory and evidence boundaries
+
+| Subsystem | Verified implementation | What is NOT established |
+|---|---|---|
+| **Installed Unity/Mono PortMaster game** | `port/West of Loathing.sh` enforces single session via `flock`, isolates HOME, selects SDL KMSDRM and ALSA, maps TRIMUI controls; `port/westofloathing/` distributes `ua_host` and generic ARM64 Mono, owner-only packed APK/player/assets/saves excluded. Legacy Java-FMOD path has owner-heard output. [Installed-port evidence](native-unity-port.md) | No post-audio mixed-gameplay steady FPS/p95, normal DLC quest-entry, independent physical-button audit, complete cold save/reload, long endurance, zero-swap proof. |
+| **Unity build/conversion** | Pinned exact Unity 2017.4.19f1 ARM64 donor, Mono dependencies and `runtime/unity/legacy-fmod-output.patch`; ASTC/highp conversion retains texture sizes/mips, compressed assets packaged into one owner-local APK. | Blind ASTC, shader, managed GC or AssetBundle rework is not justified before a profiled native session. |
+| **Experimental Horizon** | `build_horizon.sh` verifies a **435-file** source SHA manifest, copies external recovered GPL source, normalizes names and applies cumulative `runtime/wol-adapter.patch` (~930 kB) before ARM64 build. No Switch images/segments or external source committed. [Runtime README](../runtime/README.md). | Public syntax check is NOT frozen-source `git apply --check` + byte parity or validated ELF gameplay. |
+| **Profilers** | Working ELF `f5c6f6f2…` has corrected frame-ownership V3 ledger; c5–c8 have wall-span sampler/draw diagnostics; H-P1 localized the counter wait to `glFinish`. | c5/c6/c8 different runs/op classes; no same-frame **thread CPU** owner for sampler; p95 of 60-frame means is not individual-frame or scanout p95. |
+| **H-D1** | [New candidate](../evidence/horizon-hd1-2026-10-30/README.md): `wol_da_split.h`, three owner-specific source diffs, 11-stage CPU/wall accumulator and one synthetic host test. | **NOT in current published GPL overlay; no CPU stage data.** Two rebuilt ELFs exit on `rtld.text.seg` before gameplay. The test finds a header at owner-local paths or uses `SkipTest` on normal checkout. |
+| **CI and safety** | Latest GitHub Actions [41044438709](https://github.com/ruslan-k/west-of-loathing-portmaster-tsps/actions/runs/41044438709) **FAILED**; Unity package/bounded-run checks and `git apply --numstat` succeeded. | Memory/source contract test fails; cross compiler/QEMU and subsequent ARM64 stages **skipped**. No green end-to-end build check. |
+
+### 26.2 B0 — fix broken CI without weakening GPL overlay guarantees (P0 FIRST)
+
+The **latest run**, not older linked workflow `41024788603`, is [41044438709](https://github.com/ruslan-k/west-of-loathing-portmaster-tsps/actions/runs/41044438709) on `04384a73`. Failure is *exactly* `test_wol_memory_roadmap.ReportContracts.test_published_overlay_still_carries_the_sparse_source_contract`:
+
+`AssertionError: 125 != 116 : overlay must name each file once`
+
+The test counts `--- a/` records: 125 records, 116 unique old-file paths. Separate `+++ b/` count (137 / 128) includes additions and is **not** the failing assertion. Repeated file patch sections concern `nvn_async_frame.h`, `nvn_gl_worker.h`, `nvn_replay.h`, `nvn_shaders.h`, `nvn_textures.h`. Multiple sequential hunks **do not alone mean the final patch is wrong**; however the current test and overlay violate the documented one-section-per-file contract.
+
+**One safe repair:** retain explicit touched-file set / sparse-contract/added-header checks and patch apply+byte-parity validation. Either canonicalize the overlay **against the exact manifest-pinned normalized original** to one contiguous file section each, or allow repeated sections only where an ordered apply + **final content SHA parity** against the frozen expected tree succeeds. Do **not** simply remove the uniqueness test and call CI green. Add synthetic tests for repeats, changed file omitted, conflicting hunks, path escape and duplicate introduced header. Public CI may use data-free synthetic fixtures; **the actual 435-file recovered source belongs to owner-side verification**, never GitHub uploads.
+
+Add non-skipped V3/H-D1 fixtures to explicit CI command lines: `tools/test_wol_da_split.py` currently returns `SkipTest` if the test header is not in external local spike trees. A passing generic suite must not be misrepresented as H-D1 verification. Preserve the existing native Unity tests and full ARM64 compiler/QEMU stages.
+
+**Exit:** latest complete workflow green through ARM64 steps, source overlay patch parsed, safety contract meaningful and no expected test silently skipped; owner-side exact source manifest → neutralization → apply-check → byte-parity → ARM64 build recorded.
+
+### 26.3 B1 — fix rebuilt ELF *identity*, not a performance problem (P0)
+
+H-D1 was attempted twice with a **rebuilt ELF**, both candidates failed very early with:
+
+`segment size mismatch rtld.text.seg`
+
+H-D1 candidate SHA256 `5786a3629f0210318d42e24a38f0703971e2019d0e7406cb87850a6e9ecf3c11` exits ~0.256 s after START. Another canonical overlay build `9a64faed…` also fails. In the same probe directory, known-good `f5c6f6f2…` passed segment mapping and reached video readback. A trial that tried `T2_IMAGE_FILE_MAP=0` via `E1C_EXTRA_ENV` still reported the mismatch; therefore neither effective child env nor root cause is proven.
+
+**First read-only diagnostic, no candidate optimization:**
+1. For both old and rebuilt ELFs, verify source hash, immutable owner image/probe path, manifest, ELF build args and **effective child environment**. Confirm whether the flag reaches the loader; never rely on launcher-shell intentions.
+2. Add bounded failure logging at existing guard in `native/t2_image_file_map.h` for requested segment name, exact opened path/device/inode, `fstat(fd).st_size`, expected `s->file_size` and mapping mode. Do not dump segment data.
+3. Rebuild source **without H-D1** as a control (same toolchain, baseline and deployment). Compare exact stdout and file identity to distinguish generic rebuilt-image contract from H-D1 instrumentation.
+4. Correct only a proven mismatch in metadata/image selection/flag routing and **keep fail-closed** size checks; no padding guest segment, bypassing guard or switching game image to fake success.
+5. Require rebuilt **default-OFF** executable to reach verified moving gameplay and return to MainUI safely before any new performance measurement.
+
+**Exit B1:** reproducible effective ELF/image identity, no mapping stop, normal CMA admission, KMS moving scene and original protected Unity hashes intact. **H-D1 has produced no performance samples yet**, despite having source and host test artifacts.
+
+### 26.4 Horizon accepted baseline and false leads
+
+Working v327680 source/ELF `f5c6f6f2…` fresh-boot matched OFF/ON/OFF gives median **60-frame-average time** `40.608 / 40.412 / 40.184 ms` (approximately 24.6–24.9 runtime presents/s), V3 overhead ~**0.04%**. On same heavy scene, three `DrawArrays` calls consume **7.264 ms wall / 6.047 ms thread CPU**; two `ReportCounter` **8.482 ms wall / 0.198 ms CPU**. Times are **class-local**, not guaranteed additive net gains.
+
+H-P1 closed negative: native `ReportCounter` calls `glFinish`; temporary `COTM_COUNTER_CPU_TIME=1` cuts class wall ~**8.47 ms**, but full-frame median only **40.412→39.894 ms** (~0.52ms) in one guest-semantics-changing arm. Do not ship the CPU-timestamp substitute or remove fences to chase the apparent ~8ms.
+
+**c5–c8 reports** (same original ELF, but distinct diagnostics; XZ not independently decoded here):
+
+| Evidence | Reported result | Correct interpretation |
+|---|---|---|
+| c5 `COTM_REPLAY_PHASES` | DrawArrays **6.804 ms/3 calls**, indexed draws **4.470 ms/~62.5 calls**, Downsample **2.036 ms/4**, Copy **1.215 ms/1** | All are own-run wall-class totals; not stage CPU under same V3 frame. |
+| c6 `NVN_DRAW_SPLIT` | `a2c1 7.764 ms/frame` across ~60 draws; submit 1.225; mid 1.004 | Mixes different draw classes. Cannot call entire a2c1 cost of three DrawArrays. |
+| c8 `WOL_SAMPLE_SPLIT` | `sm1 7.272 ms/frame` across ~120 sampler calls (~61µs/call), sm3 0.342 | Mixed opcode wall spans, with nested `pp1–pp5` zones; cannot add to c6 or claim 7.272ms *thread CPU*. |
+| c7 `COTM_TEXTURE_PARAMETER_CACHE=1` | 40.292 vs 40.412 ms frame; DrawArrays CPU 5.946 vs 6.047 | Too small, not replicated and within drift; not a credible optimization. |
+
+The source proves a **question**, not a safe fast path: `wol_quiet()` scans candidate handles and calls `nvn_render_sampler(candidate,0,0,0,...)`, which still executes `zero_texture_refresh`, render-target materialization and storage checks even though the selector appears to want only liveness/size. Those operations can carry later coherence/lifetime and GPU dependencies; metadata-only bypass **requires** side-effect proof.
+
+**30 FPS gap:** representative `40.412−33.333=7.079 ms` on the *total frame critical path*. Even a theoretical net save of all 6.047ms thread CPU leaves 34.365ms (~29.1fps). Subtracting independently measured local wall waits, mixed sampler spans or time from another ELF is prohibited.
+
+### 26.5 H-S0 then H-S1: ONE next narrow CPU owner test after B0/B1
+
+**H-S0, offline first (no device):** check the already-committed `evidence/horizon-e1c-abc-2026-10-30/c8-samsplit.log.xz` in a local owner checkout, extract `WOL_SAMPLE_SPLIT pp1..pp5` counts, unit math and median/p95 *per completed 60-frame window*, plus sm1 remainder and bounds. Hash the source XZ and publish only the small data-free summary. These are nested spans, not independent per-frame costs; c5/c6 are different runs.
+
+**H-S1 proposed default-OFF `WOL_SAMPLER_OWNER=1` (NOT implemented):** augment sampler preparation **without altering GL/texture logic** with enclosing replay opcode, frame/list/worker, exact draw ordinal, quiet candidate versus real sample versus other caller, `real_sample=0/1`, candidate selected status, texture generation/lifetime and bounded **wall + CLOCK_THREAD_CPUTIME_ID** exclusive pp1..pp5/remaining-sm1 spans. Reconcile **same frame/thread/class** CPU to V3 DrawArrays ~6.047ms within ±5%, recording residual and nested zone arithmetic rather than adding c5+c8. Synthetic tests must cover missing/reused handles, incorrect candidate order, zero/multiple candidates, stale resources, cross-frame and multi-thread tags, terminal flush, and resource-state **non-mutation**. No additional GL readback, memcpy pixels, async frame or CMA-consuming snapshot.
+
+**Device acceptance:** H-S1 only after rebuilt ELF qualifies B1. Run fresh boot **OFF→ON→OFF**, same 240-second proven scripted controller route, KMS scene + temporal movement at 180/240s, exact ELF/boot/PID/full flags, thermals/devfreq if possible, per-process PSS/SwapPss/faults and host CMA, clean watchdog/MainUI and 131 protected production hashes. Overhead ≤5% (prefer ≤1%), no black/stale image. Do not enable `COTM_COUNTER_CPU_TIME`, §WOL_UNIFORM_CACHE`, texture-param cache, async, shadow evictions or scaled targets in same experiment.
+
+**If** costly *unused quiet-pick* candidates dominate real thread CPU, test **one** separate H-S2 guarded metadata-select optimization **only after** documenting unchanged chosen texture/generation, next-use GL state, all refresh/materialization/RT-storage/MFC/fail-closed side effects and pixel output. If real-sample preparation dominates, optimize only the measured dirty/upload/storage owner. If driver submission dominates, prove GPU cost via existing nonblocking `WOL_GPU_TIMELINE` with disjoint checks; if none, reject the sampler hypothesis.
+
+**H-D1 status:** owner staging exists at [H-D1 evidence](../evidence/horizon-hd1-2026-10-30/README.md), but its builds crashed before gameplay; the three patches refer to owner-local paths, the header is not in `runtime/wol-adapter.patch` and normal CI lacks the fixture. Once B1 passes, H-D1 can be integrated as a **secondary, opcode-exclusive accounting control**, not accepted evidence of a bottleneck today. Do not repeat broad H-D1 device runs until its build identity is fixed.
+
+### 26.6 Memory and GPU: blockers, not speculative 30 FPS shortcuts
+
+H-E1c had initial `CmaFree` ~128–130 MiB but during gameplay **0.3–1.9 MiB**, with process **SwapPss ~922–930 MiB** / `VmSwap ~923–931 MiB`. Earlier H-M0 66/95 samples were below the 65,536 KiB *admission* threshold, and pagemap evidence measured ~582 MiB unique physical pages at 60s in a **different run**. These numbers describe different domains and cannot be added or assigned to any one texture. High swap use and near-zero CMA may block extra GPU images regardless of a CPU optimization.
+
+**H-M2 read-only** after H-S1 or immediately if instability: pair monotonic phase/PID with `smaps_rollup`, actual PSS/SwapPss, major faults, swap-in/out, host CMA and Mali/DRM/dma-buf with exact NVN pool+offset+extent, GL texture/FBO generation, actual versus logical allocated dimensions and last-use fence. Retain **65,536 KiB CMA preflight**, memory floor, watchdog and normal CPU/GPU/swap policies. No speculative guest-memory decommit, unbounded CPU mirrors, extra async frame, shader pins or GPU second buffer until owner/lifetime/alias proof.
+
+Two 1280×720 draw targets and one *logical* 1920×1080 window-family target were observed; actual backing was reported 1280×720, so flags `0x9` do not demonstrate 2.25× fragment work. v24 UpRender's 16/9 pair is **aspect**, not width/height; `ZERO_RENDER_SCALE` produced black output. `WOL_GPU_TIMELINE` must be nonblocking and valid with `EXT_disjoint_timer_query` plus actual FBO/program identity before changing any pass.
+
+**Closed/no-go:** removed `glFinish` or CPU counter timestamps as a shipping fix; `MOMO_SUBMIT_FINISH` and uniform-cache wash, texture-param cache near-noise, `WOL_TEX_SHADOW_MB=192` zero evictions with incomplete byte counter, pixel resolution guesses, speculative GPU-work discards, async program pins after `NVN_PROGRAM_INVALID` persisted, and blind game memory reclaim.
+
+### 26.7 Actual installed Unity track (N0/N1 is independent P0)
+
+Installed `ua_host`/Mono uses the exact 2017.4.19f1 donor, ASTC/highp and owner-approved packed assets with audible FMOD→SDL/ALSA playback; [documented real-device verification](native-unity-port.md). Historic *pre-audio* DLC samples ~**32.5–32.7fps**, RSS up to **710.71 MiB**, swap **173.12 MiB**, but these are not a post-audio proof. Do **not** transplant Horizon ~24.7 FPS, CMA ~0 or 900MiB SwapPss to the installed build.
+
+**N0/N1:** copy accepted installation and protected saves/config into an **isolated test copy**; compare all owner hashes; run title, real movement, menus, indoor/outdoor, inventory/dialogue, normal DLC entitlement/entry, audio through playback, physical controller, cold save→exit→load and ~30-minute bounded endurance with p50/p95/p99 *individual* frame intervals + physical distinct scanout, PSS/SwapPss/faults/CMA, CPU/GPU utilization and thermal/devfreq. Then choose a single Unity optimization only after a measured hot spot (managed allocations/GC/bridge, shader/texture, asset cache), not by trimming assets or changing owner saves on speculation.
+
+### 26.8 Priority board, acceptance and proposed commits
+
+| Rank | Step | Status now | Exit criterion |
+|---|---|---|---|
+| **P0 B0** | Repair cumulative patch contract + full CI | **RED**, latest run 41044438709 | Meaningful non-skipped tests, ARM64 stages green, owner frozen-source parity. |
+| **P0 B1** | Rebuilt ELF segment identity | **BLOCKED**, two `rtld.text.seg` failures | Same image, default-OFF rebuilt ELF reaches moving gameplay and recovers menu. |
+| P0 H-S0 | Offline pp1..pp5 c8 breakdown | **OPEN** | Per-zone bounded count/time report, unchanged raw XZ hashes and nested units. |
+| **P0 N0/N1** | Installed Unity post-audio certification | **OPEN, separate** | Proper input/audio/save/DLC/endurance and physical frame pacing. |
+| H-E1c / H-P1 | Matched V3 and glFinish negative | **DONE / CLOSED** | Reopen only with fresh causal evidence. |
+| H-D1 | Stage ledger source/test | **STAGED, DEVICE FAIL** | B1 fixed, portable fixture, opcode CPU reconciliation after running real scene. |
+| P0-after-B1 H-S1 | Sampler owner CPU by opcode/quiet vs real | **PROPOSED, NOT CODED** | ±5% V3 reconciliation, ≤5% overhead, matched images and CMA. |
+| P1 H-S2 / H-CPU1 | One proven safe fast path | **CONDITIONAL** | A/B/A/B/A, unchanged state and physical images, measurable net frame saving. |
+| P0-safety H-M2 | Exact memory/GPU allocation owner | **PENDING** | No cache/page release without alias/fence/liveness proof. |
+| H-G1 / H-R1 | Real GPU pass optimize | **CONDITIONAL** | Correct FBO/input/output and nonblocking GPU time; 0 visual corruption. |
+| H-A0/A1 | Async frame/program | **BLOCKED** | Fix invalid program identity + have CMA margin & valid resource lifecycle. |
+| H-ACCEPT | 30 FPS | **NOT MET** | ≥30 distinct physical FPS and individual-frame p95 ≤33.333ms in representative moving gameplay, full game/audio/save/DLC/thermals acceptable. |
+
+**Measurement rules:** §NVN_PROFILE` 60-frame-window p95 is not p95 of individual frames; instrument both, plus physical distinct frames. Compare same scripted scene, source/ELF/env/boot, clocks, thermals, memory and owner save hashes, using OFF→ON→OFF fresh boots. A removed local 8ms wait that migrates elsewhere is **0 accepted gain**. Stop/revert on black/stale output, stop-code change, resource leak, lower admission gate, invalid game state, save modification or cleanup failure.
+
+**Proposed commits, NOT executed by this documentation update:**
+1. `test(horizon): safely reconcile repeated overlay file sections and preserve manifest/sparse contracts` (**B0**).
+2. `diag(horizon): log effective rtld segment identity without bypassing fail-closed check` (**B1**).
+3. `evidence(horizon): summarize existing c8 pp sampler spans with hashes` (**H-S0 offline**).
+4. `test(horizon): make H-D1 CPU-stage header fixture portable and non-skippable` (only if that diagnostic is reused).
+5. `diag(horizon): default-off opcode/quiet sampler CPU attribution` (**H-S1**, after B1).
+6. `evidence(horizon): fresh-boot H-S1 OFF/ON/OFF, KMS/CMA/SwapPss/thermal receipts`.
+7. `perf(horizon): one owner-proved high-CPU path with safe resource semantics` (only if H-S1 causal).
+8. `evidence(native): post-audio Unity physical input, cold save, normal DLC and endurance profile` (independent N0/N1).
+
+**Bottom line:** the repository is **not yet in an optimization-ready rebuilt-Horizon state**. It is in a build/test correctness phase. Improve CI and source/ELF identity first, measure same-opcode sampler CPU second, and select a single reversible hot-path change third. Do not claim 30 FPS or a safe memory fix from old wall sums, nested counters, black scaled frames or a staged profiler that never reached game.
 
