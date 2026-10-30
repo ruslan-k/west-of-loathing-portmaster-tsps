@@ -1,11 +1,11 @@
-# West of Loathing on TrimUI Smart Pro S — optimization roadmap (re-audited 2026-10-30)
+# West of Loathing — TSPS optimization roadmap (FULL AUDIT, 2026-10-30)
 
-> **Current WoL evidence revision:** `2ec5f3b1f14c1994350dfc4f2885e6d3bb340ec0` (3 new commits after the prior roadmap update).
-> **Installed production:** native Unity 2017.4.19f1 ARM64/Mono, owner-confirmed FMOD→SDL/ALSA sound, own save/config. Its N0–N14 plan remains independent.
-> **Separate active experimental port:** Switch v327680 Horizon/NVN→GLES. Measured ~24.7 runtime presents/s in heavy gameplay, near-zero live CMA, and *no accepted 30 FPS fix*.
-> **Current Horizon decision:** H-E1c (V3 profiling) is **done**, H-P1 (counter `glFinish`) is **closed as a negative optimization result**, and the **single next reversible experiment is H-D1**, locating the ~6.05 ms per-frame CPU cost inside three `DrawArrays` calls. Details and gates in [section 25](#25-current-horizon-v327680-optimization-plan--2026-10-30).
+> **Verified repo HEAD:** `fd06778302e5803f7cfbc92a47bb575a432a3284`, audited after 2 new commits.  
+> **Installed production:** native Unity 2017.4.19f1 ARM64/Mono, with owner-confirmed audio; N0–N14 remain a **separate optimization track**, with no validated post-audio sustained 30 FPS, normal DLC entrance or full cold save/reload yet.  
+> **Live experimental development:** Switch v327680 Horizon/NVN→GLES, **not installed production**. Real scripted gameplay ~40.2–40.6 ms averaged over 60-frame windows (~24.6–24.9 runtime presents/s); live `CmaFree` often ~0.3–1.9 MiB, `SwapPss` ~922–930 MiB.  
+> **Immediate priorities:** **B0: restore broken CI / source-overlay verification**, then **H-S1: attribute sampler-prepare cost by opcode, real_sample and quiet-pick**. H-E1c/H-P1 are closed, previous broad H-D1 has been narrowed by new evidence. [Authoritative plan `25](#25-full-repo-optimization-re-audit--2026-10-30).
 
-**Evidence:** [matched fresh-boot experiments](../evidence/horizon-e1c-abc-2026-10-30/README.md), [device status](horizon-roadmap25-device-status-2026-10-30.md), [V3 ledger implementation](../runtime/wol-adapter.patch), [ledger analysis](../tools/wol_op_v3_ledger.py). Previous H-E1c and E1b plans are kept in git history, not repeated as unfinished tasks. Upstream portmaster-unity/portmaster-cuphead/nx2android conclusions from earlier research remain reference material, not new measurements.
+**Audit boundary:** reviewed repo tree, exact build and launcher, GPL patch source, source manifest, Unity packaging, profiler/test code, workflow run/log and current evidence documents. The latest XZ binary logs were not independently decompressed here (connector rejects binary content), so c5–c8 figures are cited as recorded by the repo. No device tests, runtime patches, proprietary payload or save modifications were performed in this audit.
 
 ## 0. Executive decision
 
@@ -442,98 +442,107 @@ Do not commit any generated game data. Keep evidence receipts minimal and reprod
 **Final state of this document:** a thorough prioritized research roadmap. It does not certify a new run, patch, measured frame-time reduction, new memory headroom or production deployment.
 
 
-## 25. Current Horizon v327680 optimization plan — 2026-10-30
+## 25. Full repo optimization re-audit — 2026-10-30
 
-**Authority:** supersedes older Horizon priorities in `20 and the previous `25. The **installed native Unity/Mono** release is separate; only the experimental Horizon candidate is discussed below. This re-audit used GitHub HEAD `2ec5f3b1f14c1994350dfc4f2885e6d3bb340ec0` and the three new commits since the earlier review; **no new device run or code optimization was performed**.
+**Scope:** main `fd06778302e5803f7cfbc92a47bb575a432a3284`, 2 commits after previous docs update. This section supersedes earlier `25 and historical Horizon task order (`20). The detailed **installed Unity** N0–N14 procedures (sections 0–19) remain valid **only** for that distinct executable. Do not apply Horizon GPU/CMA timings to the installed Unity port.
 
-### 25.1 Completed: matched profile and the actual performance limit
+### 25.1 Repository-wide state: architecture, builds, reproducibility and tests
 
-The [fresh-boot, matching scripted gameplay report](../evidence/horizon-e1c-abc-2026-10-30/README.md) has the exact Horizon ELF SHA256 `f5c6f6f2f6c87c3c1c0308c62ef070a39d3c8b60c41b1071c03a9230fbed75d3`, correct `SDL_GAMECONTROLLERCONFIG`, a bounded 240-second sequence, KMS captures and production integrity checks (131 protected file hashes unchanged).
+| Area | Verified | What remains to be proved |
+|---|---|---|
+| Native Unity | `port/West of Loathing.sh` retains accepted SDL KMSDRM/ALSA/TRIMUI mapping, isolated `HOME`, optional bounded mode. `ua_host`, generic Mono and runtime manifest have hash/packaging tests. Owner-only APK/Unity player and saves excluded from git. [Native receipt](native-unity-port.md) | Owner-confirmed sound, real KMS base/DLC views **do not yet certify post-audio steady FPS, cold save/load, normal DLC entry, all physical buttons or endurance**. Previous 32.5–32.7 FPS and 711 MiB RSS/173 MiB swap are pre-audio short-run figures only. |
+| Experimental Horizon | `build_horizon.sh` verifies source-manifest SHA, copies recovered GPL baseline, applies `runtime/wol-adapter.patch` then cross-builds. Source/evidence is reproducible only with exact external recovered source and owner image. Overlay ~930 kB and 116 unique paths. | Public CI runs `git apply --numstat` but **cannot validate complete application/compilation** to manifest-pinned recovered source. Need owner-side `git apply --check` and exact ELF SHA build receipts; do not distribute proprietary input. |
+| Evidence and tools | Thousands of archived experiments, KMS shots, V3 frame-owner ledger, phase profiler, sampler subspan telemetry, memory analysis, >100 data-free tests. | Each FPS/CMA claim must be scoped to **same scene, ELF, default flags and physical screen**. 60-frame-window percentiles are **not individual-frame or scanout percentiles**. |
+| Build/CI | 1 workflow, current latest [run 437](https://github.com/ruslan-k/west-of-loathing-portmaster-tsps/actions/runs/41024788603) **failed** after initial Unity/package and syntax checks. | Fix single failing test and run previously skipped ARM64 jobs. `tools/test_wol_op_v3_ledger.py` is not explicitly included in the current workflow. |
 
-| Arm | Profiler | Median `NVN_PROFILE` 60-frame-window **mean** | P95 of window means | Median replay |
+**Source status:** one cannot label a codepath safe solely because tests compile an isolated snippet or because a screenshot is bright. Production Unity still has a protected hash+save boundary; Horizon still lacks complete playability/audio/save/DLC endurance acceptance.
+
+### 25.2 B0 P0: current CI failure, precise fix strategy
+
+Latest run 437: **112/113 synthetic memory tests passed**, **one failed** at `tools/test_wol_memory_roadmap.py::test_published_overlay_still_carries_the_sparse_source_contract`. It asserted `len(touched)==len(set(touched))`, but the actual patch has **125 old-file headers for 116 distinct paths**. Five files recur: `native/nvn_async_frame.h` (4 sections), `native/nvn_replay.h` (3), `native/nvn_shaders.h` (3), `native/nvn_gl_worker.h` (2), `native/nvn_textures.h` (2). This is consistent with separate appended patches; **duplicate path headers alone are not a runtime failure**. The workflow's `git apply --numstat` passed; cross-compiler and ARM64 test stages were **skipped** after the failed assertion.
+
+**First action (test/source-contract only, no game changes):** either consolidate sequential hunks by path against the pinned recovered baseline with exact semantic/diff review, **or** amend the obsolete uniqueness assertion to verify changed **file-set, newly added header provenance, ordered patch sections and context applicability**, not a one-header-per-file layout. Do not delete or weaken failure checks without a replacement invariant. Add explicit V3-ledger and future sampler-ledger tests to CI. Require a green public pipeline, and, with owner-controlled source, a manifest-verified `git apply --check` + isolated full Horizon build and resulting ELF manifest. No production executable/release promotion while source contract is red/unknown.
+
+**Gate B0:** PASS only when all test steps run, complete, and the actual reconstructed overlay applies to its frozen source. This doc update does **not** repair CI itself.
+
+### 25.3 Current matched gameplay performance: H-E1c and H-P1 closed
+
+The [matched fresh-boot E1c report](../evidence/horizon-e1c-abc-2026-10-30/README.md) used ELF `f5c6f6f2f6c87c3c1c0308c62ef070a39d3c8b60c41b1071c03a9230fbed75d3`, correct scripted TRIMUI input, 240-second bounded runs, KMS at 180/240 seconds and 131 protected files unchanged.
+
+| Arm | V3 | Median of **60-frame means** | P95 of those means | Replay median |
 |---|---|---:|---:|---:|
 | `c1-off` | OFF | **40.608 ms** | 41.855 | 24.683 |
 | `c2-on` | ON | **40.412 ms** | 41.353 | 24.805 |
 | `c3-off` | OFF | **40.184 ms** | 41.391 | 24.395 |
 
-The ON median differs by **+0.016 ms (~0.04%)** from the average of both OFF medians; therefore the versioned `WOL_OP_V3` ledger adds little measurable overhead at this scale. This is not a formal confidence interval; runs used separate fresh boots without thermal/devfreq sampling. The new reference is **40.2–40.6 ms (~24.6–24.9 runtime presents/s)**. The older **42.1–43.1 ms** belongs to another scene/build and does **not** prove a performance improvement.
+V3 overhead estimated **+0.016 ms (0.04%)**, below normal run-to-run drift; not a paired confidence interval and temperature/devfreq not recorded. This is **~24.6–24.9 runtime presents/s**, not physical distinct-frame FPS or a proven improvement over a different 42–43-ms ELF. The tool calculates P95 of **window averages**, not individual-frame P95.
 
-**Statistical caveat:** `tools/wol_op_v3_ledger.py` parses one `NVN_PROFILE` value averaged over **60 actual presents**, and computes p50/p95 *over these window averages*. Thus 41.353 ms is **NOT an individual-frame P95**, and it is not a physical/display frame pacing P95. Actual displayed distinct-frame cadence remains unverified. KMS image similarity at 180/240 seconds supports scene comparability, not exact pixel identity on every frame; one c1-off 100-second capture was black. A single worker emitted the V3 rows, and the final partial bucket (≤1 frame) still lacks terminal flush.
+Per-class V3 medians (c2-on, 2,772 completed frames): three **DrawArrays ~7.264 ms wall / ~6.047 ms thread CPU** and two **ReportCounter ~8.482 ms wall / 0.198 ms CPU**. H-P1 identified `ReportCounter` → `nvn_counter_timestamp` → **`glFinish`** twice/frame. One semantics-changing `COTM_COUNTER_CPU_TIME=1` diagnostic reduced the local counter span by **~8.47 ms**, but the whole-frame median only **40.412→39.894 ms** (~0.52 ms). No legal ~8-ms net gain: **H-P1 CLOSED NEGATIVE**; never ship CPU-wall substitution or infer that skipped GPU work vanished.
 
-In `c2-on`, 2,772 completed frames / 5,544 V3 rows showed:
+**Budget:** `40.412−33.333=7.079 ms/frame` (~17.5%). Even a hypothetical net removal of all **6.047 ms DrawArrays CPU** leaves **34.365 ms/frame (~29.1 FPS)**. Wall timers and overlapping GPU work are not additive recoverable milliseconds.
 
-| NVN class | Calls/frame | Median local wall/frame | Median thread CPU/frame | Scope |
-|---|---:|---:|---:|---|
-| `DrawArrays` | 3 | **7.264 ms** | **6.047 ms** | Real host work inside the three replayed handlers, exact stage unknown |
-| `ReportCounter` | 2 | **8.482 ms** | **0.198 ms** | Mainly off-CPU blocking, subsequently localized to `glFinish` |
-| Combined | 5 | **~15.84 ms** | **~6.245 ms** | About 39.2% of a 40.4-ms frame in local wall spans, **not** an additive recoverable budget |
+### 25.4 New c5–c8 sampler evidence — what it supports and what it DOES NOT
 
-### 25.2 H-P1: counter `glFinish` is named but NOT a 30 FPS fix
+Published [latest c5–c8 receipt](../evidence/horizon-e1c-abc-2026-10-30/README.md#cpu-attribution-after-h-p1--where-the-drawarrays-6-ms-actually-is), all independent opt-in diagnostics on ELF `f5c6f6f2`:
 
-The current report [H-P1](../evidence/horizon-e1c-abc-2026-10-30/README.md#h-p1-follow-up--the-named-wait-is-glfinish-and-it-is-not-on-the-critical-path) traces `nvnCommandBufferReportCounter` through `nvn_counter_timestamp()` in `native/nvn_counter_time.h` and the call `if (!nvn_counter_time_enabled()) glFinish();`. The diagnostic `COTM_COUNTER_CPU_TIME=1` substitutes a CPU-wall approximation for GPU-timing semantics and removes these waits. Same-style measured windows:
-
-| Arm | ReportCounter wall/frame | Full frame median |
-|---|---:|---:|
-| Normal `c2-on` | **8.482 ms** | **40.412 ms** |
-| `c4-cputime` | **0.014 ms** | **39.894 ms** |
-
-**~8.47 ms of local ReportCounter time disappears, but the whole frame falls only ~0.518 ms (1.3%)**. The pending GPU work/sync migrates outside the counter bucket, or other work dominates; the *exact new wait site* has not been measured. The result is **one fresh-boot diagnostic arm, not a replicated, guest-semantics-safe optimization A/B**. Counter values delivered to the guest change, so the diagnostic flag is **not suitable for shipping** based on KMS image resemblance. Do not drop `glFinish`, select `MOMO_SUBMIT_FINISH=0` or bypass fences expecting a free 8 ms gain. **H-P1 closed as a negative FPS lever**, not a proof that all sync work is understood.
-
-### 25.3 Updated frame budget and the next useful lever
-
-From **40.412 ms** to **33.333 ms** requires **7.079 ms/frame** (~17.5% of current frame). The `DrawArrays` handlers consume **6.047 ms CPU/frame**: eliminating even *all* that CPU time with equal wall reduction would leave **34.365 ms (~29.1 FPS)**, still below 30. The 7.264-ms wall total is not 7.264 ms of guaranteed removable CPU or GPU work. Thus one CPU optimization may help materially but likely must be combined with a **second independently verified** saving. Other 70+ indexed draws, downsample, copy, shader/texture work, guest execution and GPU pipeline remain possible after causal measurement.
-
-The current source already has `NVN_DRAW_SPLIT`/`NPS_*` wall-based subspans in `native/nvn_queue.h` and `nvn_render.h`, including `NPS_SUBMIT` around existing `glDrawArrays`, but **those aggregate multiple draw classes and do not report DrawArrays-exclusive thread CPU**. Reuse boundaries, not total counters, and avoid creating a redundant second general profiler.
-
-### 25.4 H-D1: the ONE next reversible experiment — DrawArrays CPU stages
-
-**Hypothesis:** a particular repeated substage inside `nvn_render_draw_inner()` accounts for most of the **~6.05 ms/frame CPU** on just three seven-vertex draws, and offers a safe fast path with fully preserved pixels and resource semantics.
-
-**Proposed (not implemented) default-OFF `WOL_DA_CPU_SPLIT=1`**, limited to `NI_nvnCommandBufferDrawArrays`:
-1. Bracket **existing work** with both `CLOCK_MONOTONIC` and `CLOCK_THREAD_CPUTIME_ID`: target/FBO and shader/program/state setup; uniform translation/send; texture/sampler binding and dirty uploads; vertex attribute/geometry preparation; the actual GLES `glDrawArrays` call; and remaining cleanup/unknown. Make spans nonoverlapping, and explicitly account for nesting/overlaps with `NPS_*`. Do **not** add `glFinish`, `glGetError`, a new GPU query, any GL operation, texture allocation, memory discard or shader conversion inside measured intervals.
-2. Record frame/list/thread ID, op ordinal (three per frame), count=7, logical target dimensions 1280x720 or 1920x1080 and known guest/GL program/attachment identity **only if already available without a synchronous driver query**. Do not equate `flags=0x9` with unique swapchain identity or logical 1080p with physical 1080p fragments; earlier traces reported `actual=1280x720`.
-3. Sum in 64-bit nanoseconds, log **bounded aggregated data at completed frame/60-frame boundaries**. Reconcile the exclusive CPU-stage sums to `WOL_OP_V3` `DrawArrays` sum CPU **within ±5%**; report residual, per-stage count, wall/CPU and max. Test zero draws, 3-draw ordering, frame rollover, two worker threads, final flush and unit conversion on the host. Preserve default-OFF release semantics.
-4. Run **matched fresh-boot OFF→ON→OFF** at the same movement/gameplay position, use the verified scripted pad config and bounded 240-second route; KMS proof at 180/240 seconds, exact ELF/source, clock/temp where possible, `CmaFree`/SwapPSS/faults, original 65,536 KiB preflight and clean MainUI/protected-hash receipts. `WOL_OP_V3` may be used as an independent same-build control, but avoid enabling multiple unrelated experimental flags.
-5. **Diagnostic pass:** scene and codepath valid; CPU-stage partition consistent; extra overhead **≤5%** vs adjacent controls (prefer ≤1%); no image/IO/memory regression. No performance claim arises merely from profiling.
-
-**One next decision after H-D1, not now:** if CPU time concentrates in **program/state/uniform/texture/vertex** code, identify one exact routine and test a guarded cache/fast path with ownership/epoch proof. If the `glDrawArrays` **driver call** itself dominates, validate GPU backpressure versus CPU-side driver overhead with existing **nonblocking `WOL_GPU_TIMELINE`** in a **separate** diagnostic run (no per-draw `glFinish`), and map the actual FBO/program/render target before touching GPU work. If remaining CPU is diffuse, the next target is not yet proven. Even a 1–3 ms win is useful but **not 30 FPS acceptance**.
-
-### 25.5 Critical P0 safety: CMA and swap still dominate feasibility
-
-The [matched H-M1 host samples](../evidence/horizon-e1c-abc-2026-10-30/README.md#memory-series-h-m1-passive-host-sampling-same-runs) show **~0.3–1.9 MiB CmaFree during gameplay** after **128–130 MiB free at fresh-boot preflight**, and **SwapPss ~922–930 MiB** / `VmSwap ~923–931 MiB`. The prior longer H-M0 series had **66/95** global `CmaFree` samples below the 65,536 KiB admission gate. These are system and process measurements respectively, not an identity/owner proof for any individual Mali allocation. **Do not** add overlapping GPU/RSS/Swap/CMA quantities.
-
-Keep the existing **65,536 KiB CmaFree launch gate**, runtime memory floor and bounded watchdog; do not enable extra async frames, program pins, unproven GPU buffers, forced 720p storage, guest anonymous-page discard, swap policy or clock changes to chase FPS. `WOL_TEX_SHADOW_MB=192` showed zero GC events, but its byte counter misses some `cpu_snapshot` free/replace paths; zero events are **not an accurate full ownership census**.
-
-The separate passive **H-M2** (after H-D1 unless memory instability stops earlier) must join monotonic timestamps, exact process/frame/scene, `CmaFree/Total`, `smaps_rollup` PSS/SwapPSS, `VmRSS/VmSwap`, faults/swap I/O and Mali/DRM/DMA-buf statistics to actual NVN pool+offset+extent and GL FBO/texture **allocation/deletion**, format, host-vs-logical dimensions and liveness/alias generation. No speculative reclaim without evidence for **last use, aliasing and GPU fences**. An observed low CMA alone does not prove specific future allocations must fail; it is a serious practical headroom warning.
-
-### 25.6 Updated dependency board
-
-| Work | Status / rank | Exit |
+| Measurement | Reported | Attribution boundary |
 |---|---|---|
-| H-E1c | **DONE** | V3 frame ownership fixed, matched OFF/ON/OFF; overhead ~0.04%. |
-| H-P1 | **CLOSED NEGATIVE** | `glFinish` named, but remove-wait arm only ~0.52 ms whole-frame and changes guest counter semantics. No direct FPS lever. |
-| **H-D1** | **P0 NEXT (one experiment)** | Per-stage CPU/wall of **three DrawArrays**, ≥3 same-scene 60-present windows, ≤5% profiler overhead and successful KMS. |
-| H-M2 | **P0 safety / passive** | Explain guest/GPU/CMA resource ownership before adding memory; no unqualified reclaim. |
-| H-G1 | **P1 conditional** | Actual GL program/FBO, 7-vertex draw, physical 1280×720 vs logical 1920×1080 and nonblocking GPU timestamp. |
-| H-CPU1 | **P1 conditional** | One measured high-CPU DrawArrays substage; A/B/A/B/A, same source and visual output. |
-| H-R1 | **P2 conditional** | One proven GPU pass/copy or other non-overlapping bottleneck, resource alias/pixel invariants. |
-| H-A0/A1 | **BLOCKED** | `NVN_PROGRAM_INVALID detail=0` unresolved despite pin attempt; memory headroom/snapshot correctness unproven. |
-| H-ACCEPT | **NOT MET** | Real distinct displayed ≥30 FPS, *individual-frame* p95≤33.333 ms, full gameplay/audio/save/DLC/memory acceptance. |
+| `c5 COTM_REPLAY_PHASES` | `DrawArrays` **6.804 ms/frame**, three calls; indexed `DrawElementsBaseVertex` 4.470 ms / ~62.5 calls; Downsample 2.036 / four; copy 1.215 / one | Op-class wall intervals **in another run**; consistent shape with V3, not the partition of exact V3 thread CPU. |
+| `c6 NVN_DRAW_SPLIT` | `a2c1` **7.764 ms/frame**, `submit` 1.225, `mid` 1.004 over ~60 draws/frame | **Includes other draw classes**, not exclusive to just three DrawArrays; wall, not thread CPU. |
+| `c8 WOL_SAMPLE_SPLIT` | `sm1` **7.272 ms/frame across ~120 sampler calls**, ~61 µs/call. `sm3` 0.342; `sm2/sm4` ≤0.06 | `sm1` contains `nvn_render_sampler_prepare_mode`, copy trace and sampler storage require; **all sampler call sites**, wall-only. Its `pp1…pp5` stages are nested inside it. Do not add `sm1` to `a2c1` or name it a proven 7.27-ms CPU cost of the three DrawArrays. |
+| `c7 COTM_TEXTURE_PARAMETER_CACHE=1` | Whole-frame median **40.292 vs 40.412 ms**, DrawArrays CPU **5.946 vs 6.047** | Small, unreplicated shift, within drift; **no accepted performance win** from `glTexParameteri` caching. c8 sampler profiling perturbs frame period by roughly +0.5 ms and must not be used for FPS acceptance. |
 
-**Still no-go:** `MOMO_SUBMIT_FINISH=0`, `WOL_UNIFORM_CACHE=1` (wash), `COTM_COUNTER_CPU_TIME` as shipping change (counter semantics), `ZERO_RENDER_SCALE` (black output), v23 `UpRender` offsets (v24 pair=16/9 aspect), speculative async shader pinning or bypass and texture shadow eviction as a known memory optimization.
+**Source verification:** `nvn_render_sampler_prepare_mode` resolves the descriptor and texture/sampler, then invokes `zero_texture_refresh`, `nvn_normal_require_materialized`, `nvn_rt_storage_require`, `nvn_rt_storage_sample`, and conditional `nvn_mfc_require` for real samples. `nvn_render_sampler` also performs sampler storage require, materialization, active texture/binds/parameters and other coherence work. The existing `WOL_SAMPLE_SPLIT` report has **pp1 descriptor**, **pp2 checks**, **pp3 refresh**, **pp4 materialization/RT-storage/MFC**, **pp5 filtering**; `sm1` wraps more than these. **First parse existing c8 XZ pp1–pp5 lines offline before another device rebuild**. Their exact pp per-zone distributions were not re-computed in this review.
 
-### 25.7 Acceptance and precise next commits
+**Important quiet-path fact:** in the `wol_quiet()` first-bound-texture choice (overlay around lines 5838–5860), each nonzero candidate calls **`nvn_render_sampler(candidate,0,0,0,...)`** and picks the first live nonzero-size texture. Despite `real_sample=0` it still executes `zero_texture_refresh`, materialization, storage requires and GL sampler-related work. This looks expensive for merely inspecting size/liveness, **but those operations may be essential for later draws or fail-closed lifetime handling**. A metadata-only bypass without state/alias/dirty/next-use proof is unsafe. Also the current profiler **does not separate candidate-only calls from actually sampled calls**; it cannot justify a fast-path change yet.
 
-**FPS:** time individual frame-to-frame intervals and, where supported, physical **distinct** scanout; measure p50/p95/p99 **over individual frames** rather than p95 across 60-frame averages. Target the new ~**7.1 ms** deficit in the same moving gameplay, not an uncomparable old ELF. Validate title, HUD/dialogue, inventory, maps, interiors, combat/DLC, input/audio, save/reload and endurance before calling the Horizon candidate a replacement for the installed native Unity port.
+### 25.5 H-S1 P0: ONE NEXT REVERSIBLE EXPERIMENT — sampler-owner CPU and usage
 
-**Rollback:** changes default OFF, single isolated candidate, no modification of shipped ARM64 Unity runtime, packed owner APK, audio bridge, save/config/home, guest payload or CPU/GPU policies; protected hashes unchanged; MainUI returns and watchdog cleans up. Device tests require image proof and CMA/fault recovery.
+**Goal:** determine what fraction of real `DrawArrays` CPU is spent on *unsampled quiet-pick candidates* versus *actual sampled texture preparation*, and which of `pp1–pp5` owns the cost. **Diagnostic success may yield 0 FPS**. This supersedes the broad H-D1 DrawArrays-stage measurement proposed before c5–c8.
 
-**Proposed commits (NOT performed in this documentation-only revision):**
-1. `diag(horizon): add default-off DrawArrays-only CPU/wall stage ledger` — H-D1, source/test.
-2. `evidence(horizon): matched H-D1 OFF/ON/OFF and per-stage/physical frame receipt`.
-3. `perf(horizon): optimize one proven CPU-hot DrawArrays routine with safe epoch/invalidation`, only if H-D1 supports it.
-4. `diag(horizon): map GL draw/FBO owner and GPU pass if driver bound`, only if H-D1 supports it.
-5. `docs(horizon): classify 30 FPS and CMA feasibility for the named build and tested scenes`.
+**Default-OFF proposal (`WOL_SAMPLER_OWNER=1`, NOT implemented):**
+1. Carry frame/list/thread ID, **enclosing replay opcode**, draw ordinal, caller category (quiet-pick/real sampled/other), `real_sample=0/1`, texture handle+object/generation, live/selected status and candidate count through **existing sampler calls**. No GL API query or new resource. Explicitly bound log volume and avoid runtime data snapshots.
+2. Attribute **nonoverlapping CLOCK_MONOTONIC and CLOCK_THREAD_CPUTIME_ID** spans for `pp1–pp5`, extra `sm1` work and call-site remainder, with counts/sums/max by opcode+caller+real_sample. **Nested samples are not independent costs**. Compare on the **same frame+thread** to `WOL_OP_V3` DrawArrays ~6.05-ms CPU, with <=5% unexplained residual; record other draw/copy classes separately. No unqualified attribution from c5+c6+c8 across runs.
+3. Synthetic tests: empty/one/multiple candidates, invalid/aliased/reused handles, frame rollover, different threads, terminal flush, nested-zone arithmetic, class boundaries, CPU<=wall (with rounding), zero-op windows, and passive side-effect counts. Do **not** skip existing refresh, materialization, stop checks or texture bind to gather evidence.
+4. Fresh-boot **OFF→ON→OFF** in the same 240-second scripted scene, 180/240-second real KMS captures and visually identical movement, all probe/ELF/environment hashes, CPU/GPU clocks+temperatures if supported, timestamped CmaFree/SwapPss/fault/swap IO, 131 production hashes and MainUI cleanup. All prior performance flags (counter CPU-time, uniform/texparam cache, shadow eviction, async, scaled target) stay default OFF. **≤5% overhead**, preferably <=1%, no black/stale picture and zero new memory allocation.
+5. **Decision:** if costly unsampled candidates own CPU time, consider one guarded `H-S2` metadata-only selection **only after** proving unchanged chosen handle, lifetime/fail-closed checks, required refresh/materialization state and GPU producer/consumer alias/fence correctness. If actual sampled texture refresh owns the cost, target only its measured dirty/upload/storage owner. If neither dominates, move to GL draw submission/GPU timer or the indexed draw path. No sampler shortcut before these conditional proofs.
 
-**Verdict:** the large `ReportCounter` wait was a misleading FPS target. The **three DrawArrays CPU paths** are the next measurable candidate, but their **6.05 ms** CPU budget alone is **not enough to guarantee 30 FPS** from **40.4 ms/frame**; any additional work must be evidence-selected and safe under near-exhausted CMA.
+### 25.6 Memory/graphics/guest safety
+
+Matched H-M1 shows **CmaFree ~0.3–1.9 MiB during gameplay** from ~128–130 MiB on clean preflight, **SwapPss ~922–930 MiB** / VmSwap ~923–931. These are severe **headroom warnings**, not owner proof for a specific GPU texture. Keep **65,536 KiB launch CMA admission**, the runtime memory floor, watchdog, CPU/GPU governors and swap policy intact. No added async frame, program pin, extra full-sized FBO, blind guest-page discard or shader/texture compression change without measured marginal CMA/live allocation/alias/fence proof.
+
+**H-M2, read-only when needed:** correlate per-process `smaps_rollup` PSS/SwapPss/major faults with host CMA and Mali/DMA-buf state and an exact guest pool+offset+extent, target generation, GL attachment, logical/physical dimensions, snapshot lifetime and GPU fence. Do **not** add RSS+GPU+CMA+SwapPss as independent allocations. `WOL_TEX_SHADOW_MB=192` recorded zero evictions; its byte count misses non-eviction free/replace paths, so not a proven RAM-saving mechanism.
+
+**H-G1 conditional:** verify exact program/FBO/viewport/texture identity for the three seven-vertex draws and existing **nonblocking** `WOL_GPU_TIMELINE` with supported disjoint validation. Third draw logical 1920×1080 is associated with the window family, but backing was reported as `actual=1280×720`; flags `0x9` alone do not prove 2.25× actual pixel cost. v24 `UpRender` offsets are **16/9 aspect** and older `ZERO_RENDER_SCALE` produced **black KMS**. Async `NVN_PROGRAM_INVALID detail=0` survived speculative pinning and cannot be re-enabled without identity + memory qualification.
+
+### 25.7 Dependency board: what to do in what order
+
+| ID | Rank/status | Actual deliverable |
+|---|---|---|
+| **B0 CI** | **P0 BLOCKER — OPEN** | Repair exact old test/overlay-contract mismatch, verify public job green **including ARM64 stages**, add V3/sampler tests, pinned-source apply/build privately. |
+| **N0/N1 Unity** | **P0 independent** | Isolated accepted installed/audio-enabled baseline, real controls, cold save, normal DLC entry and endurance; N2–N14 follow only their own evidence. |
+| H-E1c / H-P1 | **DONE / CLOSED NEGATIVE** | Matched ~40.4 ms, low V3 overhead; counter `glFinish` not a recoverable 8 ms. |
+| H-D1 / c5–c8 | **DIAGNOSTIC SCREEN DONE, attribution incomplete** | Sampler `a2c1/sm1` is a likely zone; not opcode-exclusive CPU. |
+| **H-S1** | **P0 NEXT DEVICE EXPERIMENT (after B0)** | Replay-opcode/quiet-vs-real sampler and exclusive CPU pp-zone attribution, matched V3 and physical image. |
+| H-S2 | P1 conditional | One proven unsampled quiet-pick metadata fast path, strict alias/resource side effects, default OFF, A/B/A/B/A. |
+| H-M2 | P0 passive / P1 dedicated | Guest/GPU/CMA owner and page/residency; no unsafe reclaim or extra buffers. |
+| H-G1 / H-R1 | P1/P2 conditional | True pass/driver cost, source target identity, pixel equivalent renderer optimization only if justified. |
+| H-A0/A1 | **BLOCKED** | Async invalid program identity and no proven CMA budget or completed snapshot lifecycle. |
+| H-ACCEPT | **NOT MET** | Individual physical distinct-frame p50/P95/P99, real ≥30 FPS, no black/duplicate frames, scene/audio/input/save/DLC/thermal/cleanup. |
+
+**Closed no-go:** `MOMO_SUBMIT_FINISH=0` wash, `COTM_COUNTER_CPU_TIME` guest semantic change, `WOL_UNIFORM_CACHE=1` wash, `COTM_TEXTURE_PARAMETER_CACHE=1` not accepted, `ZERO_RENDER_SCALE` black, blind 1080p/metadata v24 resize, speculative async/pins, unproven CPU shadow eviction, unknown-liveness guest page reclaim.
+
+### 25.8 Acceptance mathematics and next commits (NOT yet implemented)
+
+**30 FPS debt:** `40.412−33.333=7.079 ms/frame`. Recover **end-to-end critical-path** time, not local/nested wall timer or a relocated fence. Existing `NVN_PROFILE` P95 is **P95 of 60-frame averages**, not P95 of single frame intervals. Final gate: individual frame-to-frame physical *distinct* scanout periods, p50/P95/P99 and >50ms hitch count, moving gameplay with unchanged scenery/map/dialogue/inventory, real input and audio, ordinary DLC, cold save/load and endurance. No false success from counters without a moving KMS scene. Confirm active boot/PID/ELF, default flags, memory/CMA/thermals, production byte hashes and clean Spruce MainUI recovery.
+
+**Proposed small commits in dependency order:**
+1. `test(horizon): restore changed-file patch contract and run V3-ledger tests in Actions` (B0, first).
+2. `evidence(horizon): extract existing c8 pp1–pp5 sampler zones by scene and owner` (offline analysis).
+3. `diag(horizon): default-off opcode/quiet-sample sampler CPU ledger` (H-S1).
+4. `evidence(horizon): matched H-S1 OFF/ON/OFF with physical frames, CMA and swap`.
+5. `perf(horizon): one owner-proved sampler fast path OR other named CPU/GPU cost` (conditional).
+6. `test(native): isolated post-audio Unity scene and save/endurance receipts` (separate track).
+
+**Conclusion:** restoring sound CI and identifying the *specific sampler-prepare CPU owner* is the current critical path to an honest optimization. Neither the published ~7.27-ms mixed sampler wall sum nor the 6.05-ms DrawArrays CPU can be called a 7-ms removable cost without overlap, resource lifetime and physical-frame proof.
 
