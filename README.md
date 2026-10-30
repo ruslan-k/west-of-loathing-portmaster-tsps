@@ -2,7 +2,7 @@
 
 **Current port: native ARM64 Unity, packed game + Reckonin' at Gun Manor DLC, working audio confirmed by the owner.**
 
-The active layout is [`port/`](port/README.md): one **West of Loathing.sh** launcher and one **westofloathing/** directory. It replaces the older Switch/Horizon experiments. Those sources and reports are retained as historical research, not as the current port or its performance evidence.
+The **installed, user-facing** layout is [`port/`](port/README.md): one **West of Loathing.sh** launcher and one **westofloathing/** directory. It replaced the older Switch/Horizon installation. The **separate Switch v327680 Horizon/NVN→GLES candidate is still under active experimental development**, but it is **not** the current installed port; its FPS, memory and GPU measurements cannot be used to characterize the native Unity installation.
 
 ## What works and what is not yet certified
 
@@ -14,7 +14,7 @@ The active layout is [`port/`](port/README.md): one **West of Loathing.sh** laun
 
 See [current verification](docs/native-unity-port.md) for exact hashes, evidence boundaries and migration details.
 
-For prioritized, current optimization work (native Unity first, historical Horizon only as a separate research track), see the [active performance and memory roadmap](docs/optimization-roadmap-active-native-unity-2026-10-29.md). The older [Switch/Horizon roadmap](docs/optimization-roadmap.md) is retained for historical evidence.
+For both independent optimization tracks (installed Unity/Mono and actively researched Horizon v327680), see the [active performance and memory roadmap](docs/optimization-roadmap-active-native-unity-2026-10-29.md#25-current-horizon-v327680-optimization-plan--2026-10-30), and the [latest matched Horizon profile](evidence/horizon-e1c-abc-2026-10-30/README.md). The older [Switch/Horizon roadmap](docs/optimization-roadmap.md) is retained for historical evidence. Neither experimental results nor candidate patches have been promoted to the installed Unity build.
 
 ## Install / build
 
@@ -45,4 +45,4 @@ The audio overlay includes real SDL queue/drain/error tests. [`runtime/unity/REA
 
 ## Historical research
 
-The prior Switch route lives in [`docs/tsps-horizon-adapter.md`](docs/tsps-horizon-adapter.md), [`docs/optimization-roadmap.md`](docs/optimization-roadmap.md), `build_horizon.sh`, and the old evidence directories. Historical performance figures and acceptance statements apply only to the exact old artifacts they name. The shipped Switch runtime and its menu launcher are no longer part of `port/`.
+The independent experimental Switch route lives in [`docs/tsps-horizon-adapter.md`](docs/tsps-horizon-adapter.md), [`docs/optimization-roadmap.md`](docs/optimization-roadmap.md), `build_horizon.sh`, the current isolated Horizon evidence and earlier historical directories. Older performance figures and acceptance statements apply only to the exact artifacts they name. The shipped Switch runtime and its menu launcher are no longer part of `port/`, even though development on the isolated Horizon candidate continues.
