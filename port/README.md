@@ -15,6 +15,9 @@ westofloathing/
   runtime-manifest.json      SHA-256 and upstream identities
 ```
 
+**Mandatory update + DLC release gate:** this installed Unity/Mono layout has sound and packaged Gun Manor assets, but its original owner Linux game's **content-update version** is not pinned or proven equivalent to the requested Switch `v327680`; ordinary Dirtwater→ghost-carriage→Gun Manor entry and cold save/reload have not passed. [Track A3](../evidence/unity-trackA-2026-10-30/README.md) measures 41.4–41.6 host FPS with audio over 90s, **not** updated+DLC gameplay. Do **not** represent this folder as a verified complete updated+DLC release until the [release gate](../docs/release-gate-update-dlc-2026-10-30.md) is fully met. The exact Switch v327680 binary and PC Mono data are not interchangeable.
+
+
 ## Owner-only files to add
 
 Use the output of [`../tools/unity/prepare_packed.py`](../tools/unity/README.md) and the exact **Unity 2017.4.19f1 ARM64 IL2CPP player**:
