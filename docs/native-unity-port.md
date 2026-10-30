@@ -1,4 +1,8 @@
-# Native Unity ARM64 port — current verification
+# Native Unity ARM64 port — verified capability versus required update/DLC (2026-10-30)
+
+> **Release eligibility: INCOMPLETE** under the owner's new mandatory condition: requested Switch title update `v327680` (or an **explicitly approved, verified function/content-equivalent updated PC release**) **and** full `Reckonin' at Gun Manor` DLC. The installed game data comes from an owner Linux Mono build. The repository pins Unity **2017.4.19f1** and the host, **NOT the original Linux application's patch/content version**; that must be proven before this can be suggested as an updated-game replacement. The old KMS Gun Manor validation entered from a **diagnostic duplicate save**, not from ordinary Dirtwater progress. See [release gate](release-gate-update-dlc-2026-10-30.md) and [current roadmap §28](optimization-roadmap-active-native-unity-2026-10-29.md#28-mandatory-update-and-dlc--architecture-and-optimization-reset-2026-10-30).
+
+> **New post-audio device measurement:** [`trackA3`](../evidence/unity-trackA-2026-10-30/README.md) started via genuine Spruce principal/menu handoff. It measured **41.4–41.6 host-reported FPS** over 90 s, audio FMOD→SDL/ALSA live, VmRSS ~636–649 MB, **VmSwap=0**, no hitches in last sampled windows, clean MainUI return; previous ~47 FPS was invalidated by an incorrect launch path. **Not tested:** moving gameplay, normal DLC entry, updated patch-version equivalence, save/cold-load or 45-minute endurance. Do not describe 41.4 as an accepted full updated+DLC game FPS benchmark.
 
 ## Architecture and provenance
 
