@@ -595,6 +595,16 @@ H-D1 candidate SHA256 `5786a3629f0210318d42e24a38f0703971e2019d0e7406cb87850a6e9
 
 **Exit B1:** reproducible effective ELF/image identity, no mapping stop, normal CMA admission, KMS moving scene and original protected Unity hashes intact. **H-D1 has produced no performance samples yet**, despite having source and host test artifacts.
 
+### 26.3a H-D1 ledger static correctness defect — must fix before any H-D1 numbers
+
+**Directly verified, independent of the segment mismatch:** H-D1's [staged header](../evidence/horizon-hd1-2026-10-30/wol_da_split.h) defines `WOL_DA_STAGES 11`, and the [staged nvn_queue patch](../evidence/horizon-hd1-2026-10-30/nvn_queue.patch) declares **11 actual `NPS_*` stage IDs** (`NPS_A1=0 ... NPS_SUBMIT=10, NPS_COUNT=11`). Yet `wol_da_open_draw()` stores the **whole draw** start timestamps in `w0[WOL_DA_STAGES-1]` and `c0[WOL_DA_STAGES-1]` — **slot 10**, exactly the slot subsequently overwritten by `nvn_sub_begin(NPS_SUBMIT,...)`. `wol_da_close_draw()` then measures its supposed full draw relative to the *submit stage*, rather than draw entry. `wol_da_residual_cpu()` also iterates `k+1<WOL_DA_STAGES`, **excluding the submit stage from its sum**. Consequently the published staged profiler, if it ever reached gameplay, **would not produce trustworthy whole-draw CPU totals or residuals**.
+
+This is a **source-level proof**, not an observed runtime failure: the two device attempts stopped on `rtld.text.seg` before DrawArrays. The existing [test](../tools/test_wol_da_split.py) checks stage IDs **0 and 1**, not **10/NPS_SUBMIT**, so does not catch the collision. And the test may silently `SkipTest` without a private header path.
+
+**Required correction (not performed in this docs audit):** use arrays indexed **0..NPS_COUNT-1** exclusively for the 11 `NPS_*` stages, with **separate `draw_wall_t0` and `draw_cpu_t0` fields** for the enclosing draw, or a distinct index **NPS_COUNT=11** with a 12-slot state that cannot alias `NPS_SUBMIT=10`. Make `_Static_assert`/compile-time bounds explicit; include **all 11** stages in the residual; count nest/overlap and timestamp overhead; synthetic test `NPS_SUBMIT` as the last stage plus a larger enclosing interval, two separate frames and reset. Assert actual total≥stage sums **only when non-overlap is proven**. Add a no-SkipTest fixture and exercise with data-free CI before B1 gameplay retest.
+
+**Priority impact:** B0 (CI) and B1 (ELF/image) remain first, but **H-D1 arithmetic correctness is a third independent gate** before recording any H-D1 CPU stage output. H-S1 must also use separate enclosing and per-stage clocks; do not copy this bug.
+
 ### 26.4 Horizon accepted baseline and false leads
 
 Working v327680 source/ELF `f5c6f6f2…` fresh-boot matched OFF/ON/OFF gives median **60-frame-average time** `40.608 / 40.412 / 40.184 ms` (approximately 24.6–24.9 runtime presents/s), V3 overhead ~**0.04%**. On same heavy scene, three `DrawArrays` calls consume **7.264 ms wall / 6.047 ms thread CPU**; two `ReportCounter` **8.482 ms wall / 0.198 ms CPU**. Times are **class-local**, not guaranteed additive net gains.
@@ -651,7 +661,7 @@ Installed `ua_host`/Mono uses the exact 2017.4.19f1 donor, ASTC/highp and owner-
 | P0 H-S0 | Offline pp1..pp5 c8 breakdown | **OPEN** | Per-zone bounded count/time report, unchanged raw XZ hashes and nested units. |
 | **P0 N0/N1** | Installed Unity post-audio certification | **OPEN, separate** | Proper input/audio/save/DLC/endurance and physical frame pacing. |
 | H-E1c / H-P1 | Matched V3 and glFinish negative | **DONE / CLOSED** | Reopen only with fresh causal evidence. |
-| H-D1 | Stage ledger source/test | **STAGED, DEVICE FAIL** | B1 fixed, portable fixture, opcode CPU reconciliation after running real scene. |
+| H-D1 | Stage ledger source/test | **STAGED, DEVICE FAIL + PROVEN TIMER INDEX COLLISION** | Fix NPS_SUBMIT=10 vs enclosing-draw slot=10 first; B1 boot + portable fixture + stage CPU reconciliation. |
 | P0-after-B1 H-S1 | Sampler owner CPU by opcode/quiet vs real | **PROPOSED, NOT CODED** | ±5% V3 reconciliation, ≤5% overhead, matched images and CMA. |
 | P1 H-S2 / H-CPU1 | One proven safe fast path | **CONDITIONAL** | A/B/A/B/A, unchanged state and physical images, measurable net frame saving. |
 | P0-safety H-M2 | Exact memory/GPU allocation owner | **PENDING** | No cache/page release without alias/fence/liveness proof. |
