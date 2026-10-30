@@ -63,3 +63,20 @@ E1C_EXTRA_ENV='{"WOL_REFRESH_OFF":"1","AW_RELEASE":"0"}'        ./e1c_boot_run.s
 E1C_EXTRA_ENV='{"WOL_FLUSH_CENSUS":"1","AW_RELEASE":"0"}'      ./e1c_boot_run.sh fc1 off
 E1C_EXTRA_ENV='{"WOL_UPRENDER24_SCALE":"1","AW_RELEASE":"0"}'  ./e1c_boot_run.sh sc1 off
 ```
+
+## H-T1d — GPU-resident region blit (roadmap §28 item 3)
+
+`WOL_COPY_GPU=1` turns the 1280x720 guest copy into `wol_blit_region()` on the GPU: no CPU copy, no
+extra CMA buffer, the existing textures only.
+
+| Arm (frames 900–2400, 25 windows each) | Frame | Replay CPU |
+|---|---:|---:|
+| baseline | 42.37 ms | 26.04 ms |
+| refresh off (stale pixels) | 37.50 ms | 21.62 ms |
+| **GPU copy** | **40.78 ms** | **22.75 ms** |
+
+Image check: `frame proof verdict=OK … non-black 95.7%`, and the KMS capture at 180 s shows the full
+Dortwater scene with readable text and no flip or black band.
+
+Result: **−1.6 ms frame, −3.3 ms replay CPU**, pixels intact. That is below the 2.0 ms stop-loss bar as
+a whole-frame win, and the remaining gap to 30 fps is 7.5 ms — no known lever covers it.
