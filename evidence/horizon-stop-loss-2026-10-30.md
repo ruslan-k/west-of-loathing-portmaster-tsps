@@ -1,3 +1,5 @@
+> **CORRECTION AFTER H2, 2026-10-30:** this older stop-loss document's attribution of texture `id=82` dirty solely to a guest `zero_texture_pool_flushed()` is **superseded** by [new H2 source/device evidence](horizon-h2-2026-10-30/README.md): `nvn_render_color_copy` copies the **entire 1280×720 frame** from source `id=2` to destination `id=82` and itself sets `dst->zero_cpu_dirty=1`; `zero_texture_pool_flushed` was not reached in that build. The stale-pixel diagnostic `WOL_REFRESH_OFF=1` improved the H2 frame only 42.90→37.37ms and is **not valid gameplay**. Moreover, the project's actual release needs both exact requested update v327680 and Gun Manor normal entry, not just a fast installed Linux version. Current authoritative [§28](../docs/optimization-roadmap-active-native-unity-2026-10-29.md#28-mandatory-update-and-dlc--architecture-and-optimization-reset-2026-10-30). This file is historical evidence, not current optimization authority.
+
 # Horizon stop-loss decision — 2026-10-30
 
 Per roadmap §27: Horizon gets **at most** H-T0 (prove whether the `id=82` re-upload can be avoided
