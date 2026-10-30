@@ -104,6 +104,27 @@ unaccounted remainder (accounted share falls 39.2 % → 16.9 %). Scene identity 
 effect is 1.3 %, far short of the 7.1 ms needed. The 30 FPS gap must be addressed in GPU work or in
 the `DrawArrays` CPU path (5.6–6.0 ms of thread CPU per frame), not in counter synchronization.
 
+## CPU attribution after H-P1 — where the `DrawArrays` 6 ms actually is
+
+Same scripted fresh-boot runs, default-OFF profilers, ELF `f5c6f6f2`:
+
+- `COTM_REPLAY_PHASES=1`, steady window (frame 4081): `DrawArrays` **6.804 ms/frame** (3 calls,
+  **2.27 ms/call**), `DrawElementsBaseVertex` 4.470 (62.5 calls, 71 µs/call), `Downsample` 2.036
+  (4 calls, 509 µs/call), `CopyTextureToTexture` 1.215 (1 call), `ReportCounter` 8.42 (proved dead
+  above).
+- `NVN_DRAW_SPLIT` (frame 3661, 60 draws/frame): **a2c1 7.764 ms**, submit 1.225, mid 1.004,
+  a3 0.250, a2c2 0.386, everything else <0.4. The draw CPU is the texture-resolution zone.
+- `WOL_SAMPLE_SPLIT=1` (frame 3900, ~120 sampler calls/frame): **sm1 7.272 ms/frame**
+  (`nvn_render_sampler_prepare_mode`: zero_texture_refresh, materialize, rt-storage require/sample,
+  mfc require) ≈ **61 µs/call**; sm3 0.342 (bind/params/cpu-image), sm2/sm4 ≤0.06. Profiling
+  overhead in the frame was only +0.5 ms (p50 40.935).
+- A/B `COTM_TEXTURE_PARAMETER_CACHE=1` (frame p50 40.292 vs 40.412, DrawArrays CPU 5.946 vs 6.047):
+  **negative** — repeated `glTexParameteri` is not the cost.
+
+**Next**: sub-split sm1 (zero refresh vs materialize vs rt-storage vs mfc) in one rebuild; the
+candidate fix is to stop paying full sampler preparation for *candidate* textures during the
+quiet-mode pick, which only needs a liveness/size lookup.
+
 ## Verdict
 
 - **H-E1c closed**: frame ownership is repaired, ledger overhead is 0.04 %, and the matched-scene
