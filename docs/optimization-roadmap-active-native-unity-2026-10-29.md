@@ -501,9 +501,9 @@ The async failure is still `NVN_PROGRAM_INVALID detail=0`; no recorded evidence 
 | ID | Status/rank | Work and acceptance |
 |---|---|---|
 | **H-E1b** | **done, incomplete/invalid for scene-critical conclusion** | Per-op class wall/CPU and unit labels exist, but frame rollover and unmatched scene invalidate attribution as steady ~43-ms gameplay. |
-| **H-E1c** | **P0 — single immediate reversible experiment** | Correct V2 → V3 frame ownership and run OFF/ON/OFF against **identical real ~71–73-draw gameplay**, with bounded overhead and KMS identity. |
-| **H-M1** | **P0 passive accompaniment** | Timestamped CMA/SwapPSS/fault/swap + GPU/guest allocation owner candidates in **same** E1c run; no new GPU allocations or memory eviction. |
-| **H-P1** | P1 conditional | If real handler wall≫CPU at matched scene, bracket the exact **existing host/driver/fence/wait** call; show attribution, not a “GPU wait” guess. |
+| **H-E1c** | **DONE 2026-10-30** | V3 frame ownership repaired and run OFF/ON/OFF on three fresh boots against the same real gameplay: p50 40.608 / 40.412 / 40.184 ms, p95 41.86/41.35/41.39, ledger overhead **+0.04 %**, KMS scene match at 180/240 s. [evidence](../evidence/horizon-e1c-abc-2026-10-30/README.md). Terminal bucket still unflushed (≤1 frame). |
+| **H-M1** | **DONE as passive series** | CMA/SwapPss/VmSwap/pswp in the same three arms: `CmaFree` 128–130 MB preflight → 0.3–1.9 MB in gameplay → 117–130 MB after exit; VmSwap ~0.92 GB. System-level, no owner attribution. |
+| **H-P1** | **P0 — single next experiment** | The matched scene shows `ReportCounter` 8.48 ms wall at 0.20 ms CPU per frame, so the block is real. Name the exact existing host/driver/fence/wait call and prove deferral legal before any renderer change. |
 | **H-G1** | P1 conditional | Join the three 7-vertex draws to real GL FBO/program/window slot; validate existing nonblocking `WOL_GPU_TIMELINE`, reject disjoint/unsupported timers. |
 | **H-M2** | P1 memory architecture | Prove real owner of CMA and swapped guest pages; quantify safe reuse/reclaim only with liveness and alias safety. |
 | **H-A0/A1** | P3 BLOCKED | Shader program object identity and safe incremental CMA budget first; recent pin experiment is not accepted. |
@@ -535,5 +535,5 @@ The async failure is still `NVN_PROGRAM_INVALID detail=0`; no recorded evidence 
 
 **Proposed commits (NOT performed here):** (1) `diag(horizon): repair first-op frame rollover and add V3 CPU/wall ledger`; (2) `evidence(horizon): matched scripted gameplay V3 OFF/ON/OFF with CMA series`; (3) `diag(horizon): attribute named counter wait or CPU-hot draw if V3 confirms`; (4) `diag(horizon): join seven-vertex draw to GL/FBO/window owner and validate GPU timer if relevant`; (5) `perf(horizon): one proven safe pixel-equivalent or sync critical-path optimization`.
 
-**Verdict:** **H-E1c is the sole immediate reversible code experiment; H-M1 is passive accompanying observation**. E1b and H-M0 are valuable but **not** a 30 FPS or memory-safe async qualification. Leave installed Unity/Mono production entirely unchanged.
+**Verdict:** **H-E1c is closed** (matched fresh-boot OFF/ON/OFF, +0.04 % overhead, 2026-10-30) and **H-P1 is now the sole immediate experiment**: name the existing wait that costs 8.48 ms wall per frame inside `ReportCounter`. E1b and H-M0 are valuable but **not** a 30 FPS or memory-safe async qualification. Leave installed Unity/Mono production entirely unchanged.
 

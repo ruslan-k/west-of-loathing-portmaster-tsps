@@ -7,6 +7,13 @@
 **Run:** `e1b`, `WOL_OP_SPLIT=1` (default-OFF profiler), scripted input, 90 reported frames
 **Production Unity port and saves untouched; probe tree only.**
 
+> **Later status, 2026-10-30 09:40:** H-E1c is now **closed** on ELF `f5c6f6f2` with a matched
+> fresh-boot OFF/ON/OFF (40.608 / 40.412 / 40.184 ms p50, overhead +0.04 %) and a passive H-M1
+> series — see the H-E1c section below and
+> [evidence/horizon-e1c-abc-2026-10-30](../evidence/horizon-e1c-abc-2026-10-30/README.md).
+> `ReportCounter` still blocks (8.48 ms wall / 0.20 ms CPU per frame) in the matched scene; the
+> single next experiment is H-P1, naming that wait.
+
 ## H-E1b — per-class op budgets with explicit units — **IMPLEMENTED; frame-ownership bug identified**
 
 `WOL_OP_SPLIT` was rewritten (commit `0593c9e`): separate accumulators for `DrawArrays` and
@@ -120,6 +127,17 @@ Two findings that differ from E1b:
 2. **`ReportCounter` remains off-CPU**: ~6.9–7.5 ms wall at 0.17–0.21 ms CPU — a genuine block, but its
    owner (fence vs driver backpressure) is still unnamed.
 
-`NVN_PROFILE` in the same run shows 60.338 ms/frame at frame=121 (startup period still dominates), so
-these frames are **not** the historical 71–73-draw scene; the numbers are per-op facts, not a baseline
-claim. Missing: OFF→ON pair on identical scene, unit tests for V3 rollover/terminal bucket.
+`NVN_PROFILE` in that run showed 60.338 ms/frame at frame=121 (startup period dominated), so those
+frames were **not** the historical 71–73-draw scene; the numbers are per-op facts, not a baseline
+claim.
+
+**Closed the gap the same day** with a matched fresh-boot **OFF/ON/OFF** (`c1-off` 40.608 ms,
+`c2-on` 40.412 ms, `c3-off` 40.184 ms; p95 41.86/41.35/41.39, replay 24.4–24.8 ms). Ledger overhead
+**+0.04 %**, scene identity confirmed by KMS captures at 180/240 s, CMA preflight 128–130 MB on each
+boot. In the matched heavy scene `DrawArrays` is 7.264 ms wall / **6.047 ms CPU** per frame and
+`ReportCounter` is 8.482 ms wall / **0.198 ms CPU** — accounted 15.84 ms (39.2 %). The
+`ReportCounter` block therefore **does recur** in real gameplay; only its owner is still unnamed.
+Evidence: [horizon-e1c-abc-2026-10-30](../evidence/horizon-e1c-abc-2026-10-30/README.md).
+Known limit: the terminal partial bucket is still not flushed (≤1 frame), and only one worker
+thread emitted rows.
+
